@@ -2423,7 +2423,8 @@ const Cloud=(()=>{
    const M=g(media,'post_id',r=>r.media_url),L=g(lks,'post_id',r=>r.user_id),S=g(svs,'post_id',()=>s.user.id);
    const C=g(cms.filter(r=>!['rejected','hidden'].includes(r.status)),'post_id',r=>({id:r.id,userId:r.author_id,body:r.content,parentId:r.parent_id,likes:[],at:Date.parse(r.created_at)}));
    const need=new Set([...rows.map(r=>r.author_id),...cms.map(r=>r.author_id)]);if(s)need.add(s.user.id);
-   const prof=await q(c().from('profiles').select('*').in('id',[...need]));
+   let prof=await q(c().from('profiles').select('*').order('created_at',{ascending:false}).limit(500));
+   if(!prof.length&&need.size)prof=await q(c().from('profiles').select('*').in('id',[...need]));
    DB.users=prof.map(fromProfile);
    if(s&&!DB.users.some(u=>u.id===s.user.id)){const m=s.user.user_metadata||{};DB.users.push(mk({id:s.user.id,name:m.name||(s.user.email||'').split('@')[0],email:s.user.email,kind:KIND[m.kind]||m.kind}));}
    const em=await q(c().from('user_emblems').select('user_id,emblem'));
