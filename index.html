@@ -2479,8 +2479,9 @@ const Cloud=(()=>{
    const {error}=await c().from('profiles').update(row).eq('id',u.id);if(error)throw error;save();render();})().catch(e=>fail(e));};
  API.logout=function(){A.logout();if(on())c().auth.signOut();};
  if(on()){
-  DB.users=[];DB.posts=[];DB.follows=[];DB.notifs=[];DB.flags=[];DB.promos=[];DB.audit=[];
-  DB.reports=(DB.reports||[]).filter(r=>UUID.test(r.userId||''));store.del('econova_session');render();
+  DB.users=DB.users.filter(u=>UUID.test(u.id));DB.posts=DB.posts.filter(x=>UUID.test(x.id));DB.follows=[];DB.notifs=[];DB.flags=[];DB.promos=[];DB.audit=[];
+  DB.reports=(DB.reports||[]).filter(r=>UUID.test(r.userId||''));
+  if(!UUID.test(store.get('econova_session')||''))store.del('econova_session');
   api.sync().then(()=>render()).catch(e=>{console.error(e);toast('No se pudo conectar con EcoNova. Reintenta en un momento.','err');});
  }
  return api;
