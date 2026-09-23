@@ -856,6 +856,19 @@ body.auth-route #topbar, body.auth-route #bottomnav{display:none!important}
  .auth-switcher-cover{padding:3px!important;gap:2px!important}
  .auth-switcher-cover button{font-size:10px!important;padding:8px 8px!important}
 }
+
+/* Buscador: expansión suave y sin zoom en iPhone */
+.top-search input:focus,.searchbox input:focus{outline:0!important;box-shadow:none!important;background:transparent!important;border-color:transparent!important}
+.top-search,.searchbox{transition:width .32s cubic-bezier(.2,.8,.2,1),max-width .32s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease,border-color .25s ease,background-color .25s ease}
+.top-search:focus-within{width:min(520px,52vw);max-width:520px;background:#fff;border-color:var(--green);box-shadow:0 0 0 3px rgba(14,92,62,.14)}
+.searchbox:focus-within{border-color:var(--green);box-shadow:0 0 0 3px rgba(14,92,62,.14)}
+@media(max-width:760px){
+ #topbar .wm,#topbar .tb-ico{max-width:140px;transition:max-width .32s cubic-bezier(.2,.8,.2,1),opacity .22s ease,margin .32s ease,padding .32s ease,border-width .32s ease}
+ #topbar .tb-ico{max-width:60px}
+ #topbar:has(.top-search:focus-within) .wm,#topbar:has(.top-search:focus-within) .tb-ico{max-width:0;opacity:0;margin:0;padding-left:0;padding-right:0;border-width:0;overflow:hidden}
+ .top-search:focus-within{flex:1 1 auto;width:100%;max-width:100%}
+}
+@supports(-webkit-touch-callout:none){input,textarea,select{font-size:16px!important}.top-search input::placeholder{font-size:13px}}
 </style>
 </head>
 <body>
@@ -867,6 +880,10 @@ body.auth-route #topbar, body.auth-route #bottomnav{display:none!important}
 
 <script>
 /* ═════════ EcoNova · Red social ambiental · v4 (logo oficial) ═════════ */
+let RECOVERY_TOKENS=null,LINK_ERROR=null;
+(()=>{try{const h=location.hash||'';const q=new URLSearchParams(h.replace(/^#\/?/,''));
+ if(q.get('access_token')&&q.get('type')==='recovery'){RECOVERY_TOKENS={access_token:q.get('access_token'),refresh_token:q.get('refresh_token')};history.replaceState(null,'',location.pathname+location.search+'#/entrar');}
+ else if(q.get('error_code')){LINK_ERROR=q.get('error_code');history.replaceState(null,'',location.pathname+location.search+'#/entrar');}}catch(e){}})();
 window.addEventListener('error',e=>console.error('[EcoNova] Error:',e.message,e.filename,e.lineno,e.colno,e.error));
 window.addEventListener('unhandledrejection',e=>console.error('[EcoNova] Promesa rechazada:',e.reason));
 
@@ -1392,15 +1409,25 @@ function viewFeed(){
  </div>`;
 }
 let GQ='';
-function viewExplore(){
- const q=GQ.toLowerCase();
- const posts=DB.posts.filter(p=>p.status==='APPROVED'&&!p.sharedFrom&&(q?(p.title+p.body+p.tags.join(' ')+userById(p.userId).name).toLowerCase().includes(q):true)).sort((a,b)=>b.likes.length-a.likes.length).slice(0,12);
- const users=DB.users.filter(x=>x.kind!=='ADMIN'&&q&&x.name.toLowerCase().includes(q));
- return`<div>
-  <div class="searchbox" style="display:block;margin-bottom:18px">${ic('search')}<input id="expq" placeholder="Buscar publicaciones, personas o #hashtags…" value="${esc(GQ)}"></div>
-  ${users.length?`<div class="card pad mb2"><h4 class="xs mut" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Personas y organizaciones</h4>${users.map(x=>`<div class="sug-row">${avatar(x,38,13)}<div class="info"><b><a href="#/perfil/${x.id}">${esc(x.name)}</a></b><span>${KINDS[x.kind].l} · ${esc((x.bio||'').slice(0,60))}</span></div><a class="btn btn-ghost btn-sm" href="#/perfil/${x.id}">Ver</a></div>`).join('')}</div>`:''}
+const normQ=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+function lev(a,b,max){if(Math.abs(a.length-b.length)>max)return max+1;let prev=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const cur=[i];let min=i;for(let j=1;j<=b.length;j++){const v=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));cur[j]=v;if(v<min)min=v;}if(min>max)return max+1;prev=cur;}return prev[b.length];}
+function tokScore(t,words){let best=0;const allow=t.length<=3?0:t.length<=5?1:2;for(const w of words){let sc=0;if(w===t)sc=3;else if(w.startsWith(t))sc=2.5;else if(t.length>=3&&w.includes(t))sc=2;else if(allow){const d=Math.min(lev(t,w,allow),lev(t,w.slice(0,t.length),allow));if(d<=allow)sc=1.6-d*.3;}if(sc>best)best=sc;if(best===3)break;}return best;}
+function fuzzyScore(q,fields){const toks=normQ(q).split(' ').filter(Boolean);if(!toks.length)return 0;const wl=fields.map(([t,w])=>[normQ(t).split(' ').filter(Boolean),w]);let total=0;for(const t of toks){let best=0;for(const [words,w] of wl){const sc=tokScore(t,words)*w;if(sc>best)best=sc;}if(!best)return 0;total+=best;}return total/toks.length;}
+function exploreResults(){
+ const q=GQ.trim();
+ let posts=DB.posts.filter(p=>p.status==='APPROVED'&&!p.sharedFrom),users=[];
+ if(q){
+  posts=posts.map(p=>({p,s:fuzzyScore(q,[[p.title,3],[(p.tags||[]).join(' '),2.5],[userById(p.userId).name,2],[p.body,1],[p.loc,1]])})).filter(x=>x.s>0).sort((x,y)=>y.s-x.s||y.p.likes.length-x.p.likes.length).slice(0,20).map(x=>x.p);
+  users=DB.users.filter(x=>x.kind!=='ADMIN').map(x=>({x,s:fuzzyScore(q,[[x.name,3],[(x.email||'').split('@')[0],2],[x.loc,1],[x.bio,.5]])})).filter(r=>r.s>0).sort((m,n)=>n.s-m.s).slice(0,15).map(r=>r.x);
+ }else posts=posts.sort((x,y)=>y.likes.length-x.likes.length).slice(0,12);
+ return`${users.length?`<div class="card pad mb2"><h4 class="xs mut" style="text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Personas y organizaciones</h4>${users.map(x=>`<div class="sug-row">${avatar(x,38,13)}<div class="info"><b><a href="#/perfil/${x.id}">${esc(x.name)}</a></b><span>${KINDS[x.kind].l} · ${esc((x.bio||'').slice(0,60))}</span></div><a class="btn btn-ghost btn-sm" href="#/perfil/${x.id}">Ver</a></div>`).join('')}</div>`:''}
   <h3 style="font-size:18px;margin-bottom:12px">${q?`Resultados (${posts.length})`:'Destacados por la comunidad'}</h3>
-  ${posts.map(postCard).join('')||'<p class="mut">Sin resultados.</p>'}
+  ${posts.map(postCard).join('')||'<p class="mut">Sin resultados. Prueba con otra palabra o revisa la ortografía.</p>'}`;
+}
+function viewExplore(){
+ return`<div>
+  <div class="searchbox" style="display:block;margin-bottom:18px">${ic('search')}<input id="expq" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Buscar publicaciones, personas o #hashtags…" value="${esc(GQ)}"></div>
+  <div id="explore-results">${exploreResults()}</div>
  </div>`;
 }
 let mapLayers={reports:true,camps:true,orgs:true},mapCat='';
@@ -1967,7 +1994,7 @@ function admUsers(){
  <td><span class="chip">${KINDS[u.kind].l}</span></td><td class="sm">${esc(u.email)}</td>
  <td>${DB.posts.filter(p=>p.userId===u.id).length}</td>
  <td>${u.suspended?'<span class="badge st-rejected">Suspendido</span>':'<span class="badge st-approved">Activo</span>'}</td>
- <td><button class="btn ${u.suspended?'btn-sm" style="background:var(--green);color:#fff':'btn-danger btn-sm'}" data-action="u-susp" data-u="${u.id}">${u.suspended?'Reactivar':'Suspender'}</button></td></tr>`).join('')}</tbody></table></div>`;
+ <td><div style="display:flex;gap:6px;flex-wrap:wrap"><a class="btn btn-ghost btn-sm" href="#/perfil/${u.id}">Ver perfil</a><button class="btn ${u.suspended?'btn-sm" style="background:var(--green);color:#fff':'btn-danger btn-sm'}" data-action="u-susp" data-u="${u.id}">${u.suspended?'Reactivar':'Suspender'}</button></div></td></tr>`).join('')}</tbody></table></div>`;
 }
 function admOrgs(){
  const pend=DB.users.filter(u=>['ORG','EMPRESA'].includes(u.kind)&&!u.verified);
@@ -2209,7 +2236,9 @@ document.addEventListener('click',e=>{
   case 'notif-drop':dropOpen=dropOpen==='notif'?null:'notif';if(dropOpen==='notif'){const u=sess();DB.notifs.filter(n=>n.userId===u.id).forEach(n=>n.read=true);save();}chromeTop();break;
   case 'auth-tab':authMode=el.dataset.m;location.hash=authMode==='registro'?'#/registro':'#/entrar';render();break;
   case 'toggle-auth-pass':{const inp=document.getElementById(el.dataset.target);if(inp)inp.type=inp.type==='password'?'text':'password';break;}
-  case 'forgot-password':toast('La recuperación de contraseña estará disponible próximamente.','ok');break;
+  case 'forgot-password':Cloud.forgotModal();break;
+  case 'forgot-send':Cloud.forgotSend();break;
+  case 'reset-save':Cloud.resetSave();break;
   case 'terms-open':openLegal('terms');break;
   case 'privacy-open':openLegal('privacy');break;
   case 'auth-back':location.hash='#/';break;
@@ -2369,10 +2398,10 @@ document.addEventListener('change',e=>{
  }
  if(inp.id==='mapcat'){mapCat=inp.value;render();}
 });
-document.addEventListener('keydown',e=>{if(e.target.id==='global-search'&&e.key==='Enter'){e.preventDefault();GQ=e.target.value.trim();location.hash='#/explorar';render();}});
+document.addEventListener('keydown',e=>{if(e.target.id==='global-search'&&e.key==='Enter'){e.preventDefault();GQ=e.target.value.trim();e.target.blur();location.hash='#/explorar';render();}});
 document.addEventListener('input',e=>{
  if(e.target.id==='global-search'){GQ=e.target.value;return;}
- if(e.target.id==='expq'){GQ=e.target.value;clearTimeout(window._qt);window._qt=setTimeout(()=>{const q=GQ.trim();if(q.length>=2){const u=sess();if(u){DB.activity=Array.isArray(DB.activity)?DB.activity:[];const last=DB.activity.find(a=>a.userId===u.id&&a.type==='search');if(!last||last.q!==q){DB.activity.unshift({id:uid(),userId:u.id,type:'search',q,at:Date.now()});DB.activity=DB.activity.slice(0,1200);save();}}}render();const i=$('#expq');if(i){i.focus();i.setSelectionRange(GQ.length,GQ.length);}},500);}
+ if(e.target.id==='expq'){GQ=e.target.value;clearTimeout(window._qt);window._qt=setTimeout(()=>{const q=GQ.trim();if(q.length>=2){const u=sess();if(u){DB.activity=Array.isArray(DB.activity)?DB.activity:[];const last=DB.activity.find(a=>a.userId===u.id&&a.type==='search');if(!last||last.q!==q){DB.activity.unshift({id:uid(),userId:u.id,type:'search',q,at:Date.now()});DB.activity=DB.activity.slice(0,1200);save();}}}const box=$('#explore-results');if(box)box.innerHTML=exploreResults();else render();},180);}
 });
 function renderPreviews(target){
  const map={post:['post-previews',postImgs],rep:['rep-previews',repImgs],camp:['camp-previews',campImgs]};
@@ -2394,6 +2423,8 @@ const Cloud=(()=>{
   if(/Invalid login/i.test(m))return'Correo o contraseña incorrectos.';
   if(/already registered|already been registered/i.test(m))return'Ya existe una cuenta con ese correo.';
   if(/not confirmed/i.test(m))return'Confirma tu correo antes de entrar (revisa tu bandeja).';
+  if(/different from the old/i.test(m))return'La nueva contraseña debe ser distinta a la anterior.';
+  if(/rate limit|too many|seconds/i.test(m))return'Demasiados intentos. Espera un minuto e inténtalo de nuevo.';
   if(/at least 6/i.test(m))return'La contraseña necesita al menos 6 caracteres.';
   if(/row-level security|permission denied/i.test(m))return'No tienes permiso para hacer esto.';
   return m||'Ocurrió un error. Intenta de nuevo.';};
@@ -2450,6 +2481,21 @@ const Cloud=(()=>{
    if(data.session){await api.sync();return'Cuenta creada correctamente. ¡Bienvenido a EcoNova!';}
    return'Cuenta creada. Confirma tu correo y luego inicia sesión.';
   },
+  forgotModal(){const v=($('#l-e')&&$('#l-e').value.includes('@'))?$('#l-e').value.trim():'';
+   modal(`<h3>Recuperar contraseña</h3><p class="sm mut mb2">Escribe el correo de tu cuenta y te enviaremos un enlace para crear una contraseña nueva.</p><div class="field"><label>Correo electrónico</label><input type="email" id="fp-e" autocomplete="email" value="${esc(v)}"></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-green" data-action="forgot-send">Enviar enlace</button><button class="btn btn-ghost" data-action="close-modal">Cancelar</button></div>`);},
+  async forgotSend(){const em=(($('#fp-e')||{}).value||'').trim().toLowerCase();
+   if(!/^\S+@\S+\.\S+$/.test(em)){toast('Escribe un correo válido.','err');return;}
+   if(!on()){toast('La recuperación necesita conexión con el servidor.','err');return;}
+   const {error}=await c().auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});
+   if(error&&/rate|limit|seconds/i.test(error.message)){toast(tr(error),'err');return;}
+   closeModal();toast('Si ese correo tiene cuenta, te enviamos un enlace. Revisa tu bandeja y la carpeta de spam.','ok');},
+  resetModal(){modal(`<h3>Crea tu nueva contraseña</h3><p class="sm mut mb2">Elige una contraseña de al menos 6 caracteres.</p><div class="field"><label>Nueva contraseña</label><input type="password" id="rp-1" autocomplete="new-password"></div><div class="field"><label>Repite la contraseña</label><input type="password" id="rp-2" autocomplete="new-password"></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-green" data-action="reset-save">Guardar contraseña</button></div>`);},
+  async resetSave(){const a=($('#rp-1')||{}).value||'',b=($('#rp-2')||{}).value||'';
+   if(a.length<6){toast('La contraseña necesita al menos 6 caracteres.','err');return;}
+   if(a!==b){toast('Las contraseñas no coinciden.','err');return;}
+   const {error}=await c().auth.updateUser({password:a});
+   if(error){toast(tr(error),'err');return;}
+   closeModal();toast('Contraseña actualizada. Ya puedes usarla para entrar.','ok');location.hash='#/';render();},
   async pushPost(p){
    const u=me(),{data,error}=await c().from('posts').insert({author_id:u.id,category_id:loc2uuid[p.cat]||null,content:p.title+'\n\n'+p.body,location:p.loc||null,status:ST2[p.status]||'pending'}).select().single();
    if(error){DB.posts=DB.posts.filter(x=>x!==p);save();render();throw error;}
@@ -2493,7 +2539,11 @@ const Cloud=(()=>{
   DB.users=DB.users.filter(u=>UUID.test(u.id));DB.posts=DB.posts.filter(x=>UUID.test(x.id));DB.follows=[];DB.notifs=[];DB.flags=[];DB.promos=[];DB.audit=[];
   DB.reports=(DB.reports||[]).filter(r=>UUID.test(r.userId||''));
   if(!UUID.test(store.get('econova_session')||''))store.del('econova_session');
-  api.sync().then(()=>render()).catch(e=>{console.error(e);toast('No se pudo conectar con EcoNova. Reintenta en un momento.','err');});
+  (async()=>{let rec=false;
+   if(RECOVERY_TOKENS){const {error}=await c().auth.setSession(RECOVERY_TOKENS);if(error)toast('El enlace no es válido o ya expiró. Solicita uno nuevo.','err');else rec=true;}
+   else if(LINK_ERROR)toast('El enlace expiró o ya se usó. Solicita uno nuevo.','err');
+   try{await api.sync();render();}catch(e){console.error(e);toast('No se pudo conectar con EcoNova. Reintenta en un momento.','err');}
+   if(rec)api.resetModal();})();
  }
  return api;
 })();
