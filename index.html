@@ -869,6 +869,13 @@ body.auth-route #topbar, body.auth-route #bottomnav{display:none!important}
  .top-search:focus-within{flex:1 1 auto;width:100%;max-width:100%}
 }
 @supports(-webkit-touch-callout:none){input,textarea,select{font-size:16px!important}.top-search input::placeholder{font-size:13px}}
+
+/* Menú hamburguesa: secciones completas y desplazamiento en teléfonos */
+.menu-mobile-only{display:none}
+@media(max-width:860px){
+ .menu-mobile-only{display:block}
+ .panel-drop.menu-panel{position:fixed;top:calc(74px + env(safe-area-inset-top));left:10px;right:10px;width:auto;max-height:calc(100vh - 74px - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;max-height:calc(100dvh - 74px - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:10px}
+}
 </style>
 </head>
 <body>
@@ -880,10 +887,12 @@ body.auth-route #topbar, body.auth-route #bottomnav{display:none!important}
 
 <script>
 /* ═════════ EcoNova · Red social ambiental · v4 (logo oficial) ═════════ */
-let RECOVERY_TOKENS=null,LINK_ERROR=null;
+let RECOVERY_TOKENS=null,OAUTH_TOKENS=null,LINK_ERROR=null;
 (()=>{try{const h=location.hash||'';const q=new URLSearchParams(h.replace(/^#\/?/,''));
- if(q.get('access_token')&&q.get('type')==='recovery'){RECOVERY_TOKENS={access_token:q.get('access_token'),refresh_token:q.get('refresh_token')};history.replaceState(null,'',location.pathname+location.search+'#/entrar');}
- else if(q.get('error_code')){LINK_ERROR=q.get('error_code');history.replaceState(null,'',location.pathname+location.search+'#/entrar');}}catch(e){}})();
+ if(q.get('access_token')){const tk={access_token:q.get('access_token'),refresh_token:q.get('refresh_token')};
+  if(q.get('type')==='recovery'){RECOVERY_TOKENS=tk;history.replaceState(null,'',location.pathname+location.search+'#/entrar');}
+  else{OAUTH_TOKENS=tk;history.replaceState(null,'',location.pathname+location.search+'#/');}}
+ else if(q.get('error_code')||q.get('error')){LINK_ERROR=q.get('error_code')||q.get('error');history.replaceState(null,'',location.pathname+location.search+'#/entrar');}}catch(e){}})();
 window.addEventListener('error',e=>console.error('[EcoNova] Error:',e.message,e.filename,e.lineno,e.colno,e.error));
 window.addEventListener('unhandledrejection',e=>console.error('[EcoNova] Promesa rechazada:',e.reason));
 
@@ -1332,7 +1341,7 @@ function postCard(p){
   </div>
   <h3 class="ttl">${esc(p.title)}</h3>
   <div class="bd">${esc(p.body)}</div>
-  ${p.imgs.length?`<div class="imgs ${p.imgs.length>1?'g2':''}">${p.imgs.slice(0,2).map(i=>`<img loading="lazy" src="${i}" alt="">`).join('')}</div>`:''}
+  ${p.imgs.length?`<div class="imgs ${p.imgs.length>1?'g2':''}">${p.imgs.slice(0,2).map(i=>`<img loading="lazy" src="${i}" alt="">`).join('')}</div>`:''}${p.video?`<div style="margin-top:10px"><video controls playsinline preload="metadata" src="${p.video}" style="width:100%;max-height:440px;border-radius:12px;background:#000"></video></div>`:''}
   ${p.loc?`<div class="locs">${ic('pin')} ${esc(p.loc)}</div>`:''}
   ${p.tags.length?`<div class="tags">${p.tags.map(t=>`<span data-action="tag" data-t="${t}">#${t}</span>`).join('')}</div>`:''}
   <div class="bar">
@@ -2046,6 +2055,7 @@ function viewAuth(){
   <section class="auth-modern-card">
    <h2>${authMode==='login'?'Bienvenido de vuelta':'Crea tu cuenta'}</h2>
    <p class="sm mut">${authMode==='login'?'Entra para publicar, reportar y sumarte a las campañas.':'Únete a la comunidad EcoNova y participa en acciones ambientales.'}</p>
+   ${Supabase.enabled()?`<button type="button" class="btn btn-ghost btn-block" data-action="google-login" style="display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 6px"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.5 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.100 0 24s.9 7.600 2.600 10.800l7.900-6.100z"/><path fill="#34A853" d="M24 48c6.500 0 11.900-2.100 15.900-5.800l-7.600-5.900c-2.100 1.400-4.900 2.300-8.300 2.300-6.300 0-11.600-4-13.500-9.800l-7.900 6.100C6.500 42.600 14.600 48 24 48z"/></svg>Continuar con Google</button><div class="sm mut" style="text-align:center;margin:8px 0 2px">o con tu correo</div>`:''}
    ${authMode==='login'?`<form data-form="login" class="auth-modern-form">
     <div class="field"><label>Usuario o correo electrónico</label><input type="text" id="l-e" required autocomplete="username" placeholder=""></div>
     <div class="field"><label>Contraseña</label><div class="auth-password"><input type="password" id="l-p" required autocomplete="current-password" placeholder="Introduce tu contraseña"></div></div>
@@ -2088,6 +2098,7 @@ function chromeTop(){
    <button class="tb-ico" data-action="notif-drop" aria-label="Notificaciones">${ic('bell')}${unread?`<span class="n">${unread}</span>`:''}</button>
    ${dropOpen==='menu'?`<div class="panel-drop menu-panel">
     <div class="menu-profile">${avatar(u,46,16)}<div class="info"><b>${esc(u.name)} ${u.verified?verifyBadge():''}</b><span class="sm mut">${esc(u.email)}</span></div></div>
+    <div class="menu-section menu-mobile-only"><div class="menu-title">Explorar EcoNova</div><a class="menu-item" href="#/explorar">${ic('compass')}<span class="mi"><b>Explorar</b><small>Busca publicaciones y personas</small></span></a><a class="menu-item" href="#/reportes">${ic('flag')}<span class="mi"><b>Reportes</b><small>Problemas ambientales de la comunidad</small></span></a><a class="menu-item" href="#/noticias">${ic('news')}<span class="mi"><b>Noticias</b><small>Novedades ambientales</small></span></a><a class="menu-item" href="#/aprender">${ic('book')}<span class="mi"><b>Aprender</b><small>Guías y consejos para cuidar el entorno</small></span></a></div>
     <div class="menu-section"><div class="menu-title">Cuenta</div><a class="menu-item" href="#/perfil/${u.id}">${ic('users')}<span class="mi"><b>Mi perfil</b><small>Ver y administrar tu perfil</small></span></a><button class="menu-item" data-action="edit-profile">${ic('cam')}<span class="mi"><b>Editar perfil</b><small>Nombre, foto, biografía y datos públicos</small></span></button><a class="menu-item" href="#/configuracion">${ic('shield')}<span class="mi"><b>Ajustes</b><small>Privacidad, notificaciones y seguridad</small></span></a></div>
     <div class="menu-section"><div class="menu-title">Comunidad</div><a class="menu-item" href="#/guardados">${ic('bkm')}<span class="mi"><b>Guardados</b><small>Tus publicaciones guardadas</small></span></a><a class="menu-item" href="#/notificaciones">${ic('bell')}<span class="mi"><b>Notificaciones</b><small>Actividad de tu cuenta</small></span></a>${!(u.id==='u1'||isAdmin())?`<a class="menu-item" href="#/purificacion">${ic('check')}<span class="mi"><b>Purificación</b><small>Consulta el estado de los reportes</small></span></a><a class="menu-item" href="#/estado-publicaciones">${ic('file')}<span class="mi"><b>Estado de publicaciones</b><small>Consulta la revisión de tu contenido</small></span></a>`:''}<a class="menu-item" href="#/organizaciones">${ic('bld')}<span class="mi"><b>Organizaciones</b><small>Proyectos y aliados</small></span></a></div>
     <div class="menu-section"><div class="menu-title">Impacto y confianza</div><a class="menu-item" href="#/donar">${ic('coin')}<span class="mi"><b>Donación y fondo</b><small>Apoya causas y solicita apoyo</small></span></a><a class="menu-item" href="#/transparencia">${ic('chart')}<span class="mi"><b>Transparencia</b><small>Consulta la información publicada a la comunidad</small></span></a></div>
@@ -2210,7 +2221,7 @@ function openLegal(type){
  modal(`<h3>${title}</h3><div class="sm" style="line-height:1.7;margin-top:12px">${body}</div><button class="btn btn-green btn-block mt3" data-action="close-modal">Entendido</button>`);
 }
 /* ---------- eventos ---------- */
-let postImgs=[];
+let postImgs=[],postVideo=null;
 document.addEventListener('click',e=>{
  const el=e.target.closest('[data-action]');
  const kd=e.target.closest('[data-kind]');
@@ -2238,6 +2249,7 @@ document.addEventListener('click',e=>{
   case 'toggle-auth-pass':{const inp=document.getElementById(el.dataset.target);if(inp)inp.type=inp.type==='password'?'text':'password';break;}
   case 'forgot-password':Cloud.forgotModal();break;
   case 'forgot-send':Cloud.forgotSend();break;
+  case 'google-login':Cloud.google();break;
   case 'reset-save':Cloud.resetSave();break;
   case 'terms-open':openLegal('terms');break;
   case 'privacy-open':openLegal('privacy');break;
@@ -2272,7 +2284,7 @@ document.addEventListener('click',e=>{
    <button class="btn btn-ghost btn-sm" data-action="close-modal">Cancelar</button></div>`);break;}
   case 'do-flag':run(()=>{if(!sess())return guard();API.flag(el.dataset.p,el.dataset.r);closeModal();toast('Gracias. El equipo revisará esta denuncia.','ok');});break;
   case 'req-promo':run(()=>{API.requestPromo(el.dataset.p);closeModal();toast('Solicitud enviada. También puedes pedir apoyo económico del Fondo en Donar.','ok');});break;
-  case 'new-post':{const u=sess();if(!u)return guard();postImgs=[];
+  case 'new-post':{const u=sess();if(!u)return guard();postImgs=[];postVideo=null;
    const direct=['DEV','ADMIN','MOD'].includes(u.role)||u.id==='u1'; modal(`<h3>Crear publicación</h3><p class="sm mut mb2">${direct?'Tu publicación se publicará directamente.':'Pasará por moderación antes de publicarse.'}</p>
    <form data-form="post">
     <div class="field"><label>Título</label><input type="text" id="np-title" required maxlength="160" placeholder="Un título claro"></div>
@@ -2280,6 +2292,7 @@ document.addEventListener('click',e=>{
     <div class="field"><label>Categoría</label><select id="np-cat" required><option value="">Selecciona…</option>${catOptions()}</select></div>
     <div class="field"><label>Ubicación (opcional)</label><input type="text" id="np-loc" placeholder="Ej. Col. Centro, mercado municipal"></div>
     <div class="field"><label>Fotografías</label><input type="file" accept="image/*" multiple data-photos="post"><div class="previews" id="post-previews"></div></div>
+    ${Supabase.enabled()?`<div class="field"><label>Video (opcional, máx. 50 MB)</label><input type="file" accept="video/*" data-video="post"><div class="previews" id="post-video-preview"></div></div>`:''}
     <button class="btn btn-green btn-block" type="submit">${direct?'Publicar directamente':'Enviar a moderación'}</button></form>`);break;}
   case 'new-support':{const u=sess();if(!u)return guard();const f=fund();
    modal(`<h3>Solicitar apoyo del Fondo Comunitario</h3>
@@ -2359,7 +2372,7 @@ document.addEventListener('submit',e=>{
   if(d==='login'){Cloud.login($('#l-e').value,$('#l-p').value).then(()=>{toast('Bienvenido a EcoNova.','ok');location.hash='#/';render();}).catch(m=>toast(String(m),'err'));}
   if(d==='signup'){if(!$('#s-terms')?.checked){toast('Debes aceptar los Términos y Condiciones.','err');return;}Cloud.signup($('#s-n').value,$('#s-e').value,$('#s-p').value,signupKind).then(m=>{toast(m,'ok');location.hash=sess()?'#/':'#/entrar';render();}).catch(m=>toast(String(m),'err'));}
   if(d==='verify'){API.verify($('#v-code').value);toast('Correo verificado. ¡Bienvenido!','ok');location.hash='#/';render();}
-  if(d==='post'){API.createPost({title:$('#np-title').value,body:$('#np-body').value,cat:$('#np-cat').value,loc:$('#np-loc').value,imgs:postImgs});closeModal();toast((['DEV','ADMIN','MOD'].includes(sess()?.role)||sess()?.id==='u1')?'Publicación publicada directamente.':'Enviada a moderación. Te avisaremos al aprobarla.','ok');render();}
+  if(d==='post'){API.createPost({title:$('#np-title').value,body:$('#np-body').value,cat:$('#np-cat').value,loc:$('#np-loc').value,imgs:postImgs,video:postVideo});closeModal();toast((['DEV','ADMIN','MOD'].includes(sess()?.role)||sess()?.id==='u1')?'Publicación publicada directamente.':'Enviada a moderación. Te avisaremos al aprobarla.','ok');render();}
   if(d==='cmt'){API.comment(f.dataset.p,f.querySelector('input').value.trim());toast('Comentario publicado.','ok');location.hash='#/comentarios/'+f.dataset.p;render();}
   if(d==='comment-reply'){API.replyComment(f.dataset.p,f.dataset.c,$('#reply-body').value.trim());closeModal();toast('Respuesta publicada.','ok');location.hash='#/comentarios/'+f.dataset.p;render();}
   if(d==='edit-profile'){API.updateProfile({name:$('#ep-name').value,bio:$('#ep-bio').value,loc:$('#ep-loc').value,website:$('#ep-web').value,avatar:profileEditImg,cover:profileEditCover});closeModal();toast('Perfil actualizado.','ok');render();}
@@ -2388,6 +2401,12 @@ document.addEventListener('submit',e=>{
 });
 document.addEventListener('change',e=>{
  const inp=e.target;
+ if(inp.dataset.video){const fl=inp.files&&inp.files[0];inp.value='';if(!fl)return;
+  if(!fl.type||!fl.type.startsWith('video/'))return toast('Selecciona un archivo de video compatible.','err');
+  if(fl.size>50*1024*1024)return toast('El video es muy grande (máx. 50 MB).','err');
+  postVideo=fl;const pv=document.getElementById('post-video-preview');
+  if(pv){pv.innerHTML=`<div class="pv" style="width:100%"><video src="${URL.createObjectURL(fl)}" controls playsinline muted style="width:100%;max-height:200px;border-radius:10px"></video><button type="button" data-del-video="1">×</button></div>`;pv.querySelector('[data-del-video]').onclick=()=>{postVideo=null;pv.innerHTML='';};}
+  return;}
  if(inp.dataset.photos){
   const target=inp.dataset.photos;if(target==='profile'||target==='cover'){const fl=inp.files?.[0];if(fl){if(!fl.type||!fl.type.startsWith('image/'))return toast('Selecciona un archivo de imagen compatible.','err');if(fl.size>8*1024*1024)return toast('Imagen muy grande (máx 8 MB).','err');compress(fl).then(d=>{if(target==='profile')profileEditImg=d;else profileEditCover=d;profileEditPreview();}).catch(()=>toast('No se pudo leer esa imagen en el navegador.','err'));}inp.value='';return;}const arr=target==='post'?postImgs:target==='rep'?repImgs:campImgs;
   [...inp.files].forEach(fl=>{
@@ -2426,11 +2445,11 @@ const Cloud=(()=>{
   if(/different from the old/i.test(m))return'La nueva contraseña debe ser distinta a la anterior.';
   if(/rate limit|too many|seconds/i.test(m))return'Demasiados intentos. Espera un minuto e inténtalo de nuevo.';
   if(/at least 6/i.test(m))return'La contraseña necesita al menos 6 caracteres.';
-  if(/row-level security|permission denied/i.test(m))return'No tienes permiso para hacer esto.';
+  if(/row-level security|permission denied/i.test(m))return'sin permiso en la base de datos (tabla '+((m.match(/table "([^"]+)"/)||[])[1]||'?')+')';
   return m||'Ocurrió un error. Intenta de nuevo.';};
  const q=async p=>{const {data,error}=await p;if(error){console.warn('[EcoNova]',error.message);return[];}return data||[];};
  const me=()=>{const u=sess();return u&&UUID.test(u.id)?u:null;};
- const fail=(e,rs=true)=>{console.error(e);toast(tr(e),'err');if(rs)api.sync().then(()=>render()).catch(()=>{});};
+ const fail=(e,rs=true,lab='')=>{console.error('[EcoNova]',lab,e);toast((lab?lab+': ':'')+tr(e)+(e&&e.code?' ('+e.code+')':''),'err');if(rs)api.sync().then(()=>render()).catch(()=>{});};
  const mk=(o)=>({id:o.id,name:o.name||'Usuario',email:o.email||'',kind:o.kind||'CIUDADANO',role:o.role||'USER',bio:o.bio||'',loc:o.loc||'',website:o.website||'',avatar:o.avatar||'',cover:o.cover||'',verified:!!o.verified,suspended:!!o.suspended,okMail:true,showFollowers:true,showFollowing:true,showPosts:true,privateProfile:false,allowComments:true,notifyLikes:true,notifyComments:true,notifyFollows:true,blockedUsers:[],suspensionUntil:null,banPermanent:false,banReason:'',emblems:[],activity:[],at:o.at||Date.now()});
  const fromProfile=r=>mk({id:r.id,name:r.name||r.username,email:r.email,kind:KIND[r.kind]||r.kind,role:ROLE[r.role]||r.role,bio:r.bio,loc:r.loc,website:r.website,avatar:r.avatar,cover:r.cover,verified:r.verified,suspended:r.is_active===false,at:Date.parse(r.created_at)});
  const split=t=>{const i=t.indexOf('\n\n');return i>0&&i<160?[t.slice(0,i),t.slice(i+2)]:[t.split('\n')[0].slice(0,90),t];};
@@ -2450,9 +2469,10 @@ const Cloud=(()=>{
     has?q(c().from('likes').select('post_id,user_id').in('post_id',ids)):[],
     s?q(c().from('saved_posts').select('post_id').eq('user_id',s.user.id)):[],
     q(c().from('follows').select('follower_id,following_id').limit(2000))]);
+   const CL={};(await q(c().from('comment_likes').select('comment_id,user_id').limit(3000))).forEach(r=>{(CL[r.comment_id]=CL[r.comment_id]||[]).push(r.user_id);});
    const g=(arr,k,f)=>{const m={};arr.forEach(r=>{(m[r[k]]=m[r[k]]||[]).push(f(r));});return m;};
-   const M=g(media,'post_id',r=>r.media_url),L=g(lks,'post_id',r=>r.user_id),S=g(svs,'post_id',()=>s.user.id);
-   const C=g(cms.filter(r=>!['rejected','hidden'].includes(r.status)),'post_id',r=>({id:r.id,userId:r.author_id,body:r.content,parentId:r.parent_id,likes:[],at:Date.parse(r.created_at)}));
+   const V={};media.filter(r=>r.media_type==='video').forEach(r=>{V[r.post_id]=r.media_url;});const M=g(media.filter(r=>r.media_type!=='video'),'post_id',r=>r.media_url),L=g(lks,'post_id',r=>r.user_id),S=g(svs,'post_id',()=>s.user.id);
+   const C=g(cms.filter(r=>!['rejected','hidden'].includes(r.status)),'post_id',r=>({id:r.id,userId:r.author_id,body:r.content,parentId:r.parent_id,likes:CL[r.id]||[],at:Date.parse(r.created_at)}));
    const need=new Set([...rows.map(r=>r.author_id),...cms.map(r=>r.author_id)]);if(s)need.add(s.user.id);
    let prof=await q(c().from('profiles').select('*').order('created_at',{ascending:false}).limit(500));
    if(!prof.length&&need.size)prof=await q(c().from('profiles').select('*').in('id',[...need]));
@@ -2460,7 +2480,7 @@ const Cloud=(()=>{
    if(s&&!DB.users.some(u=>u.id===s.user.id)){const m=s.user.user_metadata||{};DB.users.push(mk({id:s.user.id,name:m.name||(s.user.email||'').split('@')[0],email:s.user.email,kind:KIND[m.kind]||m.kind}));}
    const em=await q(c().from('user_emblems').select('user_id,emblem'));
    DB.users.forEach(u=>{u.emblems=em.filter(e=>e.user_id===u.id).map(e=>e.emblem);u.allyAccepted=u.emblems.includes('ALLY');u.donorAccepted=u.emblems.includes('DONOR');});
-   DB.posts=rows.map(r=>{const [title,body]=split(r.content||'');return{id:r.id,userId:r.author_id,title,body,cat:u2l[r.category_id]??DB.cats[0].id,loc:r.location||'',imgs:M[r.id]||[],tags:(body.match(/#[\wáéíóúñÁÉÍÓÚÑ]+/g)||[]).map(t=>t.slice(1)),status:ST[r.status]||'PENDING',sponsored:false,likes:L[r.id]||[],comments:C[r.id]||[],shares:0,savedBy:S[r.id]||[],at:Date.parse(r.created_at)};});
+   DB.posts=rows.map(r=>{const [title,body]=split(r.content||'');return{id:r.id,userId:r.author_id,title,body,cat:u2l[r.category_id]??DB.cats[0].id,loc:r.location||'',imgs:M[r.id]||[],video:V[r.id]||'',tags:(body.match(/#[\wáéíóúñÁÉÍÓÚÑ]+/g)||[]).map(t=>t.slice(1)),status:ST[r.status]||'PENDING',sponsored:false,likes:L[r.id]||[],comments:C[r.id]||[],shares:0,savedBy:S[r.id]||[],at:Date.parse(r.created_at)};});
    DB.follows=fol.map(r=>({f:r.follower_id,t:r.following_id}));
    if(s)store.set('econova_session',s.user.id);else store.del('econova_session');
    save();
@@ -2481,6 +2501,9 @@ const Cloud=(()=>{
    if(data.session){await api.sync();return'Cuenta creada correctamente. ¡Bienvenido a EcoNova!';}
    return'Cuenta creada. Confirma tu correo y luego inicia sesión.';
   },
+  async google(){if(!on()){toast('El inicio con Google no está disponible ahora.','err');return;}
+   const {error}=await c().auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,queryParams:{prompt:'select_account'}}});
+   if(error)toast(tr(error),'err');},
   forgotModal(){const v=($('#l-e')&&$('#l-e').value.includes('@'))?$('#l-e').value.trim():'';
    modal(`<h3>Recuperar contraseña</h3><p class="sm mut mb2">Escribe el correo de tu cuenta y te enviaremos un enlace para crear una contraseña nueva.</p><div class="field"><label>Correo electrónico</label><input type="email" id="fp-e" autocomplete="email" value="${esc(v)}"></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-green" data-action="forgot-send">Enviar enlace</button><button class="btn btn-ghost" data-action="close-modal">Cancelar</button></div>`);},
   async forgotSend(){const em=(($('#fp-e')||{}).value||'').trim().toLowerCase();
@@ -2496,23 +2519,24 @@ const Cloud=(()=>{
    const {error}=await c().auth.updateUser({password:a});
    if(error){toast(tr(error),'err');return;}
    closeModal();toast('Contraseña actualizada. Ya puedes usarla para entrar.','ok');location.hash='#/';render();},
-  async pushPost(p){
+  async pushPost(p,vf){
    const u=me(),{data,error}=await c().from('posts').insert({author_id:u.id,category_id:loc2uuid[p.cat]||null,content:p.title+'\n\n'+p.body,location:p.loc||null,status:ST2[p.status]||'pending'}).select().single();
    if(error){DB.posts=DB.posts.filter(x=>x!==p);save();render();throw error;}
-   p.id=data.id;
+   {const oldId=p.id;p.id=data.id;document.querySelectorAll('[data-p="'+oldId+'"]').forEach(e=>{e.dataset.p=data.id;});}
    const urls=[];
    for(const [i,im] of (p.imgs||[]).entries()){try{const url=await up(im,'posts');urls.push(url);await c().from('post_media').insert({post_id:data.id,media_url:url,media_type:'image',sort_order:i});}catch(e){console.warn('[EcoNova] imagen no subida',e);urls.push(im);}}
    p.imgs=urls;
+   if(vf){toast('Subiendo video…','ok');try{const {url}=await Supabase.upload(vf,u.id,'videos');const r=await c().from('post_media').insert({post_id:data.id,media_url:url,media_type:'video',sort_order:99});if(r.error)throw r.error;p.video=url;}catch(e){console.warn(e);p.video='';toast('El video no se pudo subir: '+tr(e),'err');}}
    if(p.status==='PENDING')await c().from('moderation_queue').insert({content_type:'post',content_id:data.id,submitted_by:u.id,status:'pending'});
    save();render();
   }
  };
- const A={};['createPost','like','comment','replyComment','toggleSave','toggleFollow','moderate','updateProfile','logout','setEmblem','removeEmblem','setCommunityStatus','suspend','setVerified','verifyOrg'].forEach(k=>A[k]=API[k].bind(API));
- API.createPost=function(d){A.createPost(d);if(!on()||!me())return;api.pushPost(DB.posts[0]).catch(e=>fail(e,false));};
+ const A={};['createPost','like','comment','replyComment','toggleSave','toggleFollow','moderate','updateProfile','logout','setEmblem','removeEmblem','setCommunityStatus','suspend','setVerified','verifyOrg','likeComment'].forEach(k=>A[k]=API[k].bind(API));
+ API.createPost=function(d){A.createPost(d);if(!on()||!me())return;const p=DB.posts[0];if(d.video)p.video=URL.createObjectURL(d.video);api.pushPost(p,d.video).catch(e=>fail(e,false,'No se pudo publicar'));};
  API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))return;const liked=postById(id).likes.includes(u.id);
-  (liked?c().from('likes').insert({post_id:id,user_id:u.id}):c().from('likes').delete().eq('post_id',id).eq('user_id',u.id)).then(({error})=>{if(error)fail(error);});};
+  (liked?c().from('likes').insert({post_id:id,user_id:u.id}):c().from('likes').delete().eq('post_id',id).eq('user_id',u.id)).then(({error})=>{if(error&&error.code!=='23505')fail(error,true,'No se pudo guardar tu like');});};
  const pushCm=(id,body,parent)=>{const u=me();if(!on()||!u||!UUID.test(id)||(parent&&!UUID.test(parent)))return;const p=postById(id),cm=p.comments[p.comments.length-1];
-  c().from('comments').insert({post_id:id,author_id:u.id,parent_id:parent||null,content:body,status:'approved'}).select().single().then(({data,error})=>{if(error)return fail(error);cm.id=data.id;save();});};
+  c().from('comments').insert({post_id:id,author_id:u.id,parent_id:parent||null,content:body}).select().single().then(({data,error})=>{if(error)return fail(error,true,'No se pudo publicar tu comentario');const old=cm.id;cm.id=data.id;p.comments.forEach(x=>{if(x.parentId===old)x.parentId=data.id;});document.querySelectorAll('[data-c="'+old+'"]').forEach(e=>{e.dataset.c=data.id;});save();});};
  API.comment=function(id,body){A.comment(id,body);pushCm(id,body,null);};
  API.replyComment=function(id,parent,body){A.replyComment(id,parent,body);pushCm(id,body,parent);};
  API.toggleSave=function(id){const r=A.toggleSave(id),u=me();if(!on()||!u||!UUID.test(id))return r;
@@ -2534,16 +2558,20 @@ const Cloud=(()=>{
  API.suspend=function(id,val){A.suspend(id,val);setCol(id,{is_active:!val});};
  API.setVerified=function(id,val){A.setVerified(id,val);setCol(id,{verified:!!val});};
  API.verifyOrg=function(id){A.verifyOrg(id);setCol(id,{verified:true});};
+ API.likeComment=function(pid,cid){A.likeComment(pid,cid);const u=me();if(!on()||!u||!UUID.test(cid))return;
+  const cm=(postById(pid).comments||[]).find(x=>x.id===cid),liked=cm&&cm.likes.includes(u.id);
+  (liked?c().from('comment_likes').insert({comment_id:cid,user_id:u.id}):c().from('comment_likes').delete().eq('comment_id',cid).eq('user_id',u.id)).then(({error})=>{if(error&&error.code!=='23505')fail(error,true,'No se pudo guardar tu like al comentario');});};
  API.logout=function(){A.logout();if(on())c().auth.signOut();};
  if(on()){
   DB.users=DB.users.filter(u=>UUID.test(u.id));DB.posts=DB.posts.filter(x=>UUID.test(x.id));DB.follows=[];DB.notifs=[];DB.flags=[];DB.promos=[];DB.audit=[];
   DB.reports=(DB.reports||[]).filter(r=>UUID.test(r.userId||''));
   if(!UUID.test(store.get('econova_session')||''))store.del('econova_session');
-  (async()=>{let rec=false;
+  (async()=>{let rec=false,oauth=false;
    if(RECOVERY_TOKENS){const {error}=await c().auth.setSession(RECOVERY_TOKENS);if(error)toast('El enlace no es válido o ya expiró. Solicita uno nuevo.','err');else rec=true;}
-   else if(LINK_ERROR)toast('El enlace expiró o ya se usó. Solicita uno nuevo.','err');
+   else if(OAUTH_TOKENS){const {error}=await c().auth.setSession(OAUTH_TOKENS);if(error)toast('No se pudo iniciar sesión con Google. Inténtalo de nuevo.','err');else oauth=true;}
+   else if(LINK_ERROR)toast('El enlace expiró o el acceso fue cancelado. Inténtalo de nuevo.','err');
    try{await api.sync();render();}catch(e){console.error(e);toast('No se pudo conectar con EcoNova. Reintenta en un momento.','err');}
-   if(rec)api.resetModal();})();
+   if(rec)api.resetModal();else if(oauth&&sess())toast('Bienvenido a EcoNova.','ok');})();
  }
  return api;
 })();
