@@ -2446,7 +2446,11 @@ document.addEventListener('submit',e=>{
   if(d==='login'){Cloud.login($('#l-e').value,$('#l-p').value).then(()=>{toast('Bienvenido a EcoNova.','ok');location.hash='#/';render();}).catch(m=>toast(String(m),'err'));}
   if(d==='signup'){if(!$('#s-terms')?.checked){toast('Debes aceptar los Términos y Condiciones.','err');return;}Cloud.signup($('#s-n').value,$('#s-e').value,$('#s-p').value,signupKind).then(m=>{toast(m,'ok');location.hash=sess()?'#/':'#/entrar';render();}).catch(m=>toast(String(m),'err'));}
   if(d==='verify'){API.verify($('#v-code').value);toast('Correo verificado. ¡Bienvenido!','ok');location.hash='#/';render();}
-  if(d==='post'){API.createPost({title:$('#np-title').value,body:$('#np-body').value,cat:$('#np-cat').value,loc:$('#np-loc').value,imgs:postImgs,video:postVideo});closeModal();toast((['DEV','ADMIN','MOD'].includes(sess()?.role)||sess()?.id==='u1')?'Publicación publicada directamente.':'Enviada a moderación. Te avisaremos al aprobarla.','ok');render();}
+  if(d==='post'){
+   const payload={title:$('#np-title').value,body:$('#np-body').value,cat:$('#np-cat').value,loc:$('#np-loc').value,imgs:[...postImgs],video:postVideo};
+   API.createPost(payload).then(()=>{closeModal();toast((['DEV','ADMIN','MOD'].includes(sess()?.role)||sess()?.id==='u1')?'Publicación publicada directamente.':'Enviada a moderación. Te avisaremos al aprobarla.','ok');render();}).catch(m=>toast(String(m?.message||m),'err'));
+   return;
+  }
   if(d==='cmt'){API.comment(f.dataset.p,f.querySelector('input').value.trim());toast('Comentario publicado.','ok');location.hash='#/comentarios/'+f.dataset.p;render();}
   if(d==='comment-reply'){API.replyComment(f.dataset.p,f.dataset.c,$('#reply-body').value.trim());closeModal();toast('Respuesta publicada.','ok');location.hash='#/comentarios/'+f.dataset.p;render();}
   if(d==='edit-profile'){API.updateProfile({name:$('#ep-name').value,bio:$('#ep-bio').value,loc:$('#ep-loc').value,website:$('#ep-web').value,avatar:profileEditImg,cover:profileEditCover});closeModal();toast('Perfil actualizado.','ok');render();}
@@ -2538,15 +2542,20 @@ const Cloud=(()=>{
    const byName=new Map(DB.cats.map(x=>[x.name.toLowerCase(),x])),u2l={};loc2uuid={};
    cats.forEach(r=>{let l=byName.get(r.name.toLowerCase());if(!l){l={id:Math.max(0,...DB.cats.map(x=>x.id))+1,name:r.name,grp:(CAT_SEED.find(x=>x[0]===r.name)||[])[1]||GRUPOS[GRUPOS.length-1],active:true};DB.cats.push(l);byName.set(r.name.toLowerCase(),l);}u2l[r.id]=l.id;loc2uuid[l.id]=r.id;});
    const ids=rows.map(r=>r.id),has=ids.length>0;
-   const [media,cms,lks,svs,fol]=await Promise.all([
-    has?q(c().from('post_media').select('post_id,media_url,sort_order').in('post_id',ids).order('sort_order')):[],
+   const [media,cms,lks,svs,fol,modq]=await Promise.all([
+    has?q(c().from('post_media').select('post_id,media_url,media_type,sort_order').in('post_id',ids).order('sort_order')):[],
     has?q(c().from('comments').select('*').in('post_id',ids).order('created_at')):[],
     has?q(c().from('likes').select('post_id,user_id').in('post_id',ids)):[],
     s?q(c().from('saved_posts').select('post_id').eq('user_id',s.user.id)):[],
-    q(c().from('follows').select('follower_id,following_id').limit(2000))]);
+    q(c().from('follows').select('follower_id,following_id').limit(2000)),
+    q(c().from('moderation_queue').select('*').order('created_at',{ascending:false}).limit(1000))]);
    const CL={};(await q(c().from('comment_likes').select('comment_id,user_id').limit(3000))).forEach(r=>{(CL[r.comment_id]=CL[r.comment_id]||[]).push(r.user_id);});
    const g=(arr,k,f)=>{const m={};arr.forEach(r=>{(m[r[k]]=m[r[k]]||[]).push(f(r));});return m;};
    const V={};media.filter(r=>r.media_type==='video').forEach(r=>{V[r.post_id]=r.media_url;});const M=g(media.filter(r=>r.media_type!=='video'),'post_id',r=>r.media_url),L=g(lks,'post_id',r=>r.user_id),S=g(svs,'post_id',()=>s.user.id);
+   // Las solicitudes de publicidad usan la misma cola de moderación que las publicaciones.
+   // Esto evita perderlas al sincronizar desde Supabase y permite que todos los moderadores las vean.
+   DB.promos=(modq||[]).filter(q=>q.content_type==='promotion').map(q=>({id:q.id,postId:q.content_id,orgId:q.submitted_by,status:String(q.status||'pending').toUpperCase(),at:Date.parse(q.created_at)||Date.now(),moderatorId:q.moderator_id||'',note:q.moderator_note||''}));
+   const approvedPromoPosts=new Set(DB.promos.filter(q=>q.status==='APPROVED').map(q=>q.postId));
    const C=g(cms.filter(r=>!['rejected','hidden'].includes(r.status)),'post_id',r=>({id:r.id,userId:r.author_id,body:r.content,parentId:r.parent_id,likes:CL[r.id]||[],at:Date.parse(r.created_at)}));
    const need=new Set([...rows.map(r=>r.author_id),...cms.map(r=>r.author_id)]);if(s)need.add(s.user.id);
    let prof=await q(c().from('profiles').select('*').order('created_at',{ascending:false}).limit(500));
@@ -2555,7 +2564,7 @@ const Cloud=(()=>{
    if(s&&!DB.users.some(u=>u.id===s.user.id)){const m=s.user.user_metadata||{};DB.users.push(mk({id:s.user.id,name:m.name||(s.user.email||'').split('@')[0],email:s.user.email,kind:KIND[m.kind]||m.kind}));}
    const em=await q(c().from('user_emblems').select('user_id,emblem'));
    DB.users.forEach(u=>{u.emblems=em.filter(e=>e.user_id===u.id).map(e=>e.emblem);u.allyAccepted=u.emblems.includes('ALLY');u.donorAccepted=u.emblems.includes('DONOR');});
-   DB.posts=rows.map(r=>{const [title,body]=split(r.content||'');return{id:r.id,userId:r.author_id,title,body,cat:u2l[r.category_id]??DB.cats[0].id,loc:r.location||'',imgs:M[r.id]||[],video:V[r.id]||'',tags:(body.match(/#[\wáéíóúñÁÉÍÓÚÑ]+/g)||[]).map(t=>t.slice(1)),status:ST[r.status]||'PENDING',sponsored:false,likes:L[r.id]||[],comments:C[r.id]||[],shares:0,savedBy:S[r.id]||[],at:Date.parse(r.created_at)};});
+   DB.posts=rows.map(r=>{const [title,body]=split(r.content||'');return{id:r.id,userId:r.author_id,title,body,cat:u2l[r.category_id]??DB.cats[0].id,loc:r.location||'',imgs:M[r.id]||[],video:V[r.id]||'',tags:(body.match(/#[\wáéíóúñÁÉÍÓÚÑ]+/g)||[]).map(t=>t.slice(1)),status:ST[r.status]||'PENDING',sponsored:approvedPromoPosts.has(r.id),likes:L[r.id]||[],comments:C[r.id]||[],shares:0,savedBy:S[r.id]||[],at:Date.parse(r.created_at)};});
    DB.follows=fol.map(r=>({f:r.follower_id,t:r.following_id}));
    if(s)store.set('econova_session',s.user.id);else store.del('econova_session');
    save();
@@ -2595,19 +2604,44 @@ const Cloud=(()=>{
    if(error){toast(tr(error),'err');return;}
    closeModal();toast('Contraseña actualizada. Ya puedes usarla para entrar.','ok');location.hash='#/';render();},
   async pushPost(p,vf){
-   const u=me(),{data,error}=await c().from('posts').insert({author_id:u.id,category_id:loc2uuid[p.cat]||null,content:p.title+'\n\n'+p.body,location:p.loc||null,status:ST2[p.status]||'pending'}).select().single();
-   if(error){DB.posts=DB.posts.filter(x=>x!==p);save();render();throw error;}
-   {const oldId=p.id;p.id=data.id;document.querySelectorAll('[data-p="'+oldId+'"]').forEach(e=>{e.dataset.p=data.id;});}
+   const u=me();
+   if(!u)throw new Error('La sesión expiró. Vuelve a iniciar sesión.');
+   if(!loc2uuid[p.cat]){
+    const cats=await q(c().from('categories').select('id,name'));
+    cats.forEach(r=>{const l=DB.cats.find(x=>x.name.toLowerCase()===String(r.name||'').toLowerCase());if(l)loc2uuid[l.id]=r.id;});
+   }
+   const categoryId=loc2uuid[p.cat]||null;
+   if(!categoryId)throw new Error('La categoría de la publicación no está disponible en Supabase. Recarga la página e inténtalo de nuevo.');
+   const {data,error}=await c().from('posts').insert({author_id:u.id,category_id:categoryId,content:String(p.title||'').trim()+'\n\n'+String(p.body||'').trim(),location:p.loc||null,status:ST2[p.status]||'pending'}).select().single();
+   if(error)throw error;
+   const oldId=p.id;p.id=data.id;
+   document.querySelectorAll('[data-p="'+oldId+'"]').forEach(e=>{e.dataset.p=data.id;});
    const urls=[];
-   for(const [i,im] of (p.imgs||[]).entries()){try{const url=await up(im,'posts');urls.push(url);await c().from('post_media').insert({post_id:data.id,media_url:url,media_type:'image',sort_order:i});}catch(e){console.warn('[EcoNova] imagen no subida',e);urls.push(im);}}
+   for(const [i,im] of (p.imgs||[]).entries()){
+    try{const url=await up(im,'posts');urls.push(url);const mr=await c().from('post_media').insert({post_id:data.id,media_url:url,media_type:'image',sort_order:i});if(mr.error)throw mr.error;}
+    catch(e){console.warn('[EcoNova] imagen no subida',e);throw new Error('La publicación se creó, pero una imagen no pudo subirse: '+tr(e));}
+   }
    p.imgs=urls;
-   if(vf){toast('Subiendo video…','ok');try{const {url}=await Supabase.upload(vf,u.id,'videos');const r=await c().from('post_media').insert({post_id:data.id,media_url:url,media_type:'video',sort_order:99});if(r.error)throw r.error;p.video=url;}catch(e){console.warn('[EcoNova] video upload',e);toast('El video no se pudo subir: '+tr(e),'err');/* No borramos el video local del estado mientras el usuario sigue en la página. */}}
-   if(p.status==='PENDING')await c().from('moderation_queue').insert({content_type:'post',content_id:data.id,submitted_by:u.id,status:'pending'});
-   save();render();
+   if(vf){
+    toast('Subiendo video…','ok');
+    try{const {url}=await Supabase.upload(vf,u.id,'videos');const r=await c().from('post_media').insert({post_id:data.id,media_url:url,media_type:'video',sort_order:99});if(r.error)throw r.error;p.video=url;}
+    catch(e){console.warn('[EcoNova] video upload',e);await c().from('posts').update({status:'hidden'}).eq('id',data.id);await c().from('post_media').delete().eq('post_id',data.id);throw new Error('El video no se pudo subir y la publicación fue cancelada: '+tr(e));}
+   }
+   if(p.status==='PENDING'){
+    const qr=await c().from('moderation_queue').insert({content_type:'post',content_id:data.id,submitted_by:u.id,status:'pending'});
+    if(qr.error){await c().from('post_media').delete().eq('post_id',data.id);await c().from('posts').delete().eq('id',data.id);throw qr.error;}
+   }
+   save();await api.sync();render();
   }
  };
  const A={};['createPost','like','comment','replyComment','toggleSave','toggleFollow','moderate','updateProfile','logout','setEmblem','removeEmblem','setCommunityStatus','suspend','setVerified','verifyOrg','likeComment','removePost','deleteShared'].forEach(k=>A[k]=API[k].bind(API));
- API.createPost=function(d){A.createPost(d);if(!on()||!me()){const p=DB.posts[0];if(d.video)p.video=URL.createObjectURL(d.video);save();return;}const p=DB.posts[0];/* En Supabase el video se muestra definitivamente sólo después de subirlo. */api.pushPost(p,d.video).catch(e=>fail(e,false,'No se pudo publicar'));};
+ API.createPost=async function(d){
+  A.createPost(d);
+  if(!on()||!me()){const p=DB.posts[0];if(d.video)p.video=URL.createObjectURL(d.video);save();return p;}
+  const p=DB.posts[0];
+  await api.pushPost(p,d.video);
+  return p;
+};
  API.removePost=async function(id){
   A.removePost(id);
   const u=me();
@@ -2645,6 +2679,30 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
  API.suspend=function(id,val){A.suspend(id,val);setCol(id,{is_active:!val});};
  API.setVerified=function(id,val){A.setVerified(id,val);setCol(id,{verified:!!val});};
  API.verifyOrg=function(id){A.verifyOrg(id);setCol(id,{verified:true});};
+ API.requestPromo=async function(postId){
+  const u=me();
+  if(!on()||!u){A.requestPromo(postId);return;}
+  if(!['ORG','EMPRESA'].includes(u.kind))throw new Error('Solo organizaciones y empresas pueden impulsar publicaciones.');
+  const p=postById(postId);if(!p)throw new Error('Publicación no encontrada.');
+  if(p.userId!==u.id)throw new Error('Solo puedes impulsar tus propias publicaciones.');
+  const existing=await q(c().from('moderation_queue').select('id,status').eq('content_type','promotion').eq('content_id',postId).eq('submitted_by',u.id).eq('status','pending').limit(1));
+  if(existing.length)throw new Error('Ya tienes una solicitud en revisión.');
+  const {data,error}=await c().from('moderation_queue').insert({content_type:'promotion',content_id:postId,submitted_by:u.id,status:'pending'}).select().single();
+  if(error)throw error;
+  DB.promos.unshift({id:data.id,postId,orgId:u.id,status:'PENDING',at:Date.now()});
+  save();render();
+};
+ API.reviewPromo=async function(id,ok){
+  const u=me();if(!on()||!u||!['MOD','ADMIN','DEV'].includes(u.role))throw new Error('No tienes permisos para moderar publicidad.');
+  const pr=DB.promos.find(x=>x.id===id);if(!pr)throw new Error('Solicitud de publicidad no encontrada.');
+  const status=ok?'approved':'rejected';
+  const {error}=await c().from('moderation_queue').update({status,moderator_id:u.id,moderator_note:ok?'Aprobada':'Rechazada',reviewed_at:new Date().toISOString()}).eq('id',id).eq('content_type','promotion');
+  if(error)throw error;
+  pr.status=status.toUpperCase();pr.moderatorId=u.id;
+  const post=postById(pr.postId);if(post)post.sponsored=!!ok;
+  A.reviewPromo(id,ok);
+  await api.sync();render();
+};
  API.likeComment=function(pid,cid){A.likeComment(pid,cid);const u=me();if(!on()||!u||!UUID.test(cid))return;
   const cm=(postById(pid).comments||[]).find(x=>x.id===cid),liked=cm&&cm.likes.includes(u.id);
   (liked?c().from('comment_likes').insert({comment_id:cid,user_id:u.id}):c().from('comment_likes').delete().eq('comment_id',cid).eq('user_id',u.id)).then(({error})=>{if(error&&error.code!=='23505')fail(error,true,'No se pudo guardar tu like al comentario');});};
