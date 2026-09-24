@@ -876,6 +876,30 @@ body.auth-route #topbar, body.auth-route #bottomnav{display:none!important}
  .menu-mobile-only{display:block}
  .panel-drop.menu-panel{position:fixed;top:calc(74px + env(safe-area-inset-top));left:10px;right:10px;width:auto;max-height:calc(100vh - 74px - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;max-height:calc(100dvh - 74px - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:10px}
 }
+
+/* Mapa ambiental unificado */
+.mx-bar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 8px}
+.mx-find{display:flex;gap:8px;margin:8px 0}
+.mx-find input{flex:1;min-width:0;padding:10px 14px;border:1.5px solid var(--line2);border-radius:12px;background:#fff}
+.mx-sel{padding:7px 12px;border:1.5px solid var(--line2);border-radius:999px;background:#fff;font-size:13px;font-weight:600;max-width:100%}
+.mx-hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 14px;border-radius:999px;font-size:13px;z-index:900;text-align:center;max-width:90%}
+.mx-hint[hidden]{display:none}
+.mx-pin span{--c:#0e5c3e;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--c);font-size:17px;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);position:relative}
+.mx-pin span::after{content:'';position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--c);border-bottom:0}
+.mx-pin.pend span{opacity:.55;border-style:dashed}.mx-pin.done span{filter:grayscale(.75)}
+.mx-tag{display:inline-flex;gap:6px;align-items:center;padding:3px 10px;border-radius:999px;background:var(--c,#0e5c3e);color:#fff;font-size:12px;font-weight:700}
+.mx-pop h4{margin:8px 0 4px}.mx-pop p{margin:4px 0}.mx-pop .mx-go{display:block;text-align:center;margin-top:10px;color:#fff}
+.mx-alt{display:block;text-align:center;font-size:12px;margin-top:6px}
+.mx-st{display:inline-block;background:#fff3cd;color:#7a5b00;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:700;margin-bottom:4px}
+.mx-staff{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.mx-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.mx-stats div{background:var(--green-t);border-radius:12px;padding:10px;text-align:center}.mx-stats b{display:block;font-size:22px;color:var(--green-d)}.mx-stats span{font-size:12px;color:var(--green-d)}
+.mx-item{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.mx-emoji{--c:#0e5c3e;flex:0 0 38px;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--c)}
+.mx-t{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mx-seg{display:flex;gap:8px;margin-bottom:12px}.mx-seg button{flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--line2);background:#fff;font-weight:700}.mx-seg .on{background:var(--green);color:#fff;border-color:var(--green)}
+.mx-warn{background:#fff6e6;border:1px solid #f3d9a4;border-radius:10px;padding:10px 12px;font-size:12.5px;margin:10px 0}
+.mx-legend{flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -1441,6 +1465,7 @@ function viewExplore(){
 }
 let mapLayers={reports:true,camps:true,orgs:true},mapCat='';
 function viewMap(){
+ if(typeof MapX==='object'&&Supabase.enabled())return MapX.view();
  return`<div>
   <div class="page-head" style="padding-top:6px"><span class="kicker">Mapa ambiental</span><h1>Lo que pasa en tu territorio</h1></div>
   <div class="filters mt2">
@@ -1461,6 +1486,7 @@ function viewMap(){
  </div>`;
 }
 function initMap(){
+ if(typeof MapX==='object'&&Supabase.enabled())return MapX.init();
  const m=L.map('bigmap').setView([19.435,-99.135],12);
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(m);
  if(mapLayers.reports)DB.reports.forEach(r=>{
@@ -1507,6 +1533,7 @@ function viewPurification(){
 let repImgs=[],repLat=null,repLng=null,pickMk=null;
 function viewNewReport(){
  if(!sess()){location.hash='#/entrar';return'';}
+ if(typeof MapX==='object'&&Supabase.enabled()){setTimeout(()=>{location.hash='#/mapa';setTimeout(()=>MapX.openForm('problem'),500);},0);return'';}
  return`<div style="max-width:680px">
   <div class="page-head" style="padding-top:6px"><span class="kicker">Denuncia responsable</span><h1>Reportar un problema ambiental</h1></div>
   <form id="f-report" class="card pad mt2">
@@ -1888,12 +1915,13 @@ function viewAdmin(){
  return`<div>
   <div class="page-head" style="padding-top:6px"><span class="kicker">Panel privado</span><h1>Administración</h1></div>
   <div class="adm-tabs mt2">
-   ${[['resumen','Resumen'],['moderacion',`Moderación (${pend})`],['apoyos',`Apoyos (${pendSup})`],['reportes','Reportes'],['campanas','Campañas'],['categorias','Categorías'],['usuarios','Usuarios'],['organizaciones','Organizaciones'],['publicidad','Publicidad'],...(isDeveloper()?[['donaciones','Finanzas y transparencia']]:[]),['registro','Registro']].map(t=>`<button class="${admTab===t[0]?'on':''}" data-action="adm-tab" data-t="${t[0]}">${t[1]}</button>`).join('')}
+   ${[['resumen','Resumen'],['moderacion',`Moderación (${pend})`],['apoyos',`Apoyos (${pendSup})`],['reportes','Reportes'],...(Supabase.enabled()&&typeof MapX==='object'?[['mapa',`Mapa (${MapX.pendingCount()})`]]:[]),['campanas','Campañas'],['categorias','Categorías'],['usuarios','Usuarios'],['organizaciones','Organizaciones'],['publicidad','Publicidad'],...(isDeveloper()?[['donaciones','Finanzas y transparencia']]:[]),['registro','Registro']].map(t=>`<button class="${admTab===t[0]?'on':''}" data-action="adm-tab" data-t="${t[0]}">${t[1]}</button>`).join('')}
   </div>
   ${admTab==='resumen'?admResumen():''}
   ${admTab==='moderacion'?admModeracion():''}
   ${admTab==='apoyos'?admSupports():''}
   ${admTab==='reportes'?admReports():''}
+  ${admTab==='mapa'&&typeof MapX==='object'?MapX.adminHTML():''}
   ${admTab==='campanas'?admCamps():''}
   ${admTab==='categorias'?admCats():''}
   ${admTab==='usuarios'?admUsers():''}
@@ -2455,6 +2483,7 @@ const Cloud=(()=>{
  const split=t=>{const i=t.indexOf('\n\n');return i>0&&i<160?[t.slice(0,i),t.slice(i+2)]:[t.split('\n')[0].slice(0,90),t];};
  async function up(src,folder){if(!src||!String(src).startsWith('data:'))return src||'';const b=await(await fetch(src)).blob();const ext=(b.type.split('/')[1]||'jpg').replace('jpeg','jpg');return(await Supabase.upload(new File([b],'img.'+ext,{type:b.type}),(await c().auth.getUser()).data.user.id,folder)).url;}
  const api={
+  up,
   async sync(){
    const {data:{session:s}}=await c().auth.getSession();
    const cats=await q(c().from('categories').select('id,name'));
@@ -2574,6 +2603,187 @@ const Cloud=(()=>{
    if(rec)api.resetModal();else if(oauth&&sess())toast('Bienvenido a EcoNova.','ok');})();
  }
  return api;
+})();
+
+/* ═════════ EcoNova · Mapa ambiental unificado (problemas + lugares) ═════════ */
+var MapX=(()=>{
+ const sb=()=>supabaseClient,enabled=()=>Supabase.enabled();
+ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-/i;
+ const PROB=[['tala','Tala ilegal','🪓','#8a5a2b'],['incendio','Incendio o quema','🔥','#d9480f'],['tiradero','Tiradero o basura clandestina','🗑️','#7a6a4f'],['agua','Contaminación del agua','💧','#1c7ed6'],['aire','Contaminación del aire','🏭','#6c757d'],['animal','Maltrato o tráfico de animales','🐾','#c2255c'],['derrame','Derrame o fuga','🛢️','#343a40'],['otro_p','Otro problema ambiental','⚠️','#e03131']];
+ const PLAC=[['reciclaje','Centro de reciclaje o acopio','♻️','#2f9e44'],['tienda','Tienda ecológica o a granel','🛍️','#0ca678'],['cosmeticos','Cosméticos naturales / sin crueldad animal','🧴','#ae3ec9'],['vivero','Vivero o reforestación','🌱','#40c057'],['ong','Organización ambiental','🤝','#1971c2'],['negocio','Negocio sostenible','🏪','#f08c00'],['energia','Composta o energía limpia','☀️','#f59f00'],['otro_l','Otro lugar ambiental','📍','#0e5c3e']];
+ const CATS=[...PROB.map(c=>({k:'problem',id:c[0],l:c[1],e:c[2],c:c[3]})),...PLAC.map(c=>({k:'place',id:c[0],l:c[1],e:c[2],c:c[3]}))];
+ const cat=id=>CATS.find(x=>x.id===id)||{k:'place',id,l:id,e:'📍',c:'#0e5c3e'};
+ const KEY='econova_myloc',STL={pending:'En revisión',rejected:'Rechazado',resolved:'Resuelto',approved:'Publicado'};
+ let pts=[],loaded=false,loading=false,map=null,layer=null,mine=null,radius=5,fKind='all',fCat='',pickCb=null,draft=null;
+ try{mine=JSON.parse(store.get(KEY)||'null');}catch(e){mine=null;}
+ const staff=()=>typeof isAdmin==='function'&&isAdmin();
+ const uid=()=>{const u=sess();return u&&UUID.test(u.id)?u.id:null;};
+ const rad=x=>x*Math.PI/180;
+ const dist=(a,b)=>{const dLa=rad(b.lat-a.lat),dLo=rad(b.lng-a.lng),h=Math.sin(dLa/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLo/2)**2;return 12742*Math.asin(Math.sqrt(h));};
+ const km=k=>k<1?Math.round(k*1000)+' m':(k<10?k.toFixed(1):Math.round(k))+' km';
+ const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ const isAndroid=()=>/Android/i.test(navigator.userAgent);
+ const gUrl=p=>`https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}`;
+ const navUrl=p=>{const n=encodeURIComponent(p.title||'Destino');if(isIOS())return`https://maps.apple.com/?daddr=${p.latitude},${p.longitude}&q=${n}`;if(isAndroid())return`geo:${p.latitude},${p.longitude}?q=${p.latitude},${p.longitude}(${n})`;return gUrl(p);};
+ const web=u=>{u=String(u||'').trim();if(!u)return'';if(!/^https?:\/\//i.test(u))u='https://'+u;return/^https?:\/\/[^\s]+\.[^\s]+$/i.test(u)?u:'';};
+ const tel=t=>String(t||'').replace(/[^0-9+()\s-]/g,'').trim();
+ const own=p=>p.owner_id===uid();
+ const shown=p=>p.status==='approved'||p.status==='resolved'||(p.status==='pending'&&(own(p)||staff()));
+ const passes=p=>shown(p)&&(fKind==='all'||p.kind===fKind)&&(!fCat||p.category===fCat);
+ const $$=id=>document.getElementById(id);
+ const hint=m=>{const h=$$('mx-hint');if(!h)return;h.textContent=m||'';h.hidden=!m;};
+ const errMsg=e=>e&&(e.code==='42P01'||/map_points/.test(e.message||''))?'Falta crear la tabla del mapa en Supabase.':((e&&e.message)||String(e));
+
+ async function load(){
+  if(!enabled())return;
+  const {data,error}=await sb().from('map_points').select('*').order('created_at',{ascending:false}).limit(1000);
+  if(error){console.error('[EcoNova] mapa',error);toast('No se pudo cargar el mapa: '+errMsg(error),'err');pts=[];}else pts=data||[];
+  loaded=true;
+ }
+ const chips=()=>[['all','Todo'],['problem','Problemas'],['place','Lugares']].map(k=>`<button class="fchip ${fKind===k[0]?'on':''}" data-mx="kind" data-v="${k[0]}">${k[1]}</button>`).join('')+`<select class="mx-sel" data-mxsel="cat"><option value="">Todas las categorías</option>${(fKind==='place'?PLAC:fKind==='problem'?PROB:[...PROB,...PLAC]).map(c=>`<option value="${c[0]}" ${fCat===c[0]?'selected':''}>${c[2]} ${c[1]}</option>`).join('')}</select>`;
+
+ function view(){
+  return`<div class="mx">
+  <div class="page-head" style="padding-top:6px"><span class="kicker">Mapa ambiental</span><h1>Lo que pasa en tu zona</h1></div>
+  <div class="mx-bar"><button class="btn btn-green btn-sm" data-mx="locate">📍 Usar mi ubicación</button><button class="btn btn-ghost btn-sm" data-mx="pickme">Elegir en el mapa</button><button class="btn btn-ink btn-sm" data-mx="add">➕ Añadir al mapa</button></div>
+  <div class="mx-find"><input id="mx-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Escribe tu colonia, ciudad o dirección"><button class="btn btn-ghost btn-sm" data-mx="geo">Buscar</button></div>
+  <div class="filters mt1" id="mx-filters">${chips()}</div>
+  <div class="map-shell" style="position:relative"><div id="bigmap"></div><div id="mx-hint" class="mx-hint" hidden></div></div>
+  <div class="map-legend mx-legend"><span>🔥 Problemas ambientales</span><span>♻️ Lugares y negocios ambientales</span><span><span class="dot" style="background:#1c7ed6"></span>Tu ubicación</span><span>Punto tenue = en revisión</span></div>
+  <div id="mx-zone"></div></div>`;
+ }
+ function init(){
+  const el=$$('bigmap');if(!el||typeof L==='undefined')return;
+  map=L.map('bigmap').setView(mine?[mine.lat,mine.lng]:[23.6,-102.5],mine?13:5);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
+  layer=L.layerGroup().addTo(map);
+  map.on('click',e=>{if(pickCb){const cb=pickCb;pickCb=null;hint('');cb(e.latlng);}});
+  MAPS.push(map);draw();zone();
+  load().then(()=>{if($$('bigmap')===el){draw();zone();if(!mine){const ll=pts.filter(passes).map(p=>[p.latitude,p.longitude]);if(ll.length)map.fitBounds(ll,{padding:[40,40],maxZoom:12});}}});
+ }
+ function popup(p){
+  const c=cat(p.category),d=mine?dist(mine,{lat:p.latitude,lng:p.longitude}):null,w=web(p.website),t=tel(p.phone);
+  const st=p.status!=='approved'?`<div class="mx-st">${STL[p.status]||p.status}</div>`:'';
+  const sf=staff()?`<div class="mx-staff">${p.status==='pending'?`<button class="btn btn-green btn-sm" data-mx="approve" data-id="${p.id}">Aprobar</button><button class="btn btn-danger btn-sm" data-mx="reject" data-id="${p.id}">Rechazar</button>`:''}${p.status==='approved'&&p.kind==='problem'?`<button class="btn btn-ghost btn-sm" data-mx="resolve" data-id="${p.id}">Marcar resuelto</button>`:''}</div>`:'';
+  return`<div class="pop mx-pop">${p.image_url?`<img src="${esc(p.image_url)}" alt="">`:''}<span class="mx-tag" style="--c:${c.c}">${c.e} ${esc(c.l)}</span><h4>${esc(p.title)}</h4>${st}${p.description?`<p class="sm">${esc(p.description)}</p>`:''}${p.address?`<div class="sm mut">📍 ${esc(p.address)}</div>`:''}${t?`<div class="sm"><a href="tel:${esc(t)}">📞 ${esc(t)}</a></div>`:''}${w?`<div class="sm"><a href="${esc(w)}" target="_blank" rel="noopener">🔗 Sitio web</a></div>`:''}${d!=null?`<div class="sm mut">A ${km(d)} de ti</div>`:''}<a class="btn btn-green btn-sm mx-go" href="${esc(navUrl(p))}" target="_blank" rel="noopener">🧭 Abrir en mi app de mapas</a><a class="mx-alt" href="${esc(gUrl(p))}" target="_blank" rel="noopener">Ver en Google Maps</a>${p.kind==='problem'?'<div class="xs mut" style="margin-top:6px">EcoNova no sustituye al 911, PROFEPA ni a Protección Civil.</div>':''}${sf}</div>`;
+ }
+ function draw(){
+  if(!map||!layer)return;layer.clearLayers();
+  if(mine){L.circle([mine.lat,mine.lng],{radius:radius*1000,color:'#1c7ed6',weight:1,fillColor:'#1c7ed6',fillOpacity:.06}).addTo(layer);L.circleMarker([mine.lat,mine.lng],{radius:8,color:'#fff',weight:3,fillColor:'#1c7ed6',fillOpacity:1}).addTo(layer).bindTooltip('Tu ubicación');}
+  pts.filter(passes).forEach(p=>{const c=cat(p.category);
+   const icon=L.divIcon({className:'mx-pin'+(p.status==='pending'?' pend':'')+(p.status==='resolved'?' done':''),html:`<span style="--c:${c.c}">${c.e}</span>`,iconSize:[36,44],iconAnchor:[18,42],popupAnchor:[0,-38]});
+   L.marker([p.latitude,p.longitude],{icon}).addTo(layer).bindPopup(popup(p),{maxWidth:280});});
+ }
+ function zone(){
+  const box=$$('mx-zone');if(!box)return;
+  if(!mine){box.innerHTML=`<div class="card pad mt2 mx-zone"><b>Tu zona</b><p class="sm mut" style="margin-top:6px">Activa tu ubicación o escribe tu colonia para ver los problemas y lugares ambientales cerca de ti. Tu ubicación se queda solo en tu dispositivo.</p></div>`;return;}
+  const near=pts.filter(p=>p.status==='approved'||p.status==='resolved').map(p=>({p,d:dist(mine,{lat:p.latitude,lng:p.longitude})})).filter(x=>x.d<=radius).sort((a,b)=>a.d-b.d);
+  const open=near.filter(x=>x.p.kind==='problem'&&x.p.status==='approved').length,solved=near.filter(x=>x.p.status==='resolved').length,pl=near.filter(x=>x.p.kind==='place').length;
+  box.innerHTML=`<div class="card pad mt2 mx-zone"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>Tu zona · a ${radius} km</b><select class="mx-sel" data-mxsel="radius">${[2,5,10,25,50].map(r=>`<option value="${r}" ${r===radius?'selected':''}>${r} km</option>`).join('')}</select></div>
+  <div class="mx-stats"><div><b>${open}</b><span>Problemas</span></div><div><b>${solved}</b><span>Resueltos</span></div><div><b>${pl}</b><span>Lugares</span></div></div>
+  ${near.slice(0,8).map(x=>{const c=cat(x.p.category);return`<div class="mx-item"><span class="mx-emoji" style="--c:${c.c}">${c.e}</span><div style="flex:1;min-width:0"><b class="mx-t">${esc(x.p.title)}</b><div class="xs mut">${esc(c.l)} · ${km(x.d)}${x.p.status==='resolved'?' · resuelto':''}</div></div><button class="btn btn-ghost btn-sm" data-mx="fly" data-id="${x.p.id}">Ver</button><a class="btn btn-ghost btn-sm" href="${esc(navUrl(x.p))}" target="_blank" rel="noopener">🧭</a></div>`;}).join('')||'<p class="sm mut" style="margin-top:10px">Todavía no hay puntos aprobados en esta zona. ¡Sé la primera persona en añadir uno!</p>'}
+  <div style="margin-top:10px"><button class="btn btn-ghost btn-sm" data-mx="clearloc">Quitar mi ubicación</button></div></div>`;
+ }
+ function setMine(lat,lng,src){mine={lat,lng,src};store.set(KEY,JSON.stringify(mine));draw();zone();if(map)map.flyTo([lat,lng],13);}
+ const getPos=()=>new Promise((ok,no)=>{if(!navigator.geolocation)return no('Tu navegador no permite obtener la ubicación.');navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude}),e=>no(e.code===1?'No diste permiso de ubicación. Puedes escribir tu colonia o tocar el mapa.':'No se pudo obtener tu ubicación. Intenta de nuevo o escribe tu colonia.'),{enableHighAccuracy:true,timeout:12000,maximumAge:60000});});
+ async function geocode(q){q=String(q||'').trim();if(q.length<3)throw'Escribe al menos 3 letras.';let r;try{r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=es&q='+encodeURIComponent(q));}catch(e){throw'No se pudo buscar esa dirección. Revisa tu conexión.';}
+  if(!r.ok)throw'No se pudo buscar esa dirección ahora.';const j=await r.json();if(!j.length)throw'No encontré ese lugar. Prueba con colonia y ciudad.';return{lat:+j[0].lat,lng:+j[0].lon,name:j[0].display_name};}
+
+ /* ── formulario para añadir ── */
+ const val=id=>{const e=$$(id);return e?e.value:null;};
+ function syncDraft(){if(!draft)return;const m={category:'mx-f-cat',title:'mx-f-title',description:'mx-f-desc',address:'mx-f-addr',phone:'mx-f-tel',website:'mx-f-web'};for(const k in m){const v=val(m[k]);if(v!==null)draft[k]=v;}}
+ function openForm(kind,resume){
+  if(!uid()){if(!sess())return guard();return toast('Necesitas una cuenta conectada para añadir puntos.','err');}
+  if(!resume||!draft)draft={kind:kind||'place',category:'',title:'',description:'',address:'',phone:'',website:'',lat:null,lng:null,img:''};
+  else if(kind)draft.kind=kind;
+  renderForm();
+ }
+ function renderForm(){
+  const d=draft,list=d.kind==='problem'?PROB:PLAC;
+  modal(`<h3>Añadir al mapa</h3><p class="sm mut mb2">Un moderador revisará tu propuesta antes de mostrarla a la comunidad.</p>
+  <div class="mx-seg"><button type="button" class="${d.kind==='place'?'on':''}" data-mx="fkind" data-v="place">🏪 Lugar</button><button type="button" class="${d.kind==='problem'?'on':''}" data-mx="fkind" data-v="problem">⚠️ Problema</button></div>
+  <div class="field"><label>${d.kind==='problem'?'Tipo de problema':'Tipo de lugar'}</label><select id="mx-f-cat"><option value="">Selecciona…</option>${list.map(c=>`<option value="${c[0]}" ${d.category===c[0]?'selected':''}>${c[2]} ${c[1]}</option>`).join('')}</select></div>
+  <div class="field"><label>${d.kind==='problem'?'Título del problema':'Nombre del lugar'}</label><input id="mx-f-title" maxlength="120" value="${esc(d.title)}"></div>
+  <div class="field"><label>Descripción</label><textarea id="mx-f-desc" maxlength="1000" placeholder="${d.kind==='problem'?'Qué está pasando, desde cuándo y cómo se ve. No incluyas datos personales.':'Qué ofrece y por qué es ambientalmente responsable.'}">${esc(d.description)}</textarea></div>
+  <div class="field"><label>Dirección o referencia</label><input id="mx-f-addr" maxlength="200" value="${esc(d.address)}"></div>
+  ${d.kind==='place'?`<div class="field"><label>Teléfono (opcional)</label><input id="mx-f-tel" type="tel" maxlength="30" value="${esc(d.phone)}"></div><div class="field"><label>Sitio web (opcional)</label><input id="mx-f-web" maxlength="200" value="${esc(d.website)}"></div>`:''}
+  <div class="field"><label>Foto (opcional)</label><input type="file" accept="image/*" data-mximg="1"><div id="mx-f-prev">${d.img?`<img src="${d.img}" alt="" style="max-height:110px;border-radius:8px;margin-top:8px">`:''}</div></div>
+  <div class="field"><label>Ubicación</label><div class="sm" id="mx-f-loc">${d.lat!=null?`✅ ${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`:'Aún sin ubicación'}</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn btn-ghost btn-sm" data-mx="floc">📍 Usar mi ubicación</button>${$$('bigmap')?'<button type="button" class="btn btn-ghost btn-sm" data-mx="fpick">Marcar en el mapa</button>':''}</div>
+   <div style="display:flex;gap:8px;margin-top:8px"><input id="mx-f-q" style="flex:1;min-width:0" placeholder="Buscar dirección…"><button type="button" class="btn btn-ghost btn-sm" data-mx="fgeo">Buscar</button></div></div>
+  ${d.kind==='problem'?'<div class="mx-warn"><b>Tu seguridad primero.</b> EcoNova no sustituye a los servicios de emergencia: si hay riesgo inmediato (incendio, derrame), llama al 911. Para denuncias formales acude a PROFEPA o Protección Civil. No te expongas ni confrontes a nadie.</div>':''}
+  <button type="button" class="btn btn-green btn-block" data-mx="save">Enviar a revisión</button>`);
+ }
+ async function save(el){
+  syncDraft();const d=draft,u=uid();if(!u)return guard();
+  if(!d.category)return toast('Elige el tipo.','err');
+  if(String(d.title).trim().length<3)return toast('Escribe un nombre o título.','err');
+  if(d.lat==null)return toast('Falta la ubicación: úsala, márcala en el mapa o búscala por dirección.','err');
+  el.disabled=true;
+  try{
+   let image_url=null;if(d.img){try{image_url=await Cloud.up(d.img,'map');}catch(e){console.warn(e);}}
+   const row={owner_id:u,kind:d.kind,category:d.category,title:d.title.trim(),description:String(d.description).trim()||null,address:String(d.address).trim()||null,latitude:d.lat,longitude:d.lng,website:web(d.website)||null,phone:tel(d.phone)||null,image_url,status:staff()?'approved':'pending'};
+   const {data,error}=await sb().from('map_points').insert(row).select().single();
+   if(error)throw error;
+   pts.unshift(data);draft=null;closeModal();draw();zone();if(map)map.flyTo([data.latitude,data.longitude],15);
+   toast(staff()?'Publicado en el mapa.':'¡Gracias! Un moderador revisará tu propuesta.','ok');
+  }catch(e){console.error(e);toast(errMsg(e),'err');el.disabled=false;}
+ }
+ /* ── moderación ── */
+ async function setStatus(id,status,note){
+  if(!staff())return toast('Solo el equipo de moderación puede hacer esto.','err');
+  const {data,error}=await sb().from('map_points').update({status,moderator_note:note||null,reviewed_by:uid(),reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id).select().single();
+  if(error)return toast(errMsg(error),'err');
+  const i=pts.findIndex(x=>x.id===id);if(i>=0)pts[i]=data;draw();zone();refreshAdmin();
+  toast({approved:'Aprobado: ya se ve en el mapa.',rejected:'Propuesta rechazada.',resolved:'Marcado como resuelto.'}[status]||'Actualizado.','ok');
+  if(map&&map.closePopup)map.closePopup();
+ }
+ async function remove(id){
+  if(!staff())return;if(!confirm('¿Eliminar este punto del mapa? No se puede deshacer.'))return;
+  const {error}=await sb().from('map_points').delete().eq('id',id);if(error)return toast(errMsg(error),'err');
+  pts=pts.filter(x=>x.id!==id);draw();zone();refreshAdmin();toast('Eliminado.','ok');
+ }
+ function pendingCount(){if(!loaded&&!loading&&enabled()){loading=true;load().then(()=>{loading=false;if(location.hash==='#/admin')render();});}return pts.filter(p=>p.status==='pending').length;}
+ function adminInner(){
+  const pend=pts.filter(p=>p.status==='pending'),rest=pts.filter(p=>p.status!=='pending').slice(0,40);
+  const row=p=>{const c=cat(p.category),o=userById(p.owner_id);return`<div class="card pad mt1 mx-arow"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mx-tag" style="--c:${c.c}">${c.e} ${esc(c.l)}</span><span class="badge">${p.kind==='problem'?'Problema':'Lugar'}</span><span class="badge">${STL[p.status]||p.status}</span></div>
+   <h4 style="margin:8px 0 2px">${esc(p.title)}</h4><div class="xs mut">Por ${esc(o.name)} · ${timeAgo(Date.parse(p.created_at))}</div>
+   ${p.description?`<p class="sm" style="margin:6px 0">${esc(p.description)}</p>`:''}${p.address?`<div class="sm mut">📍 ${esc(p.address)}</div>`:''}${p.image_url?`<img src="${esc(p.image_url)}" alt="" style="max-height:120px;border-radius:8px;margin-top:8px">`:''}
+   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${p.status!=='approved'&&p.status!=='resolved'?`<button class="btn btn-green btn-sm" data-mx="approve" data-id="${p.id}">Aprobar</button>`:''}${p.status==='pending'?`<button class="btn btn-danger btn-sm" data-mx="reject" data-id="${p.id}">Rechazar</button>`:''}${p.status==='approved'&&p.kind==='problem'?`<button class="btn btn-ghost btn-sm" data-mx="resolve" data-id="${p.id}">Marcar resuelto</button>`:''}${p.status==='resolved'?`<button class="btn btn-ghost btn-sm" data-mx="reopen" data-id="${p.id}">Reabrir</button>`:''}<a class="btn btn-ghost btn-sm" href="${esc(navUrl(p))}" target="_blank" rel="noopener">🧭 Ver ubicación</a><button class="btn btn-ghost btn-sm" data-mx="remove" data-id="${p.id}">Eliminar</button></div></div>`;};
+  return`<h3 style="margin-top:14px">Pendientes de revisión (${pend.length})</h3>${pend.map(row).join('')||'<p class="mut">No hay propuestas pendientes.</p>'}<h3 style="margin-top:22px">Últimos movimientos</h3>${rest.map(row).join('')||'<p class="mut">Sin movimientos.</p>'}`;
+ }
+ function refreshAdmin(){const b=$$('mx-admin');if(b)b.innerHTML=adminInner();}
+ function adminHTML(){pendingCount();return`<div id="mx-admin">${adminInner()}</div>`;}
+
+ /* ── eventos ── */
+ const H={
+  async locate(){try{const p=await getPos();setMine(p.lat,p.lng,'gps');toast('Ubicación activada. Solo tú la ves.','ok');}catch(e){toast(String(e),'err');}},
+  pickme(){pickCb=ll=>{setMine(ll.lat,ll.lng,'manual');toast('Ubicación guardada.','ok');};hint('Toca el mapa para marcar tu ubicación');$$('bigmap')&&$$('bigmap').scrollIntoView({behavior:'smooth',block:'center'});},
+  add(){openForm(null,false);},
+  async geo(){try{const r=await geocode(val('mx-q'));setMine(r.lat,r.lng,'manual');toast('Zona encontrada.','ok');}catch(e){toast(String(e),'err');}},
+  kind(el){fKind=el.dataset.v;fCat='';const f=$$('mx-filters');if(f)f.innerHTML=chips();draw();zone();},
+  fly(el){const p=pts.find(x=>x.id===el.dataset.id);if(!p||!map)return;$$('bigmap').scrollIntoView({behavior:'smooth',block:'center'});map.flyTo([p.latitude,p.longitude],16);},
+  clearloc(){mine=null;store.del(KEY);draw();zone();},
+  fkind(el){syncDraft();draft.kind=el.dataset.v;draft.category='';renderForm();},
+  async floc(){syncDraft();try{const p=mine||await getPos();draft.lat=p.lat;draft.lng=p.lng;renderForm();}catch(e){toast(String(e),'err');}},
+  fpick(){syncDraft();closeModal();hint('Toca el mapa para colocar el punto');pickCb=ll=>{draft.lat=ll.lat;draft.lng=ll.lng;openForm(null,true);};$$('bigmap')&&$$('bigmap').scrollIntoView({behavior:'smooth',block:'center'});},
+  async fgeo(){syncDraft();try{const r=await geocode(val('mx-f-q'));draft.lat=r.lat;draft.lng=r.lng;if(!String(draft.address).trim())draft.address=r.name.split(',').slice(0,3).join(',');renderForm();}catch(e){toast(String(e),'err');}},
+  save(el){save(el);},
+  approve(el){setStatus(el.dataset.id,'approved');},
+  reject(el){const n=prompt('Motivo del rechazo (opcional):');if(n===null)return;setStatus(el.dataset.id,'rejected',n);},
+  resolve(el){setStatus(el.dataset.id,'resolved');},
+  reopen(el){setStatus(el.dataset.id,'approved');},
+  remove(el){remove(el.dataset.id);}
+ };
+ document.addEventListener('click',e=>{const el=e.target.closest&&e.target.closest('[data-mx]');if(!el)return;e.preventDefault();const f=H[el.dataset.mx];if(f)f(el);},true);
+ document.addEventListener('change',e=>{const t=e.target;
+  if(t.dataset&&t.dataset.mxsel==='cat'){fCat=t.value;draw();}
+  else if(t.dataset&&t.dataset.mxsel==='radius'){radius=+t.value;draw();zone();}
+  else if(t.dataset&&t.dataset.mximg){const fl=t.files&&t.files[0];t.value='';if(!fl||!draft)return;if(!fl.type.startsWith('image/'))return toast('Selecciona una imagen.','err');if(fl.size>8*1024*1024)return toast('Imagen muy grande (máx. 8 MB).','err');
+   compress(fl).then(d=>{draft.img=d;const pv=$$('mx-f-prev');if(pv)pv.innerHTML=`<img src="${d}" alt="" style="max-height:110px;border-radius:8px;margin-top:8px">`;}).catch(()=>toast('No se pudo leer la imagen.','err'));}
+ },true);
+ document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;if(e.target.id==='mx-q'){e.preventDefault();H.geo();}else if(e.target.id==='mx-f-q'){e.preventDefault();H.fgeo();}});
+ return{view,init,openForm,adminHTML,pendingCount,load};
 })();
 </script>
 </body>
