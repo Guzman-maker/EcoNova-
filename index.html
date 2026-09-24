@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1268,10 +1269,12 @@ const API={
   const u=sess();if(!u)throw'Inicia sesión.';
   const p=postById(id);if(!p)throw'Publicación no encontrada.';if(['REJECTED','REMOVED'].includes(p.status))throw'Esta publicación no se puede compartir.';
   const original=p.sharedFrom?postById(p.sharedFrom)||p:p;
-  const already=DB.posts.some(x=>x.userId===u.id&&x.sharedFrom===original.id&&['APPROVED','PENDING'].includes(x.status));
-  if(already)throw'Ya tienes esta publicación compartida o pendiente de revisión en tu perfil.';
-  DB.posts.unshift({id:uid(),userId:u.id,title:original.title,body:original.body,cat:original.cat,loc:original.loc,imgs:[...(original.imgs||[])],video:original.video||'',tags:[...(original.tags||[])],status:'PENDING',sponsored:false,likes:[],comments:[],shares:0,savedBy:[],sharedFrom:original.id,sharedAt:Date.now(),at:Date.now()});
-  this.logActivity('share',{postId:original.id,title:original.title,userId:original.userId});save();return true;
+  const already=DB.posts.some(x=>x.userId===u.id&&x.sharedFrom===original.id&&x.status==='APPROVED');
+  if(!already){
+    DB.posts.unshift({id:uid(),userId:u.id,title:original.title,body:original.body,cat:original.cat,loc:original.loc,imgs:[...(original.imgs||[])],tags:[...(original.tags||[])],status:'APPROVED',sponsored:false,likes:[],comments:[],shares:0,savedBy:[],sharedFrom:original.id,sharedAt:Date.now(),at:Date.now()});
+  }
+  original.shares=(original.shares||0)+1;
+  this.logActivity('share',{postId:original.id,title:original.title,userId:original.userId});save();return !already;
 },
  toggleSave(id){const u=sess();if(!u)throw'Inicia sesión.';const p=postById(id);if(!p)throw'Publicación no encontrada.';if(['REJECTED','REMOVED'].includes(p.status))throw'Esta publicación no se puede guardar.';const i=p.savedBy.indexOf(u.id);if(i>=0)p.savedBy.splice(i,1);else{p.savedBy.push(u.id);this.logActivity('save',{postId:id,title:p.title,userId:p.userId});}save();return i<0;},
  toggleFollow(target){const u=sess();if(!u)throw'Inicia sesión.';const targetU=userById(target);if((u.blockedUsers||[]).includes(target)||((targetU.blockedUsers||[]).includes(u.id)))throw'No puedes seguir a una cuenta bloqueada.';const i=DB.follows.findIndex(f=>f.f===u.id&&f.t===target);if(i>=0)DB.follows.splice(i,1);else{DB.follows.push({f:u.id,t:target});this.logActivity('follow',{targetId:target,title:targetU.name});if(userById(target).notifyFollows!==false)this.notify(target,'Nuevo seguidor',`${u.name} empezó a seguirte.`);}save();return i<0;},
@@ -1514,6 +1517,7 @@ function initMap(){
  MAPS.push(m);
 }
 function viewReports(){
+ if(typeof MapX==='object'&&Supabase.enabled()){setTimeout(()=>{location.hash='#/mapa';},0);return'';}
  const me=sess();
  return`<div>
   <div class="page-head" style="padding-top:6px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px">
@@ -1538,6 +1542,7 @@ function viewReports(){
  </div>`;
 }
 function viewPurification(){
+ if(typeof MapX==='object'&&Supabase.enabled()){setTimeout(()=>{location.hash='#/mapa';},0);return'';}
  const me=sess();
  const rows=DB.reports.slice().sort((a,b)=>b.at-a.at).filter(r=>me&&r.userId===me.id);
  return `<div><div class="page-head" style="padding-top:6px"><span class="kicker">Seguimiento ambiental</span><h1>Estado de purificación</h1><p class="mut">Consulta únicamente tus propios reportes y su avance: pendientes, en revisión, verificados, resueltos o rechazados.</p></div><div class="card pad mt2"><div style="display:flex;gap:8px;flex-wrap:wrap"><span class="badge st-pending">Pendiente</span><span class="badge st-review">En revisión</span><span class="badge st-approved">Verificado</span><span class="badge st-resolved">Resuelto</span><span class="badge st-rejected">Rechazado</span></div></div>${rows.map(r=>{const u=userById(r.userId);return `<article class="post card" style="margin-top:14px"><div class="hd">${avatar(u,38,13)}<div class="info"><div class="nm">${esc(u.name)}</div><div class="sub">${timeAgo(r.at)} · <span class="badge ${RSTC[r.status]}">${RST[r.status]||r.status}</span></div></div></div><h3 class="ttl">${esc(r.title)}</h3><div class="bd">${esc(r.desc)}</div><div class="locs">${ic('pin')} ${Number(r.lat).toFixed(3)}, ${Number(r.lng).toFixed(3)}</div>${r.adminNote?`<div class="notice ${r.status==='RECHAZADO'?'danger':'ok'}" style="margin:12px 18px"><b>Respuesta del equipo:</b> ${esc(r.adminNote)}</div>`:''}</article>`;}).join('')||'<div class="card pad mt2"><p class="mut">Todavía no hay reportes visibles.</p></div>'}</div>`;
@@ -1960,7 +1965,7 @@ function admModeracion(){
  return`<h3 style="font-size:16px;margin-bottom:12px">Publicaciones pendientes (${pend.length})</h3>
  ${pend.map(p=>{const u=userById(p.userId);return`<div class="card pad mb2">
   <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
-   <div style="flex:1;min-width:220px"><div class="sm"><b>${esc(u.name)}</b> <span class="mut">· ${timeAgo(p.at)}</span> ${p.sharedFrom?'<span class="badge st-pending">Compartido por un usuario</span>':''}</div>
+   <div style="flex:1;min-width:220px"><div class="sm"><b>${esc(u.name)}</b> <span class="mut">· ${timeAgo(p.at)}</span></div>
    <b style="font-family:var(--disp);font-size:16px">${esc(p.title)}</b><p class="sm mut mt1">${esc(p.body.slice(0,160))}…</p>
    ${p.imgs.length?`<img src="${p.imgs[0]}" style="max-height:110px;border-radius:8px;margin-top:8px">`:''}
    <div class="mt1" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><select id="mcat-${p.id}" style="padding:7px 10px;border:1.5px solid var(--line2);border-radius:7px;font-size:12.5px">${catOptions(p.cat)}</select>
@@ -2012,6 +2017,7 @@ function admSupports(){
  ${rest.map(s=>supCard(s,'')).join('')||'<p class="mut">Sin historial.</p>'}`;
 }
 function admReports(){
+ if(typeof MapX==='object'&&Supabase.enabled())return`<div class="card pad"><p class="mut">Los reportes ambientales ahora se moderan desde la pestaña <b>Mapa</b> (los problemas reportados por la comunidad aparecen ahí, con las mismas opciones de aprobar/rechazar/resolver).</p><button class="btn btn-ink btn-sm mt2" data-action="adm-tab" data-t="mapa">Ir a Mapa</button></div>`;
  return`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Reporte</th><th>Autor</th><th>Categoría</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
  ${DB.reports.slice().reverse().map(r=>`<tr><td><b>${esc(r.title)}</b><div class="xs mut">${dShort(r.at)}</div></td><td>${esc(userById(r.userId).name)}</td><td><span class="chip">${esc(catById(r.cat).name)}</span></td>
  <td><span class="badge ${RSTC[r.status]}">${RST[r.status]}</span></td>
@@ -2339,7 +2345,7 @@ document.addEventListener('click',e=>{
   case 'video-forward':videoSeek(el.dataset.p,10);break;
   case 'video-play':videoToggle(el.dataset.p);break;
   case 'save':run(()=>{if(!sess())return guard();const on=API.toggleSave(el.dataset.p);toast(on?'Guardada en tu colección.':'Quitada de guardados.','ok');});break;
-  case 'share-profile':run(async()=>{await API.share(el.dataset.p);closeModal();toast('Publicación enviada a moderación. Aparecerá en tu perfil cuando sea aprobada.','ok');render();});break;
+  case 'share-profile':run(()=>{const added=API.share(el.dataset.p);closeModal();toast(added?'Publicación añadida a tu perfil.':'Ya estaba en tu perfil.','ok');});break;
   case 'share-profile-user':openProfileShareMenu(el.dataset.u);break;
   case 'profile-native':{const u=el.dataset.url,t=el.dataset.text||'Perfil de EcoNova';if(navigator.share){navigator.share({title:t,text:t,url:u}).catch(()=>{});}else{copyShareLink(u);toast('Tu navegador no admite compartir nativo. Enlace copiado.','ok');}break;}
   case 'profile-copy':if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(el.dataset.url).then(()=>toast('Enlace del perfil copiado.','ok')).catch(()=>toast(el.dataset.url));}else{toast(el.dataset.url);}break;
@@ -2535,20 +2541,20 @@ const Cloud=(()=>{
    const {data:{session:s}}=await c().auth.getSession();
    const cats=await q(c().from('categories').select('id,name'));
    const {data:rows,error}=await c().from('posts').select('*').neq('status','hidden').order('created_at',{ascending:false}).limit(100);
-   if(error){
-     console.error('[EcoNova] No se pudieron cargar las publicaciones desde Supabase:',error);
-     throw error;
-   }
+   if(error)throw error;
    const byName=new Map(DB.cats.map(x=>[x.name.toLowerCase(),x])),u2l={};loc2uuid={};
    cats.forEach(r=>{let l=byName.get(r.name.toLowerCase());if(!l){l={id:Math.max(0,...DB.cats.map(x=>x.id))+1,name:r.name,grp:(CAT_SEED.find(x=>x[0]===r.name)||[])[1]||GRUPOS[GRUPOS.length-1],active:true};DB.cats.push(l);byName.set(r.name.toLowerCase(),l);}u2l[r.id]=l.id;loc2uuid[l.id]=r.id;});
    const ids=rows.map(r=>r.id),has=ids.length>0;
-   const [media,cms,lks,svs,fol,modq]=await Promise.all([
+   const [media,cms,lks,svs,fol,modq,reps]=await Promise.all([
     has?q(c().from('post_media').select('post_id,media_url,media_type,sort_order').in('post_id',ids).order('sort_order')):[],
     has?q(c().from('comments').select('*').in('post_id',ids).order('created_at')):[],
     has?q(c().from('likes').select('post_id,user_id').in('post_id',ids)):[],
     s?q(c().from('saved_posts').select('post_id').eq('user_id',s.user.id)):[],
     q(c().from('follows').select('follower_id,following_id').limit(2000)),
-    q(c().from('moderation_queue').select('*').order('created_at',{ascending:false}).limit(1000))]);
+    q(c().from('moderation_queue').select('*').order('created_at',{ascending:false}).limit(1000)),
+    q(c().from('reports').select('*').order('created_at',{ascending:false}).limit(1000))]);
+   // Las denuncias de publicaciones viven en la tabla reports; se traducen al formato local de DB.flags.
+   DB.flags=(reps||[]).map(r=>({id:r.id,postId:r.post_id,userId:r.reporter_id,reason:r.reason,status:r.status==='pending'?'ABIERTA':'RESUELTA',at:Date.parse(r.created_at)||Date.now()}));
    const CL={};(await q(c().from('comment_likes').select('comment_id,user_id').limit(3000))).forEach(r=>{(CL[r.comment_id]=CL[r.comment_id]||[]).push(r.user_id);});
    const g=(arr,k,f)=>{const m={};arr.forEach(r=>{(m[r[k]]=m[r[k]]||[]).push(f(r));});return m;};
    const V={};media.filter(r=>r.media_type==='video').forEach(r=>{V[r.post_id]=r.media_url;});const M=g(media.filter(r=>r.media_type!=='video'),'post_id',r=>r.media_url),L=g(lks,'post_id',r=>r.user_id),S=g(svs,'post_id',()=>s.user.id);
@@ -2629,18 +2635,12 @@ const Cloud=(()=>{
    }
    if(p.status==='PENDING'){
     const qr=await c().from('moderation_queue').insert({content_type:'post',content_id:data.id,submitted_by:u.id,status:'pending'});
-    if(qr.error){
-      // La publicación NO se elimina si falla la cola de moderación.
-      // Dejarla como PENDING permite que el moderador la recupere desde posts
-      // y evita que el usuario pierda su publicación por una política RLS de la cola.
-      console.error('[EcoNova] No se pudo crear la entrada de moderation_queue:',qr.error);
-      toast('La publicación quedó guardada como pendiente, pero la cola de moderación tuvo un problema. Revisa las políticas RLS de moderation_queue.','err');
-    }
+    if(qr.error){await c().from('post_media').delete().eq('post_id',data.id);await c().from('posts').delete().eq('id',data.id);throw qr.error;}
    }
    save();await api.sync();render();
   }
  };
- const A={};['createPost','like','comment','replyComment','toggleSave','toggleFollow','moderate','updateProfile','logout','setEmblem','removeEmblem','setCommunityStatus','suspend','setVerified','verifyOrg','likeComment','removePost','deleteShared'].forEach(k=>A[k]=API[k].bind(API));
+ const A={};['createPost','like','comment','replyComment','toggleSave','toggleFollow','moderate','updateProfile','logout','setEmblem','removeEmblem','setCommunityStatus','suspend','setVerified','verifyOrg','likeComment','removePost','deleteShared','share','flag','resolveFlag'].forEach(k=>A[k]=API[k].bind(API));
  API.createPost=async function(d){
   A.createPost(d);
   if(!on()||!me()){const p=DB.posts[0];if(d.video)p.video=URL.createObjectURL(d.video);save();return p;}
@@ -2648,39 +2648,26 @@ const Cloud=(()=>{
   await api.pushPost(p,d.video);
   return p;
 };
- API.share=async function(id){
-  const u=me();
-  if(!u)throw new Error('Inicia sesión.');
-  if(!on()||!UUID.test(id))return A.share(id);
-  const source=postById(id);
-  if(!source)throw new Error('Publicación no encontrada.');
-  if(['REJECTED','REMOVED'].includes(source.status))throw new Error('Esta publicación no se puede compartir.');
-  const original=source.sharedFrom?postById(source.sharedFrom)||source:source;
-  const already=DB.posts.some(x=>x.userId===u.id&&x.sharedFrom===original.id&&['APPROVED','PENDING'].includes(x.status));
-  if(already)throw new Error('Ya tienes esta publicación compartida o pendiente de revisión en tu perfil.');
-  const categoryId=loc2uuid[original.cat]||null;
-  if(!categoryId)throw new Error('La categoría de la publicación no está disponible. Recarga la página e inténtalo de nuevo.');
-  const {data,error}=await c().from('posts').insert({author_id:u.id,category_id:categoryId,content:String(original.title||'').trim()+'\n\n'+String(original.body||'').trim(),location:original.loc||null,status:'pending'}).select().single();
-  if(error)throw error;
-  const sharedId=data.id;
-  try{
-    const mediaRows=[];
-    for(const [i,url] of (original.imgs||[]).entries())if(url)mediaRows.push({post_id:sharedId,media_url:url,media_type:'image',sort_order:i});
-    if(original.video)mediaRows.push({post_id:sharedId,media_url:original.video,media_type:'video',sort_order:99});
-    if(mediaRows.length){const mr=await c().from('post_media').insert(mediaRows);if(mr.error)throw mr.error;}
-    const qr=await c().from('moderation_queue').insert({content_type:'post',content_id:sharedId,submitted_by:u.id,status:'pending'});
-    if(qr.error){
-      console.error('[EcoNova] Compartido guardado, pero moderation_queue falló:',qr.error);
-      toast('El compartido quedó guardado como pendiente, pero la cola de moderación tuvo un problema. Revisa las políticas RLS.','err');
-    }
-  }catch(e){
-    await c().from('post_media').delete().eq('post_id',sharedId);
-    await c().from('posts').delete().eq('id',sharedId);
-    throw e;
+ API.share=function(id){
+  const added=A.share(id);
+  if(added&&on()&&me()){
+   const p=DB.posts[0];
+   api.pushPost(p,null).catch(e=>{
+    DB.posts=DB.posts.filter(x=>x!==p);save();
+    fail(e,false,'No se pudo compartir la publicación');
+   });
   }
-  original.shares=(original.shares||0)+1;
-  await api.sync();
-  return true;
+  return added;
+};
+ API.flag=function(postId,reason){
+  A.flag(postId,reason);
+  const u=me();if(!on()||!u||!UUID.test(postId))return;
+  c().from('reports').insert({reporter_id:u.id,post_id:postId,reason,status:'pending'}).then(({error})=>{if(error)fail(error,true,'No se pudo enviar la denuncia');});
+};
+ API.resolveFlag=function(fid,action){
+  A.resolveFlag(fid,action);
+  const u=me();if(!on()||!u||!UUID.test(fid))return;
+  c().from('reports').update({status:action==='REMOVE'?'resolved':'dismissed',reviewed_by:u.id,reviewed_at:new Date().toISOString()}).eq('id',fid).then(({error})=>{if(error)fail(error);});
 };
  API.removePost=async function(id){
   A.removePost(id);
