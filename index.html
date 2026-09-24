@@ -2535,7 +2535,10 @@ const Cloud=(()=>{
    const {data:{session:s}}=await c().auth.getSession();
    const cats=await q(c().from('categories').select('id,name'));
    const {data:rows,error}=await c().from('posts').select('*').neq('status','hidden').order('created_at',{ascending:false}).limit(100);
-   if(error)throw error;
+   if(error){
+     console.error('[EcoNova] No se pudieron cargar las publicaciones desde Supabase:',error);
+     throw error;
+   }
    const byName=new Map(DB.cats.map(x=>[x.name.toLowerCase(),x])),u2l={};loc2uuid={};
    cats.forEach(r=>{let l=byName.get(r.name.toLowerCase());if(!l){l={id:Math.max(0,...DB.cats.map(x=>x.id))+1,name:r.name,grp:(CAT_SEED.find(x=>x[0]===r.name)||[])[1]||GRUPOS[GRUPOS.length-1],active:true};DB.cats.push(l);byName.set(r.name.toLowerCase(),l);}u2l[r.id]=l.id;loc2uuid[l.id]=r.id;});
    const ids=rows.map(r=>r.id),has=ids.length>0;
@@ -2626,7 +2629,13 @@ const Cloud=(()=>{
    }
    if(p.status==='PENDING'){
     const qr=await c().from('moderation_queue').insert({content_type:'post',content_id:data.id,submitted_by:u.id,status:'pending'});
-    if(qr.error){await c().from('post_media').delete().eq('post_id',data.id);await c().from('posts').delete().eq('id',data.id);throw qr.error;}
+    if(qr.error){
+      // La publicación NO se elimina si falla la cola de moderación.
+      // Dejarla como PENDING permite que el moderador la recupere desde posts
+      // y evita que el usuario pierda su publicación por una política RLS de la cola.
+      console.error('[EcoNova] No se pudo crear la entrada de moderation_queue:',qr.error);
+      toast('La publicación quedó guardada como pendiente, pero la cola de moderación tuvo un problema. Revisa las políticas RLS de moderation_queue.','err');
+    }
    }
    save();await api.sync();render();
   }
@@ -2660,7 +2669,10 @@ const Cloud=(()=>{
     if(original.video)mediaRows.push({post_id:sharedId,media_url:original.video,media_type:'video',sort_order:99});
     if(mediaRows.length){const mr=await c().from('post_media').insert(mediaRows);if(mr.error)throw mr.error;}
     const qr=await c().from('moderation_queue').insert({content_type:'post',content_id:sharedId,submitted_by:u.id,status:'pending'});
-    if(qr.error)throw qr.error;
+    if(qr.error){
+      console.error('[EcoNova] Compartido guardado, pero moderation_queue falló:',qr.error);
+      toast('El compartido quedó guardado como pendiente, pero la cola de moderación tuvo un problema. Revisa las políticas RLS.','err');
+    }
   }catch(e){
     await c().from('post_media').delete().eq('post_id',sharedId);
     await c().from('posts').delete().eq('id',sharedId);
