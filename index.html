@@ -2699,8 +2699,8 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
    for(const k of['avatar','cover']){if(u[k]){const url=await up(u[k],k==='avatar'?'avatars':'covers');u[k]=url;}row[k]=u[k]||null;}
    const {error}=await c().from('profiles').update(row).eq('id',u.id);if(error)throw error;save();render();})().catch(e=>fail(e));};
  const rpcEmblem=(id,code,act)=>{if(!on()||!UUID.test(id)||!['MOD','ALLY','DONOR'].includes(code))return;c().rpc('set_user_emblem',{target:id,code,active:act}).then(({error})=>{if(error)fail(error);});};
- API.setEmblem=function(id,code){A.setEmblem(id,code);rpcEmblem(id,code,true);};
- API.removeEmblem=function(id,code){A.removeEmblem(id,code);rpcEmblem(id,code,false);};
+ API.setEmblem=function(id,code){A.setEmblem(id,code);rpcEmblem(id,code,true);if(code==='MOD')setCol(id,{role:'MODERATOR'});};
+ API.removeEmblem=function(id,code){const wasMod=code==='MOD'&&userById(id)?.role==='MOD';A.removeEmblem(id,code);rpcEmblem(id,code,false);if(wasMod)setCol(id,{role:'USER'});};
  API.setCommunityStatus=function(id,type,val){A.setCommunityStatus(id,type,val);rpcEmblem(id,type==='ally'?'ALLY':'DONOR',!!val);};
  const setCol=(id,col)=>{if(on()&&UUID.test(id))c().from('profiles').update(col).eq('id',id).then(({error})=>{if(error)fail(error);});};
  API.suspend=function(id,val){A.suspend(id,val);setCol(id,{is_active:!val});};
