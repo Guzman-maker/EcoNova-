@@ -1737,8 +1737,9 @@ function viewDonate(){
       <select id="d-target">${targets.map(t=>`<option value="${t.id}" data-l="${esc(t.label)}">${esc(t.label)}</option>`).join('')}</select>
       <p class="hint">El <b>Fondo Comunitario</b> financia herramientas, logística, rescate animal y los apoyos a quienes difunden causas en la red.</p></div>
      <div class="field"><label>Nombre (opcional)</label><input type="text" id="d-name" placeholder="${u?esc(u.name):'Anónimo'}"></div>
-     <div class="notice mb2">El cobro se integrará con un proveedor certificado (Stripe / Mercado Pago). EcoNova <b>nunca</b> almacena datos bancarios.</div>
-     <button class="btn btn-green btn-block" type="submit">${ic('heart')} Donar ahora</button>
+     <label class="sm" style="display:flex;align-items:center;gap:8px;margin:2px 0 14px"><input type="checkbox" id="d-anon">Hacer mi donación anónima</label>
+     <div class="notice mb2">${Supabase.enabled()?'Pago seguro procesado por <b>Stripe</b>. EcoNova nunca ve ni almacena los datos de tu tarjeta.':'El cobro se integrará con un proveedor certificado (Stripe). EcoNova <b>nunca</b> almacena datos bancarios.'}</div>
+     <button class="btn btn-green btn-block" type="submit" id="d-submit">${ic('heart')} Donar ahora</button>
      <p class="hint mt1" style="text-align:center">100% destinado a causas verificables · Gasto público · Recibo por cada donación</p>
     </form>
    </div>
@@ -2475,7 +2476,17 @@ document.addEventListener('submit',e=>{
    toast('Campaña creada. La votación de fechas está abierta.','ok');location.hash='#/campana/'+c.id;render();
   }
   if(d==='campres'){const c=campById(f.dataset.c);c.result={kg:+$('#cr-kg').value,trees:+$('#cr-tr').value,notes:$('#cr-n').value};c.status='COMPLETED';API.audit(`Registró resultados de la campaña "${c.name}"`);save();closeModal();toast('Campaña completada. Impacto sumado a las estadísticas.','ok');render();}
-  if(f.id==='f-don'){const sel=$('#d-target');const t=sel.selectedOptions[0];API.donate(sel.value,t.dataset.l,+$('#d-amt').value,$('#d-name').value.trim());toast('¡Gracias por tu apoyo! Donación registrada.','ok');render();}
+  if(f.id==='f-don'){
+   const sel=$('#d-target');const t=sel.selectedOptions[0];
+   const amount=+$('#d-amt').value,name=$('#d-name').value.trim(),anon=$('#d-anon')?.checked;
+   if(!amount||amount<20){toast('El monto mínimo de donación es $20.','err');return;}
+   if(Supabase.enabled()){
+    const btn=$('#d-submit');if(btn){btn.disabled=true;btn.textContent='Redirigiendo a pago seguro…';}
+    Cloud.donate(sel.value,t.dataset.l,amount,anon,name).catch(m=>{toast(String(m?.message||m),'err');if(btn){btn.disabled=false;btn.innerHTML=ic('heart')+' Donar ahora';}});
+    return;
+   }
+   API.donate(sel.value,t.dataset.l,amount,name);toast('¡Gracias por tu apoyo! Donación registrada.','ok');render();
+  }
   if(d==='newcat'){API.addCategory($('#nc-name').value,$('#nc-grp').value);toast('Categoría agregada.','ok');render();}
   if(d==='expense'){API.addExpense($('#ex-c').value,$('#ex-a').value);toast('Gasto registrado en transparencia.','ok');render();}
  }catch(m){toast(m,'err');}
@@ -2572,6 +2583,8 @@ const Cloud=(()=>{
    DB.users.forEach(u=>{u.emblems=em.filter(e=>e.user_id===u.id).map(e=>e.emblem);u.allyAccepted=u.emblems.includes('ALLY');u.donorAccepted=u.emblems.includes('DONOR');});
    DB.posts=rows.map(r=>{const [title,body]=split(r.content||'');return{id:r.id,userId:r.author_id,title,body,cat:u2l[r.category_id]??DB.cats[0].id,loc:r.location||'',imgs:M[r.id]||[],video:V[r.id]||'',tags:(body.match(/#[\wáéíóúñÁÉÍÓÚÑ]+/g)||[]).map(t=>t.slice(1)),status:ST[r.status]||'PENDING',sponsored:approvedPromoPosts.has(r.id),likes:L[r.id]||[],comments:C[r.id]||[],shares:0,savedBy:S[r.id]||[],at:Date.parse(r.created_at)};});
    DB.follows=fol.map(r=>({f:r.follower_id,t:r.following_id}));
+   const dons=await q(c().from('donations_public').select('*').order('created_at',{ascending:false}).limit(500));
+   DB.donations=dons.map(d=>({id:d.id,userId:null,name:d.donor_name,target:d.target,tlabel:d.target_label,amount:+d.amount,at:Date.parse(d.created_at)||Date.now()}));
    if(s)store.set('econova_session',s.user.id);else store.del('econova_session');
    save();
   },
@@ -2730,6 +2743,13 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
   A.reviewPromo(id,ok);
   await api.sync();render();
 };
+ api.donate=async function(target,targetLabel,amount,anonymous,donorName){
+  const {data:{session:s}}=await c().auth.getSession();
+  const res=await fetch(SUPABASE_CONFIG.url+'/functions/v1/create-checkout-session',{method:'POST',headers:{'Content-Type':'application/json',...(s?.access_token?{Authorization:'Bearer '+s.access_token}:{})},body:JSON.stringify({target,targetLabel,amount,anonymous:!!anonymous,donorName:donorName||null})});
+  const out=await res.json().catch(()=>({}));
+  if(!res.ok||!out.url)throw new Error(out.error||'No se pudo iniciar el pago. Intenta de nuevo.');
+  location.href=out.url;
+ };
  API.likeComment=function(pid,cid){A.likeComment(pid,cid);const u=me();if(!on()||!u||!UUID.test(cid))return;
   const cm=(postById(pid).comments||[]).find(x=>x.id===cid),liked=cm&&cm.likes.includes(u.id);
   (liked?c().from('comment_likes').insert({comment_id:cid,user_id:u.id}):c().from('comment_likes').delete().eq('comment_id',cid).eq('user_id',u.id)).then(({error})=>{if(error&&error.code!=='23505')fail(error,true,'No se pudo guardar tu like al comentario');});};
@@ -2743,6 +2763,9 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
    else if(OAUTH_TOKENS){const {error}=await c().auth.setSession(OAUTH_TOKENS);if(error)toast('No se pudo iniciar sesión con Google. Inténtalo de nuevo.','err');else oauth=true;}
    else if(LINK_ERROR)toast('El enlace expiró o el acceso fue cancelado. Inténtalo de nuevo.','err');
    try{await api.sync();render();}catch(e){console.error(e);toast('No se pudo conectar con EcoNova. Reintenta en un momento.','err');}
+   const dq=new URLSearchParams(location.search);
+   if(dq.get('donation')==='success'){toast('¡Gracias por tu donación! En unos segundos se refleja en el contador.','ok');history.replaceState(null,'',location.pathname+(location.hash||'#/donar'));setTimeout(()=>{api.sync().then(render);},2500);}
+   else if(dq.get('donation')==='cancel'){toast('No se completó el pago. Puedes intentarlo de nuevo cuando quieras.');history.replaceState(null,'',location.pathname+(location.hash||'#/donar'));}
    if(rec)api.resetModal();else if(oauth&&sess())toast('Bienvenido a EcoNova.','ok');})();
  }
  return api;
