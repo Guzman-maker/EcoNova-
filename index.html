@@ -3076,6 +3076,8 @@ var MapX=(()=>{
 
  /* ── Cerebro local: [palabras clave (inicio de palabra), respuesta, pose, ruta] ── */
  var KB=[
+ ['quien te creo|quien te hizo|quien te programo|quien te desarrollo|quien te diseno|quien es tu creador|tu creador','A mí, Eco, me creó <b>Ángel Alberto Guzmán Martinez</b>, el desarrollador y fundador de EcoNova 🌱 Soy su mascota y estoy aquí para acompañarte en la app.','emocionado'],
+ ['quien creo|quien lo creo|quien la creo|quien hizo|quien lo hizo|quien la hizo|quien fundo|quien desarrollo|quien programo|quien diseno|quien esta detras|quien inicio|quien es el dueno|creador|fundador|desarrollador|angel guzman|guzman martinez|quien es angel','EcoNova fue creada por <b>Ángel Alberto Guzmán Martinez</b>, desarrollador y fundador de EcoNova 💚 Gracias a su visión, hoy puedes reportar problemas, organizar campañas, aprender y donar por el planeta.','emocionado'],
  ['que fecha|fecha de hoy|fecha actual|que dia es|dia es hoy|hoy es|que hora|la hora|hora es|hora actual|en que dia estamos',nowTxt,'curioso'],
  ['fechas ambientales|fecha ambiental|efemerides|dias ambientales|dia mundial|dia internacional|calendario ambiental|proxima fecha|dia de la tierra|dia del medio ambiente',ecoDates,'emocionado'],
  ['dato curioso|dato ecologico|sabias que|curiosidad|trivia',fact,'guino'],
@@ -3110,7 +3112,7 @@ var MapX=(()=>{
  ['organizacion|empresa|ong|colectivo|negocio','EcoNova tiene tipos de cuenta: <b>ciudadano</b>, <b>organización</b> y <b>empresa</b>. Puedes ver a las organizaciones en su sección.','curioso','#/organizaciones','Ver organizaciones'],
  ['contrasena|olvide|recuperar|restablecer|clave','En la pantalla de inicio de sesión toca <b>“¿Olvidaste tu contraseña?”</b> y recibirás un enlace por correo para crear una nueva.','curioso'],
  ['registro|registrar|crear cuenta|unirme|verificar|confirmar correo|no me llega','Toca <b>“Crear cuenta”</b>, elige tu tipo de cuenta y confirma tu correo. Si no te llega, revisa spam/no deseado.','feliz'],
- ['perfil|foto de perfil|mi nombre|editar|configuracion|ajustes|cuenta','Tu perfil y tus ajustes están en tu cuenta (arriba a la derecha). Ahí puedes editar tus datos y preferencias.','feliz','#/configuracion','Ir a Configuración'],
+ ['perfil|foto de perfil|mi nombre|editar|configuracion|ajustes|mi cuenta|mis datos','Tu perfil y tus ajustes están en tu cuenta (arriba a la derecha). Ahí puedes editar tus datos y preferencias.','feliz','#/configuracion','Ir a Configuración'],
  ['guardado|guardar|favorit','Tus publicaciones guardadas están en <b>Guardados</b>.','feliz','#/guardados','Ver guardados'],
  ['notificacion|aviso|alerta','Tus avisos están en <b>Notificaciones</b>.','feliz','#/notificaciones','Ver notificaciones'],
  ['emblema|insignia|medalla|verificado','Los <b>emblemas</b> (moderador, empresa aliada, donador) los otorga el creador de EcoNova.','curioso'],
@@ -3120,7 +3122,7 @@ var MapX=(()=>{
  ['energia|luz|electricidad|foco|focos|standby','💡 <b>Ahorrar energía:</b> usa focos LED, desconecta cargadores y aprovecha la luz natural.','guino'],
  ['composta|organico|cascara|restos de comida','🌱 <b>Composta:</b> sirven cáscaras de fruta y verdura, restos de café y hojas secas. Evita carne, lácteos y grasas.','emocionado'],
  ['transporte|bici|bicicleta|caminar|auto|contaminacion del aire','🚲 Para reducir emisiones: camina, usa bici o transporte público cuando puedas, y comparte el auto en trayectos largos.','guino'],
- ['chiste|broma|algo gracioso|cuentame','¿Qué le dijo un árbol a otro? “¡Qué buena raíz de idea!” 🌳😄','emocionado'],
+ ['chiste|broma|algo gracioso|cuentame un chiste|cuentame una broma|cuentame algo gracioso','¿Qué le dijo un árbol a otro? “¡Qué buena raíz de idea!” 🌳😄','emocionado'],
  ['error|falla|no funciona|bug|se trabo|no carga','Prueba recargando la página y volviendo a intentar. Si sigue fallando, cuéntaselo al equipo de EcoNova para que lo revise.','curioso']
  ];
  var ED=[[2,2,'Día Mundial de los Humedales'],[3,3,'Día Mundial de la Vida Silvestre'],[3,21,'Día Internacional de los Bosques'],[3,22,'Día Mundial del Agua'],[4,22,'Día de la Tierra'],[5,22,'Día Internacional de la Diversidad Biológica'],[6,5,'Día Mundial del Medio Ambiente'],[6,8,'Día Mundial de los Océanos'],[7,3,'Día Internacional Libre de Bolsas de Plástico'],[9,16,'Día Internacional de la Preservación de la Capa de Ozono'],[10,4,'Día Mundial de los Animales'],[12,5,'Día Mundial del Suelo'],[12,11,'Día Internacional de las Montañas']];
@@ -3135,6 +3137,7 @@ var MapX=(()=>{
   var n=norm(q),best=null,bs=0,nav=/ (llevame|llevar|abre|abrir|ir a|ve a|muestrame|quiero ver|ensename|dirigeme)/.test(n);
   if(nav)for(var r=0;r<ROUTES.length;r++)if(n.indexOf(' '+ROUTES[r][0])>=0){return {t:'¡Claro! Te llevo 🚀',m:'emocionado',go:ROUTES[r][1],auto:1}}
   KB.forEach(function(e){var s=0;e[0].split('|').forEach(function(k){if(n.indexOf(' '+k)>=0)s+=k.length>5?2:1});if(s>bs){bs=s;best=e}});
+  if(best&&bs===1&&n.trim().split(' ').length>=6&&typeof EcoAV!=='undefined'&&typeof EcoAV.onAsk==='function')return null;
   return best&&bs>0?{t:typeof best[1]==='function'?best[1]():best[1],m:best[2]||'feliz',go:best[3],lbl:best[4]}:null;
  }
 
@@ -3266,6 +3269,21 @@ var MapX=(()=>{
  if(typeof window.toast==='function'){var _t=window.toast;window.toast=function(m,t){try{if(state==='avatar'&&!busy){if(t==='ok'){mood('emocionado',1800);anim('hop')}else if(t==='err')mood('curioso',2200)}}catch(_){}return _t.apply(this,arguments)}}
 
  window.EcoAV={say:say,mood:mood,open:openChat,close:closeChat,onAsk:null,ask:ask};
+ /* ── IA de respaldo (Groq, gratis) vía Edge Function "eco-chat": la clave nunca está en el HTML ── */
+ function safeAI(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n+/g,'<br>')}
+ EcoAV.onAsk=async function(q,ctx){
+  var C=typeof SUPABASE_CONFIG!=='undefined'?SUPABASE_CONFIG:null;if(!C||!C.url||!C.anonKey)return null;
+  var tok=C.anonKey;
+  try{if(typeof supabaseClient!=='undefined'&&supabaseClient){var g=await supabaseClient.auth.getSession();if(g&&g.data&&g.data.session)tok=g.data.session.access_token}}catch(e){}
+  var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort()},15000);
+  try{
+   var r=await fetch(C.url+'/functions/v1/eco-chat',{method:'POST',signal:ctl.signal,headers:{'Content-Type':'application/json',apikey:C.anonKey,Authorization:'Bearer '+tok},body:JSON.stringify({question:q,history:((ctx&&ctx.history)||[]).slice(-6)})});
+   var j=await r.json().catch(function(){return{}});
+   if(r.status===429||j.error==='limit')return 'Ahora mismo estoy recibiendo muchas preguntas 😅 Inténtalo de nuevo en un minuto. Mientras tanto puedo ayudarte con la app, la fecha o consejos ecológicos.';
+   if(!r.ok||!j.reply)return null;
+   return safeAI(j.reply);
+  }catch(e){return null}finally{clearTimeout(tm)}
+ };
 
  upgrade();
  var pend=0,mo=new MutationObserver(function(){if(pend)return;pend=requestAnimationFrame(function(){pend=0;upgrade()})});
