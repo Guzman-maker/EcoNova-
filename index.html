@@ -2081,10 +2081,22 @@ function viewSaved(){
  return`<div><div class="page-head" style="padding-top:6px"><span class="kicker">Tu colección</span><h1>Publicaciones guardadas</h1></div>
  <div class="mt2">${list.map(postCard).join('')||'<div class="card pad"><p class="mut">Aún no guardas publicaciones.</p></div>'}</div></div>`;
 }
+function pushCard(){
+ const standalone=(navigator.standalone===true)||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+ const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+ const supported=('Notification' in window)&&('serviceWorker' in navigator)&&('PushManager' in window);
+ let msg,btns='';
+ if(!supported){msg=ios&&!standalone?'En iPhone las notificaciones solo funcionan si abres EcoNova desde el ícono de tu pantalla de inicio (Safari → Compartir → Añadir a pantalla de inicio). Requiere iOS 16.4 o superior.':'Este navegador no admite notificaciones push.';}
+ else if(Notification.permission==='denied'){msg='Las notificaciones están bloqueadas para EcoNova. Actívalas en Ajustes del teléfono → Notificaciones → EcoNova.';}
+ else if(Notification.permission==='granted'){msg='Notificaciones permitidas en este dispositivo ✅';btns='<button class="btn btn-ghost btn-sm" data-action="push-enable">Registrar de nuevo</button> <button class="btn btn-ghost btn-sm" data-action="push-test">Enviar aviso de prueba</button>';}
+ else{msg='Activa las notificaciones para enterarte de likes, comentarios y decisiones de moderación aunque la app esté cerrada.';btns='<button class="btn btn-green btn-sm" data-action="push-enable">Activar notificaciones</button>';}
+ return `<div class="card pad mt2"><b>Avisos en tu teléfono</b><p class="sm mut" style="margin:6px 0 10px">${msg}</p>${btns}</div>`;
+}
 function viewNotifs(){
  const u=sess();const list=DB.notifs.filter(n=>n.userId===u.id);
  list.forEach(n=>n.read=true);save();window.__ecoMarkRead&&window.__ecoMarkRead();
  return`<div><div class="page-head" style="padding-top:6px"><span class="kicker">Actividad</span><h1>Notificaciones</h1></div>
+ ${pushCard()}
  <div class="card mt2" style="overflow:hidden">${list.map(n=>`<div class="pd-item"><b>${esc(n.title)}</b><span class="sm mut">${esc(n.body)}</span><div class="xs mut mt1">${timeAgo(n.at)}</div></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>'}</div></div>`;
 }
 /* ---------- admin ---------- */
@@ -2561,6 +2573,8 @@ document.addEventListener('click',e=>{
   case 'moderator-delete-post':run(()=>{if(confirm('¿Eliminar esta publicación como moderador?')){API.removePost(el.dataset.p);toast('Publicación eliminada por moderación.','ok');}});break;
   case 'community-status':run(()=>{const u=userById(el.dataset.u);const val=el.dataset.t==='ally'?!u.allyAccepted:!u.donorAccepted;API.setCommunityStatus(u.id,el.dataset.t,val);toast(val?(el.dataset.t==='ally'?'Aliado aceptado.':'Donador reconocido.'):(el.dataset.t==='ally'?'Emblema de aliado retirado.':'Emblema de donador retirado.'),'ok');render();});break;
   case 'menu-drop':dropOpen=dropOpen==='menu'?null:'menu';chromeTop();break;
+  case 'push-enable':(async()=>{try{let pm=Notification.permission;if(pm==='default')pm=await Notification.requestPermission();if(pm!=='granted'){toast('No se concedió el permiso de notificaciones.','err');render();return;}const r=window.__ecoSubscribePush?await window.__ecoSubscribePush(sess().id):'sin-modulo';toast(r==='ok'?'Listo: notificaciones activadas en este dispositivo.':'No se pudo registrar: '+r,r==='ok'?'ok':'err');}catch(e){toast('Error: '+(e&&e.message||e),'err');}render();})();break;
+  case 'push-test':(async()=>{try{const reg=await navigator.serviceWorker.ready;await reg.showNotification('EcoNova',{body:'Así se verán tus notificaciones.',icon:'icon-192.png',badge:'icon-192.png',data:{url:'./index.html#/notificaciones'}});toast('Aviso de prueba enviado.','ok');}catch(e){toast('No se pudo mostrar el aviso: '+(e&&e.message||e),'err');}})();break;
   case 'notif-drop':dropOpen=dropOpen==='notif'?null:'notif';if(dropOpen==='notif'){const u=sess();DB.notifs.filter(n=>n.userId===u.id).forEach(n=>n.read=true);save();window.__ecoMarkRead&&window.__ecoMarkRead();}chromeTop();break;
   case 'auth-tab':authMode=el.dataset.m;location.hash=authMode==='registro'?'#/registro':'#/entrar';render();break;
   case 'toggle-auth-pass':{const inp=document.getElementById(el.dataset.target);if(inp)inp.type=inp.type==='password'?'text':'password';break;}
@@ -2789,14 +2803,19 @@ const Cloud=(()=>{
  const ECO_VAPID_PUBLIC='BEEMDxutY80LoI4SmWzaLETQPgs2_qFdU0J9g16iolKFRtwVg-Aa504vv89E1vuGNaf5t56n8K6YGvBvyv4yquo';/* pega aquí tu clave pública VAPID (ver guía) */
  async function ecoSubscribePush(uid_){
   try{
-   if(!ECO_VAPID_PUBLIC||!('serviceWorker' in navigator)||!('PushManager' in window)||!window.Notification||Notification.permission!=='granted')return;
+   if(!ECO_VAPID_PUBLIC)return 'sin-clave';
+   if(!('serviceWorker' in navigator)||!('PushManager' in window)||!window.Notification)return 'sin-soporte';
+   if(Notification.permission!=='granted')return 'sin-permiso';
    const reg=await navigator.serviceWorker.ready;
    let sub=await reg.pushManager.getSubscription();
    if(!sub){const b=ECO_VAPID_PUBLIC+'='.repeat((4-ECO_VAPID_PUBLIC.length%4)%4);const raw=atob(b.replace(/-/g,'+').replace(/_/g,'/'));sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(raw,ch=>ch.charCodeAt(0))});}
    const j=sub.toJSON();
-   await c().from('push_subscriptions').upsert({user_id:uid_,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:'endpoint'});
-  }catch(e){console.warn('[EcoNova] push',e);}
+   const {error}=await c().from('push_subscriptions').upsert({user_id:uid_,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:'endpoint'});
+   if(error)return 'base-de-datos: '+(error.message||error.code);
+   return 'ok';
+  }catch(e){console.warn('[EcoNova] push',e);return 'error: '+(e&&e.message||e);}
  }
+ window.__ecoSubscribePush=ecoSubscribePush;
  const api={
   up,
   notifView(n){const a=DB.users.find(x=>x.id===n.actor_id),nm=a?a.name:'Alguien',pp=DB.posts.find(x=>x.id===n.post_id),t=pp?pp.title:'tu publicación';
