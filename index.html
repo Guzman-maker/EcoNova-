@@ -1046,31 +1046,29 @@ html[data-eav-pose=trabajando] .eav.is-av .eav-bob{animation:eav-type .5s ease-i
 </style>
 
 <style id="econova-login-avatar-cleanup">
-/* En login: mostrar solo la mascota, sin el círculo verde grande.
-   Dentro de la app se conserva el avatar circular original. */
-body.auth-route .eav .eav-body{
-  width:var(--sz,34px)!important;
-  height:var(--sz,34px)!important;
-  border:0!important;
-  border-radius:0!important;
-  overflow:visible!important;
-  background:transparent!important;
-  box-shadow:none!important;
+/* Login: Eco como avatar circular limpio, del tamaño exacto de su contenedor
+   (sin cuadrado ni halo verde). Solo aplica en login/registro; el feed no cambia. */
+body.auth-route .auth-modern-brand-top .eav{--sz:58px!important;width:58px!important;height:58px!important}
+body.auth-route .auth-modern-brand-top .eav .eav-logo,
+body.auth-route .auth-modern-brand-top .eav .eav-sp{width:100%!important;height:100%!important}
+body.auth-route .auth-modern-brand-top .eav .eav-body,
+body.auth-route .auth-modern-brand-top .eav.is-av .eav-body{
+  left:0!important;top:0!important;translate:none!important;
+  width:100%!important;height:100%!important;box-sizing:border-box!important;
+  border:3px solid rgba(255,255,255,.92)!important;
+  border-radius:50%!important;overflow:hidden!important;
+  background:#0b2c20!important;
+  box-shadow:0 6px 18px rgba(0,0,0,.28)!important;
   animation:none!important;
 }
-body.auth-route .eav.is-av .eav-body{
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  animation:none!important;
+body.auth-route .auth-modern-brand-top .eav .eav-sp{object-fit:cover!important}
+body.auth-route .eav.morph::after{display:none!important}
+@media(max-width:820px){
+  body.auth-route .auth-modern-brand-top .eav{--sz:50px!important;width:50px!important;height:50px!important}
 }
-body.auth-route .eav .eav-sp{
-  object-fit:contain!important;
-  transform:none!important;
-}
-body.auth-route .eav.morph::after{
-  display:none!important;
+@media(max-width:460px){
+  body.auth-route .auth-modern-brand-top .eav{--sz:44px!important;width:44px!important;height:44px!important}
+  body.auth-route .auth-modern-brand-top .eav .eav-body{border-width:2px!important}
 }
 </style>
 
