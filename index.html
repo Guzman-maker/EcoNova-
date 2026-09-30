@@ -1002,25 +1002,7 @@ html[data-eav-pose=trabajando] .eav.is-av .eav-bob{animation:eav-type .5s ease-i
 .ec-f{display:flex;gap:8px;padding:10px 12px 12px;border-top:1px solid rgba(46,205,190,.25)}
 .ec-f input{flex:1;min-width:0;height:40px;border-radius:12px;border:1px solid rgba(46,205,190,.4);background:rgba(255,255,255,.06);color:#fff;padding:0 12px;font:16px var(--body,system-ui,sans-serif);outline:none}
 .ec-f input:focus{border-color:#5BD08E}.ec-f button{height:40px;padding:0 15px;border:0;border-radius:12px;background:#149A5C;color:#fff;font:700 13px var(--body,system-ui,sans-serif);cursor:pointer}
-@media (max-width:560px){#eav-chat{left:8px!important;right:8px;top:auto!important;bottom:8px;width:auto;height:min(72vh,560px);height:min(78dvh,620px);transform-origin:50% 100%;translate:0 14px}#eav-chat.on{translate:0 0}.ec-r{max-width:100%}}
-html.ec-lock,html.ec-lock body{overflow:hidden!important;overscroll-behavior:none}
-#eav-chat{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px)}
-.ec-log{min-height:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(91,208,142,.55) transparent}
-.ec-log::-webkit-scrollbar{width:6px}.ec-log::-webkit-scrollbar-thumb{background:rgba(91,208,142,.5);border-radius:6px}
-.ec-hd .ec-clr{flex:none;border:1px solid rgba(91,208,142,.45);background:rgba(91,208,142,.12);color:#CFF3DF;border-radius:999px;padding:5px 10px;font:600 12px var(--body,system-ui,sans-serif);cursor:pointer;white-space:nowrap}
-.ec-hd .ec-clr:active{background:rgba(91,208,142,.3)}
-.ec-ch{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.ec-ch::-webkit-scrollbar{display:none}.ec-ch button{flex:none;white-space:nowrap}
-.ec-f{touch-action:manipulation}.ec-f input{font-size:16px}
-#eav-chat.kb .ec-ch{display:none}#eav-chat.kb .ec-hd{padding:7px 12px}#eav-chat.kb .ec-hd span{display:none}#eav-chat.kb .ec-av{width:34px!important;height:34px!important}
-.ec-r{display:flex;align-items:flex-end;gap:7px;align-self:flex-start;max-width:94%}
-.ec-r .ec-m{max-width:none;min-width:0}
-.ec-mini{width:30px;height:30px;flex:none;border-radius:50%;border:2px solid #5BD08E;object-fit:cover;background:#0b2c20;animation:ec-mini-in .7s cubic-bezier(.3,1.6,.5,1) both,ec-mini-idle 2.4s .9s ease-in-out 2}
-.ec-r.typing .ec-mini{animation:ec-mini-in .4s both,eav-type .5s .4s ease-in-out infinite}
-@keyframes ec-mini-in{0%{scale:.2;rotate:-45deg;opacity:0}55%{scale:1.2;rotate:10deg;opacity:1}100%{scale:1;rotate:0deg;opacity:1}}
-@keyframes ec-mini-idle{0%,100%{translate:0 0}50%{translate:0 -3px}}
-.ec-dw{position:sticky;bottom:4px;height:0;align-self:flex-end;overflow:visible;z-index:2;opacity:0;pointer-events:none;transition:opacity .2s}.ec-dw.show{opacity:1;pointer-events:auto}
-.ec-down{position:absolute;right:0;bottom:0;width:34px;height:34px;border-radius:50%;border:1px solid rgba(91,208,142,.6);background:#0B2C20;color:#CFF3DF;font-size:18px;line-height:1;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.4)}
-@media (prefers-reduced-motion:reduce){.ec-mini,.ec-r.typing .ec-mini{animation:none!important}}
+@media (max-width:560px){#eav-chat{left:10px!important;right:10px;top:auto!important;bottom:10px;width:auto;height:min(72vh,560px);transform-origin:50% 100%;translate:0 14px}#eav-chat.on{translate:0 0}}
 @media (prefers-reduced-motion:reduce){.eav.is-av .eav-bob,.eav.is-av .eav-body,.eav-sp.wave,.eav-sp.hop,.eav-sp.pop{animation:none!important}}
 </style>
 </head>
@@ -1151,6 +1133,7 @@ const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 
 /* ---------- catálogos ---------- */
 const CAT_SEED=[
+['Publicación general','General'],
 ['Incendios forestales','Bosques e incendios'],['Deforestación','Bosques e incendios'],['Tala ilegal','Bosques e incendios'],['Reforestación','Bosques e incendios'],['Quema agrícola','Bosques e incendios'],
 ['Pérdida de biodiversidad','Fauna'],['Maltrato animal','Fauna'],['Animales heridos o abandonados','Fauna'],['Fauna silvestre en riesgo','Fauna'],['Caza o pesca ilegal','Fauna'],['Tráfico de especies','Fauna'],
 ['Contaminación del agua','Agua'],['Contaminación de ríos','Agua'],['Contaminación del mar','Agua'],['Derrames','Agua'],['Aguas residuales','Agua'],['Basura en cuerpos de agua','Agua'],['Manglares','Agua'],['Uso excesivo de agua','Agua'],
@@ -3076,25 +3059,6 @@ var MapX=(()=>{
 
  /* ── Cerebro local: [palabras clave (inicio de palabra), respuesta, pose, ruta] ── */
  var KB=[
- ['quien te creo|quien te hizo|quien te programo|quien te desarrollo|quien te diseno|quien es tu creador|tu creador','A mí, Eco, me creó <b>Ángel Alberto Guzmán Martinez</b>, el desarrollador y fundador de EcoNova 🌱 Soy su mascota y estoy aquí para acompañarte en la app.','emocionado'],
- ['quien creo|quien lo creo|quien la creo|quien hizo|quien lo hizo|quien la hizo|quien fundo|quien desarrollo|quien programo|quien diseno|quien esta detras|quien inicio|quien es el dueno|creador|fundador|desarrollador|angel guzman|guzman martinez|quien es angel','EcoNova fue creada por <b>Ángel Alberto Guzmán Martinez</b>, desarrollador y fundador de EcoNova 💚 Gracias a su visión, hoy puedes reportar problemas, organizar campañas, aprender y donar por el planeta.','emocionado'],
- ['que fecha|fecha de hoy|fecha actual|que dia es|dia es hoy|hoy es|que hora|la hora|hora es|hora actual|en que dia estamos',nowTxt,'curioso'],
- ['fechas ambientales|fecha ambiental|efemerides|dias ambientales|dia mundial|dia internacional|calendario ambiental|proxima fecha|dia de la tierra|dia del medio ambiente',ecoDates,'emocionado'],
- ['dato curioso|dato ecologico|sabias que|curiosidad|trivia',fact,'guino'],
- ['crear una campana|crear campana|iniciar una campana|como creo una campana|organizar una campana|nueva campana','Para crear una campaña ve a <b>Campañas</b> y crea una: define el objetivo, el lugar y una descripción clara. La fecha se decide con una votación entre quienes se sumen 🌍','emocionado','#/campanas','Ir a Campañas'],
- ['arbol|arboles|reforest|plantar|sembrar|vivero','🌳 <b>Plantar un árbol:</b> elige especies nativas de tu región, riégalo seguido los primeros meses y dale espacio lejos de cables y bardas. Si quieres hacer una jornada de reforestación, ¡crea una campaña!','emocionado','#/campanas','Ir a Campañas'],
- ['cambio climatico|calentamiento global|efecto invernadero|huella de carbono|emisiones','🌡️ El <b>cambio climático</b> se acelera por los gases de efecto invernadero (quemar combustibles, deforestar). Puedes reducir tu huella: usa menos el auto, ahorra energía, consume local y desperdicia menos comida.','curioso'],
- ['animal|fauna|abeja|polinizador|biodiversidad|silvestre|rescate','🐝 <b>Cuidar la fauna:</b> no alimentes animales silvestres, siembra plantas con flores para los polinizadores, evita pesticidas y reporta maltrato o tráfico de fauna a las autoridades (PROFEPA). Si ves un animal herido, avisa a un rescatista o veterinario.','curioso'],
- ['solar|panel|renovable|energia limpia|eolica','☀️ <b>Energía renovable:</b> la solar y la eólica no emiten CO₂ al generar electricidad. Antes de instalar paneles, reduce tu consumo (focos LED, aparatos eficientes) y compara cotizaciones.','feliz'],
- ['calidad del aire|smog|humo|polvo|contingencia','🌫️ <b>Cuidar el aire:</b> no quemes basura ni hojas, mantén tu vehículo afinado, comparte el auto y, en días de mala calidad del aire, evita el ejercicio intenso al aire libre.','curioso'],
- ['ropa|moda|segunda mano|reparar|consumo responsable|comprar menos|compras','👕 <b>Consumo responsable:</b> repara antes de tirar, compra de segunda mano, dona lo que ya no uses y elige productos duraderos. Lo más ecológico es lo que ya tienes.','guino'],
- ['desperdicio|comida|alimento|sobras|mercado','🥕 <b>Menos desperdicio de comida:</b> planea tus compras, guarda bien las sobras, congela lo que no vayas a usar pronto y compra local y de temporada. Lo que no se pueda comer, a la composta.','guino'],
- ['bolsa|popote|unicel|botella|reutilizable|desechable|termo','🥤 <b>Menos plástico:</b> lleva tu bolsa, termo y cubiertos reutilizables, di no al popote y al unicel, y elige envases retornables o a granel.','guino'],
- ['pila|bateria|electronico|celular viejo|aparato|residuos peligrosos','🔋 Las <b>pilas y los aparatos electrónicos</b> no van a la basura común: contienen metales que contaminan. Llévalos a centros de acopio o reciclaje electrónico; búscalos en el <b>Mapa</b>.','curioso','#/mapa','Abrir el mapa'],
- ['aceite usado|aceite de cocina|aceite','🛢️ El <b>aceite de cocina usado</b> nunca va al drenaje: contamina muchísima agua. Déjalo enfriar, guárdalo en una botella cerrada y llévalo a un centro de acopio.','curioso'],
- ['huerto|jardin|maceta|cultivar|hortaliza|balcon','🪴 <b>Huerto en casa:</b> empieza con hierbas (albahaca, menta, cilantro) en macetas con buen drenaje y varias horas de luz; usa composta como abono.','feliz'],
- ['cerrar sesion|salir de mi cuenta|logout|cerrar mi sesion','Para <b>cerrar sesión</b> entra a tu perfil o al menú y busca la opción “Cerrar sesión”.','feliz','#/perfil','Ir a mi perfil'],
- ['seguir|seguidor|seguidores|me gusta|like|comentar|comentario|reaccion','Puedes <b>seguir</b> a otras personas desde su perfil, dar <b>me gusta</b> con el corazón ❤️ y <b>comentar</b> en las publicaciones. Sé amable: la comunidad cuida el planeta y también el respeto.','feliz'],
  ['hola|buenas|hey|buenos|que tal|saludos','¡Hola! 🌱 Soy <b>Eco</b>. Puedo orientarte en la app, explicarte cómo reportar, publicar o unirte a campañas, y darte consejos ecológicos.','feliz'],
  ['gracias|genial|perfecto|excelente','¡Con mucho gusto! Para eso estoy 💚','guino'],
  ['adios|chao|nos vemos|hasta luego','¡Hasta pronto! Cuida el planeta, yo cuido la app 🌍','guino'],
@@ -3106,13 +3070,13 @@ var MapX=(()=>{
  ['reportar|reporte|denunci|tala|basura|contamin|quema|fuga|problema ambiental|incendio','Para reportar un problema ambiental usa el <b>Mapa</b>: marca el punto, elige la categoría y agrega una foto; un moderador lo revisa. ⚠️ Si es una urgencia, llama al <b>911</b>, a <b>PROFEPA</b> o a <b>Protección Civil</b>: EcoNova no sustituye a los servicios de emergencia.','curioso','#/mapa','Ir al mapa'],
  ['mapa|lugares|ubicacion|reciclaje|centro de acopio|donde|cerca','En el <b>Mapa</b> ves lugares (reciclaje, tiendas eco, centros ambientales) y problemas reportados. Puedes usar tu ubicación (GPS o manual) y proponer puntos nuevos; un moderador los aprueba. Cada punto se abre en la app de mapas de tu teléfono.','feliz','#/mapa','Abrir el mapa'],
  ['campana|voluntari|evento|organizar|actividad|limpieza','En <b>Campañas</b> puedes sumarte como voluntario o crear una. La fecha se decide con una votación entre los participantes.','emocionado','#/campanas','Ver campañas'],
- ['donar|donacion|apoyar|aportar|dinero|transparencia','En <b>Donar</b> puedes aportar la cantidad que quieras (mínimo $20 MXN), incluso de forma anónima, con pago seguro por <b>Stripe</b>. En <b>Transparencia</b> ves cómo se usan los recursos. ¡Gracias por pensar en ello! 💚','emocionado','#/donar','Ir a Donar'],
+ ['donar|donacion|apoyar|aportar|dinero|transparencia','En <b>Donar</b> puedes apoyar causas ambientales, y en <b>Transparencia</b> puedes ver cómo se usan los recursos. ¡Gracias por pensar en ello! 💚','emocionado','#/donar','Ir a Donar'],
  ['noticia|novedad|actualidad','En <b>Noticias</b> encuentras novedades ambientales para mantenerte al día.','feliz','#/noticias','Ver noticias'],
  ['aprender|tip|consejo|curso|guia|educacion|como ayudo|que puedo hacer','En <b>Aprender</b> hay guías y consejos. Y aquí van tres básicos: separa tus residuos, evita plásticos de un solo uso y apaga lo que no uses 🌿','guino','#/aprender','Ir a Aprender'],
  ['organizacion|empresa|ong|colectivo|negocio','EcoNova tiene tipos de cuenta: <b>ciudadano</b>, <b>organización</b> y <b>empresa</b>. Puedes ver a las organizaciones en su sección.','curioso','#/organizaciones','Ver organizaciones'],
  ['contrasena|olvide|recuperar|restablecer|clave','En la pantalla de inicio de sesión toca <b>“¿Olvidaste tu contraseña?”</b> y recibirás un enlace por correo para crear una nueva.','curioso'],
  ['registro|registrar|crear cuenta|unirme|verificar|confirmar correo|no me llega','Toca <b>“Crear cuenta”</b>, elige tu tipo de cuenta y confirma tu correo. Si no te llega, revisa spam/no deseado.','feliz'],
- ['perfil|foto de perfil|mi nombre|editar|configuracion|ajustes|mi cuenta|mis datos','Tu perfil y tus ajustes están en tu cuenta (arriba a la derecha). Ahí puedes editar tus datos y preferencias.','feliz','#/configuracion','Ir a Configuración'],
+ ['perfil|foto de perfil|mi nombre|editar|configuracion|ajustes|cuenta','Tu perfil y tus ajustes están en tu cuenta (arriba a la derecha). Ahí puedes editar tus datos y preferencias.','feliz','#/configuracion','Ir a Configuración'],
  ['guardado|guardar|favorit','Tus publicaciones guardadas están en <b>Guardados</b>.','feliz','#/guardados','Ver guardados'],
  ['notificacion|aviso|alerta','Tus avisos están en <b>Notificaciones</b>.','feliz','#/notificaciones','Ver notificaciones'],
  ['emblema|insignia|medalla|verificado','Los <b>emblemas</b> (moderador, empresa aliada, donador) los otorga el creador de EcoNova.','curioso'],
@@ -3122,23 +3086,16 @@ var MapX=(()=>{
  ['energia|luz|electricidad|foco|focos|standby','💡 <b>Ahorrar energía:</b> usa focos LED, desconecta cargadores y aprovecha la luz natural.','guino'],
  ['composta|organico|cascara|restos de comida','🌱 <b>Composta:</b> sirven cáscaras de fruta y verdura, restos de café y hojas secas. Evita carne, lácteos y grasas.','emocionado'],
  ['transporte|bici|bicicleta|caminar|auto|contaminacion del aire','🚲 Para reducir emisiones: camina, usa bici o transporte público cuando puedas, y comparte el auto en trayectos largos.','guino'],
- ['chiste|broma|algo gracioso|cuentame un chiste|cuentame una broma|cuentame algo gracioso','¿Qué le dijo un árbol a otro? “¡Qué buena raíz de idea!” 🌳😄','emocionado'],
+ ['chiste|broma|algo gracioso|cuentame','¿Qué le dijo un árbol a otro? “¡Qué buena raíz de idea!” 🌳😄','emocionado'],
  ['error|falla|no funciona|bug|se trabo|no carga','Prueba recargando la página y volviendo a intentar. Si sigue fallando, cuéntaselo al equipo de EcoNova para que lo revise.','curioso']
  ];
- var ED=[[2,2,'Día Mundial de los Humedales'],[3,3,'Día Mundial de la Vida Silvestre'],[3,21,'Día Internacional de los Bosques'],[3,22,'Día Mundial del Agua'],[4,22,'Día de la Tierra'],[5,22,'Día Internacional de la Diversidad Biológica'],[6,5,'Día Mundial del Medio Ambiente'],[6,8,'Día Mundial de los Océanos'],[7,3,'Día Internacional Libre de Bolsas de Plástico'],[9,16,'Día Internacional de la Preservación de la Capa de Ozono'],[10,4,'Día Mundial de los Animales'],[12,5,'Día Mundial del Suelo'],[12,11,'Día Internacional de las Montañas']];
- var FACTS=['reciclar una lata de aluminio ahorra cerca del 95% de la energía que costaría fabricarla nueva.','el vidrio se puede reciclar una y otra vez sin perder calidad.','un grifo que gotea puede desperdiciar decenas de litros de agua al día.','una botella de plástico puede tardar cientos de años en degradarse.','las abejas y otros polinizadores participan en la producción de buena parte de los alimentos que comemos.','la sombra de los árboles puede bajar varios grados la temperatura de una calle.','la composta puede reducir de forma importante la basura que generas en casa.'];
- function nowTxt(){var d=new Date(),f=d.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),h=d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});return '📅 Hoy es <b>'+f+'</b> y son las <b>'+h+'</b> (según la hora de tu teléfono).';}
- function ecoDates(){var t=new Date();t.setHours(0,0,0,0);var L=ED.map(function(e){var d=new Date(t.getFullYear(),e[0]-1,e[1]);if(d<t)d.setFullYear(d.getFullYear()+1);return{d:d,n:e[2]}}).sort(function(a,b){return a.d-b.d}).slice(0,3);
-  return '🗓️ <b>Próximas fechas ambientales:</b><br>'+L.map(function(x){var k=Math.round((x.d-t)/864e5);return '• '+x.d.toLocaleDateString('es-MX',{day:'numeric',month:'long'})+' — '+x.n+(k===0?' <b>(¡hoy!)</b>':k===1?' (mañana)':' (en '+k+' días)')}).join('<br>')+'<br>Son buenas ocasiones para organizar una campaña 🌍';}
- function fact(){return '🤓 <b>¿Sabías que…?</b> '+FACTS[Math.floor(Math.random()*FACTS.length)];}
  var ROUTES=[['mapa','#/mapa'],['campana','#/campanas'],['noticia','#/noticias'],['aprender','#/aprender'],['donar','#/donar'],['transparencia','#/transparencia'],['organizacion','#/organizaciones'],['guardado','#/guardados'],['notificacion','#/notificaciones'],['configuracion','#/configuracion'],['perfil','#/perfil'],['inicio','#/'],['explorar','#/explorar']];
  function norm(s){return ' '+String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()}
  function brain(q){
   var n=norm(q),best=null,bs=0,nav=/ (llevame|llevar|abre|abrir|ir a|ve a|muestrame|quiero ver|ensename|dirigeme)/.test(n);
   if(nav)for(var r=0;r<ROUTES.length;r++)if(n.indexOf(' '+ROUTES[r][0])>=0){return {t:'¡Claro! Te llevo 🚀',m:'emocionado',go:ROUTES[r][1],auto:1}}
   KB.forEach(function(e){var s=0;e[0].split('|').forEach(function(k){if(n.indexOf(' '+k)>=0)s+=k.length>5?2:1});if(s>bs){bs=s;best=e}});
-  if(best&&bs===1&&n.trim().split(' ').length>=6&&typeof EcoAV!=='undefined'&&typeof EcoAV.onAsk==='function')return null;
-  return best&&bs>0?{t:typeof best[1]==='function'?best[1]():best[1],m:best[2]||'feliz',go:best[3],lbl:best[4]}:null;
+  return best&&bs>0?{t:best[1],m:best[2]||'feliz',go:best[3],lbl:best[4]}:null;
  }
 
  /* ── Logo → avatar ── */
@@ -3178,40 +3135,15 @@ var MapX=(()=>{
  function closeBub(){clearTimeout(bubT);if(bub)bub.classList.remove('on');}
 
  /* ── Chat ── */
- var gen=0,dw=null;
- function put(el){log.insertBefore(el,dw)}
- function down(){log.scrollTop=log.scrollHeight}
- function msg(html,who,md){
-  var m=document.createElement('div');m.className='ec-m '+who;
-  if(who==='me'){m.textContent=html;put(m);}
-  else{m.innerHTML=html;var r=document.createElement('div');r.className='ec-r';var im=document.createElement('img');im.className='ec-mini';im.alt='';im.draggable=false;im.src=P[md]||P[pose]||P[BASE];r.appendChild(im);r.appendChild(m);put(r);}
-  down();return m;
- }
+ function msg(html,who){var m=document.createElement('div');m.className='ec-m '+who;if(who==='me')m.textContent=html;else m.innerHTML=html;log.appendChild(m);log.scrollTop=log.scrollHeight;return m;}
  function chips(list){var c=chat.querySelector('.ec-ch');c.textContent='';list.forEach(function(x){var b=document.createElement('button');b.type='button';b.textContent=x.t;b.onclick=function(){if(x.go){closeChat();location.hash=x.go}else ask(x.q||x.t)};c.appendChild(b)});}
- function starters(){var a=[{t:'¿Qué fecha es hoy?'},{t:'Fechas ambientales'},{t:'Consejos ecológicos'},{t:'Dato curioso'}];
-  return user()?a.concat([{t:'Reportar un problema'},{t:'Cómo donar'},{t:'Crear una campaña'},{t:'¿Qué es EcoNova?'}]):a.concat([{t:'¿Qué es EcoNova?'},{t:'Crear cuenta'},{t:'Olvidé mi contraseña'}]);}
- function greet(){var u=user(),n=u&&u.name?String(u.name).split(' ')[0].replace(/[<>&]/g,''):'';
-  msg((n?'¡Hola, <b>'+n+'</b>! ':'¡Hola! ')+'Soy <b>Eco</b>, tu compañero en esta aventura por un planeta más limpio. ¿En qué te ayudo?','bot','emocionado');chips(starters());}
- function clearChat(){gen++;busy=false;hist=[];Array.prototype.slice.call(log.children).forEach(function(c){if(c!==dw)c.remove()});dw.classList.remove('show');greet();mood('emocionado',2500);anim('wave');}
- function fit(){
-  if(!chat||!chat.classList.contains('on'))return;
-  var vv=window.visualViewport;
-  if(innerWidth>560||!vv){chat.style.bottom='';chat.style.height='';chat.classList.remove('kb');return;}
-  if(innerHeight-vv.height>120){chat.classList.add('kb');chat.style.height=Math.max(220,vv.height-16)+'px';chat.style.bottom=Math.max(8,innerHeight-(vv.offsetTop+vv.height)+8)+'px';}
-  else{chat.classList.remove('kb');chat.style.height='';chat.style.bottom='';}
-  down();
- }
+ function starters(){return user()?[{t:'¿Qué es EcoNova?'},{t:'Reportar un problema'},{t:'Consejos ecológicos'},{t:'Cómo publicar'}]:[{t:'¿Qué es EcoNova?'},{t:'Crear cuenta'},{t:'Olvidé mi contraseña'}];}
  function ensureChat(){
   if(chat)return;chat=document.createElement('div');chat.id='eav-chat';chat.setAttribute('role','dialog');chat.setAttribute('aria-label','Chat con Eco');
-  chat.innerHTML='<div class="ec-hd"><img class="eav-sp ec-av" alt="" src="'+P[pose]+'"><div><b>Eco</b><span>Tu aliado en un mundo más verde</span></div><button type="button" class="ec-clr" aria-label="Limpiar chat" title="Limpiar chat">🗑️ Limpiar</button><button type="button" class="ec-x" aria-label="Cerrar">×</button></div><div class="ec-log" aria-live="polite"></div><div class="ec-ch"></div><form class="ec-f"><input type="text" maxlength="300" placeholder="Escríbele a Eco…" autocomplete="off" enterkeyhint="send"><button type="submit">Enviar</button></form>';
+  chat.innerHTML='<div class="ec-hd"><img class="eav-sp ec-av" alt="" src="'+P[pose]+'"><div><b>Eco</b><span>Tu aliado en un mundo más verde</span></div><button type="button" class="ec-x" aria-label="Cerrar">×</button></div><div class="ec-log" aria-live="polite"></div><div class="ec-ch"></div><form class="ec-f"><input type="text" maxlength="300" placeholder="Escríbele a Eco…" autocomplete="off" enterkeyhint="send"><button type="submit">Enviar</button></form>';
   document.body.appendChild(chat);log=chat.querySelector('.ec-log');
-  dw=document.createElement('div');dw.className='ec-dw';dw.innerHTML='<button type="button" class="ec-down" aria-label="Ir al último mensaje">↓</button>';log.appendChild(dw);
-  dw.firstChild.onclick=function(){if(log.scrollTo)log.scrollTo({top:log.scrollHeight,behavior:'smooth'});else down()};
-  log.addEventListener('scroll',function(){dw.classList.toggle('show',log.scrollHeight-log.scrollTop-log.clientHeight>90)},{passive:true});
-  chat.querySelector('.ec-x').onclick=closeChat;chat.querySelector('.ec-clr').onclick=clearChat;
-  var inp=chat.querySelector('input');
-  inp.addEventListener('focus',function(){setTimeout(fit,300);setTimeout(fit,700)});inp.addEventListener('blur',function(){setTimeout(fit,200)});
-  chat.querySelector('form').addEventListener('submit',function(e){e.preventDefault();var q=inp.value.trim();if(q){inp.value='';ask(q)}});
+  chat.querySelector('.ec-x').onclick=closeChat;
+  chat.querySelector('form').addEventListener('submit',function(e){e.preventDefault();var i=chat.querySelector('input'),q=i.value.trim();if(q){i.value='';ask(q)}});
  }
  function placeChat(){
   var a=anchor();if(!chat||!a)return;if(innerWidth<=560){chat.style.top='';return;}
@@ -3220,23 +3152,21 @@ var MapX=(()=>{
  }
  function openChat(){
   if(state!=='avatar')return;closeBub();ensureChat();placeChat();chat.classList.add('on');anim('wave');
-  if(innerWidth<=560)document.documentElement.classList.add('ec-lock');
-  if(!started){started=true;greet();}
-  fit();setTimeout(fit,320);down();
+  if(!started){started=true;var u=user(),n=u&&u.name?String(u.name).split(' ')[0].replace(/[<>&]/g,''):'';
+   msg((n?'¡Hola, <b>'+n+'</b>! ':'¡Hola! ')+'Soy <b>Eco</b>, tu compañero en esta aventura por un planeta más limpio. ¿En qué te ayudo?','bot');chips(starters());}
   if(innerWidth>560)setTimeout(function(){chat.querySelector('input').focus()},250);
  }
- function closeChat(){if(chat){chat.classList.remove('on','kb');chat.style.height='';chat.style.bottom='';}document.documentElement.classList.remove('ec-lock');}
+ function closeChat(){if(chat)chat.classList.remove('on');}
  function ask(q){
-  if(busy)return;busy=true;ensureChat();var g=gen;msg(q,'me');chips([]);hist.push({r:'user',t:q});
-  var d=document.createElement('div');d.className='ec-r typing';d.innerHTML='<img class="ec-mini" alt="" src="'+P.trabajando+'"><div class="ec-m bot"><span class="ec-dots"><i></i><i></i><i></i></span></div>';put(d);down();mood('trabajando');
+  if(busy)return;busy=true;ensureChat();msg(q,'me');chips([]);hist.push({r:'user',t:q});
+  var d=document.createElement('div');d.className='ec-m bot';d.innerHTML='<span class="ec-dots"><i></i><i></i><i></i></span>';log.appendChild(d);log.scrollTop=log.scrollHeight;mood('trabajando');
   var res=brain(q),wait=Math.min(1100,450+q.length*9);
   var p=(!res&&typeof EcoAV.onAsk==='function')?Promise.resolve().then(function(){return EcoAV.onAsk(q,{history:hist.slice(-8)})}).then(function(t){return {t:String(t||''),m:'feliz'}}).catch(function(){return null}):new Promise(function(ok){setTimeout(function(){ok(res)},wait)});
   p.then(function(r){
-   if(g!==gen)return;
    d.remove();busy=false;
-   if(!r||!r.t){r={t:'Mmm, eso todavía no lo sé 🤔. Puedo ayudarte con la fecha, reportes, el mapa, campañas, donaciones, tu cuenta o consejos ecológicos. ¿Probamos con alguno?',m:'curioso'};chips(starters());}
+   if(!r||!r.t){r={t:'Mmm, eso todavía no lo sé 🤔. Puedo ayudarte con reportes, el mapa, campañas, donaciones, tu cuenta o consejos ecológicos. ¿Probamos con alguno?',m:'curioso'};chips(starters());}
    else{var c=[];if(r.go&&user()&&!r.auto)c.push({t:r.lbl||'Ir allí',go:r.go});chips(c);}
-   msg(r.t,'bot',r.m||'feliz');hist.push({r:'eco',t:r.t});mood(r.m||'feliz',5000);anim('hop');
+   msg(r.t,'bot');hist.push({r:'eco',t:r.t});mood(r.m||'feliz',5000);anim('hop');
    if(r.auto&&r.go)setTimeout(function(){if(user()){closeChat();location.hash=r.go}else msg('Primero inicia sesión y luego te llevo 😊','bot')},800);
   });
  }
@@ -3265,25 +3195,10 @@ var MapX=(()=>{
   if(idle>45000){if(pose!=='calma')mood('calma')}
   else if(pose===BASE&&Math.random()<.35){var o=Math.random()<.6?'guino':'curioso';mood(o,o==='guino'?900:1400);}
  },4200);
- addEventListener('hashchange',function(){closeBub();closeChat()});addEventListener('resize',function(){placeChat();fit()});if(window.visualViewport){visualViewport.addEventListener('resize',fit);visualViewport.addEventListener('scroll',fit)}
+ addEventListener('hashchange',function(){closeBub();closeChat()});addEventListener('resize',placeChat);
  if(typeof window.toast==='function'){var _t=window.toast;window.toast=function(m,t){try{if(state==='avatar'&&!busy){if(t==='ok'){mood('emocionado',1800);anim('hop')}else if(t==='err')mood('curioso',2200)}}catch(_){}return _t.apply(this,arguments)}}
 
  window.EcoAV={say:say,mood:mood,open:openChat,close:closeChat,onAsk:null,ask:ask};
- /* ── IA de respaldo (Groq, gratis) vía Edge Function "eco-chat": la clave nunca está en el HTML ── */
- function safeAI(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n+/g,'<br>')}
- EcoAV.onAsk=async function(q,ctx){
-  var C=typeof SUPABASE_CONFIG!=='undefined'?SUPABASE_CONFIG:null;if(!C||!C.url||!C.anonKey)return null;
-  var tok=C.anonKey;
-  try{if(typeof supabaseClient!=='undefined'&&supabaseClient){var g=await supabaseClient.auth.getSession();if(g&&g.data&&g.data.session)tok=g.data.session.access_token}}catch(e){}
-  var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort()},15000);
-  try{
-   var r=await fetch(C.url+'/functions/v1/eco-chat',{method:'POST',signal:ctl.signal,headers:{'Content-Type':'application/json',apikey:C.anonKey,Authorization:'Bearer '+tok},body:JSON.stringify({question:q,history:((ctx&&ctx.history)||[]).slice(-6)})});
-   var j=await r.json().catch(function(){return{}});
-   if(r.status===429||j.error==='limit')return 'Ahora mismo estoy recibiendo muchas preguntas 😅 Inténtalo de nuevo en un minuto. Mientras tanto puedo ayudarte con la app, la fecha o consejos ecológicos.';
-   if(!r.ok||!j.reply)return null;
-   return safeAI(j.reply);
-  }catch(e){return null}finally{clearTimeout(tm)}
- };
 
  upgrade();
  var pend=0,mo=new MutationObserver(function(){if(pend)return;pend=requestAnimationFrame(function(){pend=0;upgrade()})});
