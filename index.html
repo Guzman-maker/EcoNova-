@@ -1526,7 +1526,7 @@ function guard(){toast('Inicia sesión para continuar.','err');location.hash='#/
 /* ---------- componentes ---------- */
 function verifyBadge(){return '<span class="verify-badge" title="Cuenta verificada" aria-label="Cuenta verificada">✓</span>';}
 function communityBadges(u){const e=Array.isArray(u?.emblems)?u.emblems:[];return `${e.includes('ECONOVA')?'<span class="emblem-gold" title="Perfil oficial único de EcoNova">◆ EcoNova</span>':''}${e.includes('DONOR')?'<span class="emblem-donor" title="Donador reconocido por EcoNova">♥ Donador</span>':''}${e.includes('ALLY')?'<span class="emblem-ally" title="Empresa aliada de EcoNova">♢ Empresa aliada</span>':''}${e.includes('MOD')?'<span class="emblem-moderator" title="Moderador de EcoNova">◆ Moderador</span>':''}`;}
-function postCard(p){
+function postCard(p,opts){opts=opts||{};
  const u=userById(p.userId);const me=sess();
  if(u.suspended||u.banPermanent)return'';
  if(me&&((me.blockedUsers||[]).includes(u.id)||(u.blockedUsers||[]).includes(me.id)))return'';
@@ -1542,7 +1542,7 @@ function postCard(p){
   </div>
   <h3 class="ttl">${esc(p.title)}</h3>
   <div class="bd">${esc(p.body)}</div>
-  ${p.imgs.length?`<div class="imgs ${p.imgs.length>1?'g2':''}">${p.imgs.slice(0,2).map(i=>`<img loading="lazy" src="${i}" alt="">`).join('')}</div>`:''}${p.video?`<div class="eco-video-wrap" data-video-post="${p.id}"><video data-eco-video data-video-src="${esc(p.video)}" controls playsinline webkit-playsinline preload="none" aria-label="Video de la publicación"></video><div class="eco-video-controls"><button type="button" data-action="video-back" data-p="${p.id}" aria-label="Retroceder 10 segundos">↶ 10</button><button type="button" data-action="video-play" data-p="${p.id}" aria-label="Reproducir o pausar">▶</button><input class="video-seek" type="range" min="0" max="1000" value="0" step="1" data-video-seek="${p.id}" aria-label="Posición del video"><button type="button" data-action="video-forward" data-p="${p.id}" aria-label="Adelantar 10 segundos">10 ↷</button></div></div>`:''}
+  ${p.imgs.length&&!opts.noMedia?`<div class="imgs ${p.imgs.length>1?'g2':''}">${p.imgs.slice(0,2).map(i=>`<img loading="lazy" src="${i}" alt="">`).join('')}</div>`:''}${opts.noMedia&&(p.video||p.imgs.length)?`<div class="sm mut" style="margin-top:8px">${p.video?'🎬 Esta publicación tiene video':'🖼️ Esta publicación tiene fotos'} · <a class="link" href="#/publicacion/${p.id}">Verla completa</a></div>`:''}${p.video&&!opts.noMedia?`<div class="eco-video-wrap" data-video-post="${p.id}"><video data-eco-video data-video-src="${esc(p.video)}" controls playsinline webkit-playsinline preload="none" aria-label="Video de la publicación"></video><div class="eco-video-controls"><button type="button" data-action="video-back" data-p="${p.id}" aria-label="Retroceder 10 segundos">↶ 10</button><button type="button" data-action="video-play" data-p="${p.id}" aria-label="Reproducir o pausar">▶</button><input class="video-seek" type="range" min="0" max="1000" value="0" step="1" data-video-seek="${p.id}" aria-label="Posición del video"><button type="button" data-action="video-forward" data-p="${p.id}" aria-label="Adelantar 10 segundos">10 ↷</button></div></div>`:''}
   ${p.loc?`<div class="locs">${ic('pin')} ${esc(p.loc)}</div>`:''}
   ${p.tags.length?`<div class="tags">${p.tags.map(t=>`<span data-action="tag" data-t="${t}">#${t}</span>`).join('')}</div>`:''}
   <div class="bar">
@@ -2013,7 +2013,7 @@ function viewComments(id){
  const p=postById(id);if(!p)return '<div class="card pad mt3"><h3>Publicación no encontrada</h3><a class="link" href="#/">Volver al inicio</a></div>';
  const owner=userById(p.userId),me=sess();const comments=Array.isArray(p.comments)?p.comments:[];const roots=comments.filter(c=>!c.parentId);
  const renderComment=(c,depth=0)=>{const cu=userById(c.userId);const likes=Array.isArray(c.likes)?c.likes:[];const liked=me&&likes.includes(me.id);const replies=comments.filter(r=>r.parentId===c.id);return `<div class="comment-row" style="margin-left:${Math.min(depth,3)*18}px">${avatar(cu,34,11)}<div class="comment-body"><div><b><a href="#/perfil/${cu.id}">${esc(cu.name)}</a></b>${cu.verified?verifyBadge():''}<span class="xs mut"> · ${timeAgo(c.at)}</span></div><div class="mt1">${esc(c.body)}</div><div class="comment-actions"><button class="${liked?'act':''}" data-action="comment-like" data-p="${p.id}" data-c="${c.id}">${ic('heart')} ${likes.length}</button><button data-action="comment-reply" data-p="${p.id}" data-c="${c.id}">${ic('msg')} Responder</button></div>${replies.map(r=>renderComment(r,depth+1)).join('')}</div></div>`;};
- return `<div><div class="page-head" style="padding-top:6px"><span class="kicker">Conversación</span><h1>Comentarios</h1><p class="mut">Navega libremente, reacciona y responde a los comentarios de esta publicación.</p></div><div class="comment-hub"><span class="sm mut">Publicación de <b>${esc(owner.name)}</b></span><a class="btn btn-ghost btn-sm" href="#/publicacion/${p.id}">Ver publicación</a></div>${postCard(p)}<section class="card pad mt2"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h3 style="font-size:18px">Conversación (${comments.length})</h3><a class="link" href="#/">Volver al inicio</a></div>${me?`<form class="cmt-form mt2" data-form="cmt" data-p="${p.id}"><input placeholder="Escribe un comentario respetuoso…" maxlength="500" required><button class="btn btn-green btn-sm" type="submit">Enviar</button></form>`:'<p class="sm mut mt2"><a class="link" href="#/entrar">Inicia sesión</a> para comentar.</p>'}<div class="mt2">${roots.map(c=>renderComment(c)).join('')||'<p class="sm mut">Todavía no hay comentarios. Sé el primero en participar.</p>'}</div></section></div>`;
+ return `<div><div class="page-head" style="padding-top:6px"><span class="kicker">Conversación</span><h1>Comentarios</h1><p class="mut">Navega libremente, reacciona y responde a los comentarios de esta publicación.</p></div><div class="comment-hub"><span class="sm mut">Publicación de <b>${esc(owner.name)}</b></span><a class="btn btn-ghost btn-sm" href="#/publicacion/${p.id}">Ver publicación</a></div>${postCard(p,{noMedia:true})}<section class="card pad mt2" id="comments-section" style="scroll-margin-top:72px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h3 style="font-size:18px">Conversación (${comments.length})</h3><a class="link" href="#/">Volver al inicio</a></div>${me?`<form class="cmt-form mt2" data-form="cmt" data-p="${p.id}"><input placeholder="Escribe un comentario respetuoso…" maxlength="500" required><button class="btn btn-green btn-sm" type="submit">Enviar</button></form>`:'<p class="sm mut mt2"><a class="link" href="#/entrar">Inicia sesión</a> para comentar.</p>'}<div class="mt2">${roots.map(c=>renderComment(c)).join('')||'<p class="sm mut">Todavía no hay comentarios. Sé el primero en participar.</p>'}</div></section></div>`;
 }
 function viewSinglePost(id){
  const p=postById(id);
@@ -2353,10 +2353,14 @@ function sideRail(){
 
 /* ---------- router ---------- */
 let lastRenderHash='';
+const ECO_SCROLL={};let ECO_NAV_BACK=false;
+window.addEventListener('popstate',()=>{ECO_NAV_BACK=true;});
 function render(){
  const h=location.hash||'#/';
  const sameRoute=lastRenderHash===h;
  const preservedScroll=window.scrollY||0;
+ if(!sameRoute){if(lastRenderHash)ECO_SCROLL[lastRenderHash]=preservedScroll;document.querySelectorAll('video[data-eco-video]').forEach(v=>{try{v.pause();}catch(e){}});}
+ const backY=(!sameRoute&&ECO_NAV_BACK&&ECO_SCROLL[h]!=null)?ECO_SCROLL[h]:0;
  killMaps();dropOpen=null;
  const [path,arg]=h.replace('#/','').split('/');
  const u=sess();
@@ -2395,10 +2399,12 @@ function render(){
  if(full)$('#app').innerHTML=view;
  else $('#app').innerHTML=`<div class="app">${u?chromeRail():'<span></span>'}<div style="min-width:0">${view}</div>${u?sideRail():'<span></span>'}</div>`;
  chromeTop();
- window.scrollTo(0,sameRoute?preservedScroll:0);
- lastRenderHash=h;
+ window.scrollTo(0,sameRoute?preservedScroll:backY);
+ lastRenderHash=h;ECO_NAV_BACK=false;
  requestAnimationFrame(()=>{
   if(sameRoute)window.scrollTo(0,preservedScroll);
+  else if(path==='comentarios'){const cs=document.getElementById('comments-section');if(cs)cs.scrollIntoView({block:'start'});}
+  else if(backY)window.scrollTo(0,backY);
   if(path==='mapa')initMap();
   if(path==='reportar')initPickMap();
   counters();
@@ -2780,14 +2786,26 @@ const Cloud=(()=>{
  const fromProfile=r=>mk({id:r.id,name:r.name||r.username,email:r.email,kind:KIND[r.kind]||r.kind,role:ROLE[r.role]||r.role,bio:r.bio,loc:r.loc,website:r.website,avatar:r.avatar,cover:r.cover,verified:r.verified,suspended:r.is_active===false,at:Date.parse(r.created_at)});
  const split=t=>{const i=t.indexOf('\n\n');return i>0&&i<160?[t.slice(0,i),t.slice(i+2)]:[t.split('\n')[0].slice(0,90),t];};
  async function up(src,folder){if(!src||!String(src).startsWith('data:'))return src||'';const b=await(await fetch(src)).blob();const ext=(b.type.split('/')[1]||'jpg').replace('jpeg','jpg');return(await Supabase.upload(new File([b],'img.'+ext,{type:b.type}),(await c().auth.getUser()).data.user.id,folder)).url;}
+ const ECO_VAPID_PUBLIC='BEEMDxutY80LoI4SmWzaLETQPgs2_qFdU0J9g16iolKFRtwVg-Aa504vv89E1vuGNaf5t56n8K6YGvBvyv4yquo';/* pega aquí tu clave pública VAPID (ver guía) */
+ async function ecoSubscribePush(uid_){
+  try{
+   if(!ECO_VAPID_PUBLIC||!('serviceWorker' in navigator)||!('PushManager' in window)||!window.Notification||Notification.permission!=='granted')return;
+   const reg=await navigator.serviceWorker.ready;
+   let sub=await reg.pushManager.getSubscription();
+   if(!sub){const b=ECO_VAPID_PUBLIC+'='.repeat((4-ECO_VAPID_PUBLIC.length%4)%4);const raw=atob(b.replace(/-/g,'+').replace(/_/g,'/'));sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(raw,ch=>ch.charCodeAt(0))});}
+   const j=sub.toJSON();
+   await c().from('push_subscriptions').upsert({user_id:uid_,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:'endpoint'});
+  }catch(e){console.warn('[EcoNova] push',e);}
+ }
  const api={
   up,
   notifView(n){const a=DB.users.find(x=>x.id===n.actor_id),nm=a?a.name:'Alguien',pp=DB.posts.find(x=>x.id===n.post_id),t=pp?pp.title:'tu publicación';
-   const T={like:'Nuevo like',comment:'Nuevo comentario',reply:'Nueva respuesta',follow:'Nuevo seguidor'}[n.type]||'Actividad';
-   const B=n.type==='like'?`${nm} le dio like a "${t}".`:n.type==='follow'?`${nm} empezó a seguirte.`:`${nm} ${n.type==='reply'?'respondió':'comentó'} en "${t}".`;
+   const T={like:'Nuevo like',comment:'Nuevo comentario',reply:'Nueva respuesta',follow:'Nuevo seguidor',save:'Guardaron tu publicación',share:'Compartieron tu publicación',new_post:'Nueva publicación',mod_approved:'Tu publicación fue aprobada',mod_rejected:'Tu publicación fue rechazada',mod_changes:'Tu publicación requiere cambios'}[n.type]||'Actividad';
+   const note=n.message?` Motivo: ${n.message}`:'';const B=n.type==='like'?`${nm} le dio like a "${t}".`:n.type==='follow'?`${nm} empezó a seguirte.`:n.type==='save'?`${nm} guardó "${t}".`:n.type==='share'?`${nm} compartió "${t}".`:n.type==='new_post'?`${nm} ha hecho una nueva publicación.`:n.type==='mod_approved'?`"${t}" ya es visible para la comunidad.`:n.type==='mod_rejected'?`"${t}" no cumplió las reglas.${note}`:n.type==='mod_changes'?`Ajusta "${t}" y vuelve a enviarla.${note}`:`${nm} ${n.type==='reply'?'respondió':'comentó'} en "${t}".`;
    return{id:n.id,userId:n.user_id,title:T,body:B,at:Date.parse(n.created_at)||Date.now(),read:!!n.read,postId:n.post_id,remote:true};},
   startNotifs(uid_){
    if(window.__ecoNotifUid===uid_)return;window.__ecoNotifUid=uid_;
+   ecoSubscribePush(uid_);
    window.__ecoMarkRead=()=>{c().from('user_notifications').update({read:true}).eq('user_id',uid_).eq('read',false).then(()=>{});};
    try{c().channel('eco-notifs-'+uid_).on('postgres_changes',{event:'INSERT',schema:'public',table:'user_notifications',filter:'user_id=eq.'+uid_},pl=>{
     const v=api.notifView(pl.new);if(DB.notifs.some(x=>x.id===v.id))return;DB.notifs.unshift(v);save();
@@ -2797,7 +2815,7 @@ const Cloud=(()=>{
     }else toast(v.title+': '+v.body,'ok');
    }).subscribe();}catch(e){console.warn('[EcoNova] realtime notifs',e);}
    if(window.Notification&&Notification.permission==='default'&&!window.__ecoAsk){window.__ecoAsk=1;
-    document.addEventListener('click',()=>{try{Notification.requestPermission();}catch(e){}},{once:true});}
+    document.addEventListener('click',()=>{try{Promise.resolve(Notification.requestPermission()).then(()=>ecoSubscribePush(uid_));}catch(e){}},{once:true});}
   },
   async sync(){
    const {data:{session:s}}=await c().auth.getSession();
@@ -2832,7 +2850,8 @@ const Cloud=(()=>{
    if(s&&!DB.users.some(u=>u.id===s.user.id)){const m=s.user.user_metadata||{};DB.users.push(mk({id:s.user.id,name:m.name||(s.user.email||'').split('@')[0],email:s.user.email,kind:KIND[m.kind]||m.kind}));}
    const em=await q(c().from('user_emblems').select('user_id,emblem'));
    DB.users.forEach(u=>{u.emblems=em.filter(e=>e.user_id===u.id).map(e=>e.emblem);u.allyAccepted=u.emblems.includes('ALLY');u.donorAccepted=u.emblems.includes('DONOR');});
-   DB.posts=rows.map(r=>{const [title,body]=split(r.content||'');return{id:r.id,userId:r.author_id,title,body,cat:u2l[r.category_id]??DB.cats[0].id,loc:r.location||'',imgs:M[r.id]||[],video:V[r.id]||'',tags:(body.match(/#[\wáéíóúñÁÉÍÓÚÑ]+/g)||[]).map(t=>t.slice(1)),status:ST[r.status]||'PENDING',sponsored:approvedPromoPosts.has(r.id),likes:L[r.id]||[],comments:C[r.id]||[],shares:0,savedBy:S[r.id]||[],at:Date.parse(r.created_at)};});
+   DB.posts=rows.map(r=>{const [title,body]=split(r.content||'');return{id:r.id,userId:r.author_id,title,body,cat:u2l[r.category_id]??DB.cats[0].id,loc:r.location||'',imgs:M[r.id]||[],video:V[r.id]||'',tags:(body.match(/#[\wáéíóúñÁÉÍÓÚÑ]+/g)||[]).map(t=>t.slice(1)),status:ST[r.status]||'PENDING',sponsored:approvedPromoPosts.has(r.id),likes:L[r.id]||[],comments:C[r.id]||[],shares:0,savedBy:S[r.id]||[],sharedFrom:r.shared_from||null,sharedAt:r.shared_from?Date.parse(r.created_at):null,at:Date.parse(r.created_at)};});
+   {const chg=new Set((modq||[]).filter(x=>x.content_type==='post'&&x.decision==='changes'&&x.status==='pending').map(x=>x.content_id));DB.posts.forEach(p=>{if(chg.has(p.id)&&p.status==='PENDING')p.status='CHANGES';});}
    DB.follows=fol.map(r=>({f:r.follower_id,t:r.following_id}));
    if(s){const nr=await q(c().from('user_notifications').select('*').eq('user_id',s.user.id).order('created_at',{ascending:false}).limit(60));
     DB.notifs=nr.map(n=>api.notifView(n));api.startNotifs(s.user.id);}
@@ -2902,7 +2921,8 @@ const Cloud=(()=>{
     const {data,error}=await c().from('posts').insert({
      author_id:u.id,category_id:categoryId,
      content:String(p.title||'').trim()+'\n\n'+String(p.body||'').trim(),
-     location:p.loc||null,status:ST2[p.status]||'pending'
+     location:p.loc||null,status:ST2[p.status]||'pending',
+     shared_from:(p.sharedFrom&&UUID.test(p.sharedFrom))?p.sharedFrom:null
     }).select().single();
     if(error)throw error;
     postId=data.id;
@@ -2998,9 +3018,14 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
   (r?c().from('saved_posts').insert({post_id:id,user_id:u.id}):c().from('saved_posts').delete().eq('post_id',id).eq('user_id',u.id)).then(({error})=>{if(error)fail(error);});return r;};
  API.toggleFollow=function(t){const r=A.toggleFollow(t),u=me();if(!on()||!u||!UUID.test(t))return r;
   (r?c().from('follows').insert({follower_id:u.id,following_id:t}):c().from('follows').delete().eq('follower_id',u.id).eq('following_id',t)).then(({error})=>{if(error)fail(error);});return r;};
- API.moderate=function(id,dec,note){A.moderate(id,dec,note);const u=me();if(!on()||!u||!UUID.test(id)||!ST2[dec])return;
+ API.moderate=function(id,dec,note){A.moderate(id,dec,note);const u=me();if(!on()||!u||!UUID.test(id))return;
+  const DEC={APPROVED:'approved',REJECTED:'rejected',CHANGES:'changes'};
+  if(dec==='CHANGES'){ /* "Solicitar cambios": el post sigue pending y la cola guarda la decisión y la nota */
+   c().from('moderation_queue').update({status:'pending',decision:'changes',moderator_id:u.id,moderator_note:note||null,reviewed_at:new Date().toISOString()}).eq('content_type','post').eq('content_id',id).then(({error})=>{if(error)fail(error,true,'No se pudo enviar la solicitud de cambios');});
+   return;}
+  if(!ST2[dec])return;
   c().from('posts').update({status:ST2[dec]}).eq('id',id).then(({error})=>{if(error)return fail(error);
-   c().from('moderation_queue').update({status:ST2[dec],moderator_id:u.id,moderator_note:note||null,reviewed_at:new Date().toISOString()}).eq('content_id',id).then(()=>{});});};
+   c().from('moderation_queue').update({status:ST2[dec],decision:DEC[dec]||ST2[dec],moderator_id:u.id,moderator_note:note||null,reviewed_at:new Date().toISOString()}).eq('content_type','post').eq('content_id',id).then(({error:e2})=>{if(e2)fail(e2,true,'No se pudo registrar la decisión de moderación');});});};
  API.updateProfile=function(d){A.updateProfile(d);const u=me();if(!on()||!u)return;
   (async()=>{const row={name:u.name,bio:u.bio||null,loc:u.loc||null,website:u.website||null};
    for(const k of['avatar','cover']){if(u[k]){const url=await up(u[k],k==='avatar'?'avatars':'covers');u[k]=url;}row[k]=u[k]||null;}
