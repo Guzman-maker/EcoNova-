@@ -2449,46 +2449,69 @@ function syncVideoControls(v){const box=v?.closest?.('.eco-video-wrap');if(!box|
 document.addEventListener('timeupdate',e=>{const v=e.target;if(v?.matches?.('video[data-eco-video]'))syncVideoControls(v);},true);
 document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.('video[data-eco-video]'))syncVideoControls(v);},true);
 
-/* EcoNova: carga diferida y reproducción automática silenciosa del video visible. */
+/* EcoNova: autoplay del video centrado y preferencia de audio recordada. */
 (function(){
- const videos=new WeakSet();
+ const AUDIO_KEY='econova-video-audio-enabled-v1';
+ const hasAudioPreference=()=>{try{return localStorage.getItem(AUDIO_KEY)==='1';}catch(_){return false;}};
+ const saveAudioPreference=()=>{try{localStorage.setItem(AUDIO_KEY,'1');}catch(_){}};
  const loadNow=v=>{if(typeof ecoLoadVideo==='function')ecoLoadVideo(v);};
  const pauseOthers=current=>{
   document.querySelectorAll('video[data-eco-video]').forEach(v=>{
    if(v!==current&&!v.paused){try{v.pause();}catch(_){}}
   });
  };
- const tryPlay=v=>{
+ const playAtCenter=v=>{
   if(!v||document.hidden)return;
-  loadNow(v);
-  v.muted=true; // autoplay mobile-friendly; user can unmute using native controls
-  v.playsInline=true;
-  pauseOthers(v);
-  const p=v.play();
-  if(p&&p.catch)p.catch(()=>{/* Autoplay can be denied by browser; native play button remains available. */});
+  loadNow(v);v.playsInline=true;pauseOthers(v);
+  const wantsAudio=hasAudioPreference();
+  v.muted=!wantsAudio;
+  let p;
+  try{p=v.play();}catch(_){p=null;}
+  if(p&&p.catch)p.catch(()=>{
+   // Si el navegador bloquea autoplay con sonido, volver al modo silencioso permitido.
+   if(wantsAudio&&!document.hidden){v.muted=true;try{const fallback=v.play();if(fallback&&fallback.catch)fallback.catch(()=>{});}catch(_){}}
+  });
  };
+ // Una vez que la persona activa el audio en cualquier video, recordar la preferencia.
+ document.addEventListener('volumechange',e=>{
+  const v=e.target;
+  if(v&&v.matches&&v.matches('video[data-eco-video]')&&!v.muted&&v.volume>0)saveAudioPreference();
+ },true);
+ const updateCenteredVideo=()=>{
+  if(document.hidden)return;
+  const vh=window.innerHeight||800, centerY=vh/2;
+  let candidate=null,best=Infinity;
+  document.querySelectorAll('video[data-eco-video]').forEach(v=>{
+   const r=v.getBoundingClientRect();
+   const visible=Math.max(0,Math.min(r.bottom,vh)-Math.max(r.top,0));
+   const ratio=r.height>0?visible/r.height:0;
+   const distance=Math.abs((r.top+r.bottom)/2-centerY);
+   if(ratio>=0.45&&distance<=vh*0.24&&distance<best){candidate=v;best=distance;}
+  });
+  if(candidate)playAtCenter(candidate);
+  document.querySelectorAll('video[data-eco-video]').forEach(v=>{if(v!==candidate&&!v.paused){try{v.pause();}catch(_){}}});
+ };
+ let scrollQueued=false;
+ const queueCenterCheck=()=>{if(scrollQueued)return;scrollQueued=true;requestAnimationFrame(()=>{scrollQueued=false;updateCenteredVideo();});};
+ window.addEventListener('scroll',queueCenterCheck,{passive:true});
+ window.addEventListener('resize',queueCenterCheck,{passive:true});
  if('IntersectionObserver' in window){
   const io=new IntersectionObserver(entries=>entries.forEach(entry=>{
    const v=entry.target;
-   if(entry.isIntersecting && entry.intersectionRatio>=0.62){
-    tryPlay(v);
-   }else if(entry.intersectionRatio<0.22){
-    try{v.pause();}catch(_){}
-   }
-  }),{threshold:[0,0.22,0.62,0.85],rootMargin:'80px 0px'});
+   if(entry.isIntersecting){loadNow(v);queueCenterCheck();}
+   else if(entry.intersectionRatio===0){try{v.pause();}catch(_){}}
+  }),{threshold:[0,0.25,0.5,0.75],rootMargin:'0px 0px'});
   const observeVideos=()=>{
    document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(v=>{
     if(v.dataset.ecoObserved==='1')return;
-    v.dataset.ecoObserved='1';
-    v.muted=true;
-    io.observe(v);
+    v.dataset.ecoObserved='1';v.muted=!hasAudioPreference();io.observe(v);
    });
   };
-  observeVideos();
-  const mo=new MutationObserver(()=>observeVideos());
+  observeVideos();queueCenterCheck();
+  const mo=new MutationObserver(()=>{observeVideos();queueCenterCheck();});
   mo.observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
  }else{
-  document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(v=>{v.muted=true;loadNow(v);});
+  document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(v=>{v.muted=!hasAudioPreference();loadNow(v);});
  }
  document.addEventListener('visibilitychange',()=>{
   if(document.hidden)document.querySelectorAll('video[data-eco-video]').forEach(v=>v.pause());
@@ -3519,7 +3542,7 @@ var MapX=(()=>{
 
 <script id="econova-refresh-feed">
 (function(){
- let busy=false,startY=0,pullActive=false;
+ let busy=false,startY=0,pullActive=false,pullDistance=0;
  const isHome=()=>((location.hash||'#/')==='#/'||location.hash===''||location.hash==='#');
  const indicator=()=>document.getElementById('feed-refresh-indicator');
  async function refreshFeed(showMessage=true){
@@ -3551,22 +3574,23 @@ var MapX=(()=>{
  },true);
  // Pull-to-refresh para móvil/PWA: solo inicia cuando el feed está arriba del todo.
  window.addEventListener('touchstart',function(e){
-  startY=0;pullActive=false;
+  startY=0;pullActive=false;pullDistance=0;
   if(!isHome()||window.scrollY>3||!e.touches||!e.touches.length)return;
   startY=e.touches[0].clientY;
  },{passive:true});
  window.addEventListener('touchmove',function(e){
   if(!startY||!isHome()||!e.touches||!e.touches.length)return;
   const dy=e.touches[0].clientY-startY;
-  if(dy<0){pullActive=false;const el=indicator();if(el)el.classList.remove('is-pulling');return;}
-  if(dy>28){pullActive=true;const el=indicator();if(el){el.classList.add('is-pulling');el.classList.remove('is-refreshing');const span=el.querySelectorAll('span')[1];if(span)span.textContent=dy>76?'Suelta para actualizar':'Desliza para actualizar';}}
-  if(dy>90&&e.cancelable)e.preventDefault();
+  if(dy<0){pullActive=false;pullDistance=0;const el=indicator();if(el)el.classList.remove('is-pulling');return;}
+  pullDistance=dy;
+  if(dy>150){pullActive=true;const el=indicator();if(el){el.classList.add('is-pulling');el.classList.remove('is-refreshing');const span=el.querySelectorAll('span')[1];if(span)span.textContent=dy>=240?'Suelta para actualizar':'Desliza más para actualizar';}}
+  if(dy>240&&e.cancelable)e.preventDefault();
  },{passive:false});
  window.addEventListener('touchend',function(){
-  if(pullActive&&startY&&isHome()&&window.scrollY<=8)refreshFeed(true);
-  startY=0;pullActive=false;
+  if(pullActive&&pullDistance>=240&&startY&&isHome()&&window.scrollY<=8)refreshFeed(true);
+  startY=0;pullActive=false;pullDistance=0;
  },{passive:true});
- window.addEventListener('touchcancel',function(){startY=0;pullActive=false;const el=indicator();if(el)el.classList.remove('is-pulling');},{passive:true});
+ window.addEventListener('touchcancel',function(){startY=0;pullActive=false;pullDistance=0;const el=indicator();if(el)el.classList.remove('is-pulling');},{passive:true});
 })();
 </script>
 
