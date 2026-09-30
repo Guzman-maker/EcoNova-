@@ -1044,6 +1044,36 @@ html[data-eav-pose=trabajando] .eav.is-av .eav-bob{animation:eav-type .5s ease-i
 .feed-refresh-indicator.is-refreshing .feed-refresh-mark{animation:ecoRefreshSpin .8s linear infinite}
 @keyframes ecoRefreshSpin{to{transform:rotate(360deg)}}
 </style>
+
+<style id="econova-login-avatar-cleanup">
+/* En login: mostrar solo la mascota, sin el círculo verde grande.
+   Dentro de la app se conserva el avatar circular original. */
+body.auth-route .eav .eav-body{
+  width:var(--sz,34px)!important;
+  height:var(--sz,34px)!important;
+  border:0!important;
+  border-radius:0!important;
+  overflow:visible!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  animation:none!important;
+}
+body.auth-route .eav.is-av .eav-body{
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  animation:none!important;
+}
+body.auth-route .eav .eav-sp{
+  object-fit:contain!important;
+  transform:none!important;
+}
+body.auth-route .eav.morph::after{
+  display:none!important;
+}
+</style>
+
 </head>
 <body>
 <div id="en-splash" aria-hidden="true" role="presentation">
@@ -2419,20 +2449,52 @@ function syncVideoControls(v){const box=v?.closest?.('.eco-video-wrap');if(!box|
 document.addEventListener('timeupdate',e=>{const v=e.target;if(v?.matches?.('video[data-eco-video]'))syncVideoControls(v);},true);
 document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.('video[data-eco-video]'))syncVideoControls(v);},true);
 
-/* Carga videos cuando se acercan a la pantalla; evita bloquear el feed con muchos videos. */
+/* EcoNova: carga diferida y reproducción automática silenciosa del video visible. */
 (function(){
- const loadNow=v=>ecoLoadVideo(v);
+ const videos=new WeakSet();
+ const loadNow=v=>{if(typeof ecoLoadVideo==='function')ecoLoadVideo(v);};
+ const pauseOthers=current=>{
+  document.querySelectorAll('video[data-eco-video]').forEach(v=>{
+   if(v!==current&&!v.paused){try{v.pause();}catch(_){}}
+  });
+ };
+ const tryPlay=v=>{
+  if(!v||document.hidden)return;
+  loadNow(v);
+  v.muted=true; // autoplay mobile-friendly; user can unmute using native controls
+  v.playsInline=true;
+  pauseOthers(v);
+  const p=v.play();
+  if(p&&p.catch)p.catch(()=>{/* Autoplay can be denied by browser; native play button remains available. */});
+ };
  if('IntersectionObserver' in window){
   const io=new IntersectionObserver(entries=>entries.forEach(entry=>{
-   if(entry.isIntersecting){loadNow(entry.target);io.unobserve(entry.target);}
-  }),{rootMargin:'500px 0px'});
-  const observeVideos=()=>document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(v=>{if(!v.dataset.ecoObserved&&!v.getAttribute('src')){v.dataset.ecoObserved='1';io.observe(v);}});
+   const v=entry.target;
+   if(entry.isIntersecting && entry.intersectionRatio>=0.62){
+    tryPlay(v);
+   }else if(entry.intersectionRatio<0.22){
+    try{v.pause();}catch(_){}
+   }
+  }),{threshold:[0,0.22,0.62,0.85],rootMargin:'80px 0px'});
+  const observeVideos=()=>{
+   document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(v=>{
+    if(v.dataset.ecoObserved==='1')return;
+    v.dataset.ecoObserved='1';
+    v.muted=true;
+    io.observe(v);
+   });
+  };
   observeVideos();
   const mo=new MutationObserver(()=>observeVideos());
   mo.observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
- }else{document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(loadNow);}
+ }else{
+  document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(v=>{v.muted=true;loadNow(v);});
+ }
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)document.querySelectorAll('video[data-eco-video]').forEach(v=>v.pause());
+ });
+ window.addEventListener('pagehide',()=>document.querySelectorAll('video[data-eco-video]').forEach(v=>v.pause()));
 })();
-
 document.addEventListener('change',e=>{const r=e.target;if(!r.matches?.('[data-video-seek]'))return;const v=getPostVideo(r.dataset.videoSeek);if(v&&Number.isFinite(v.duration))v.currentTime=(Number(r.value)/1000)*v.duration;},true);
 /* Media reliability: preserve native video controls/audio and report broken media. */
 document.addEventListener('error',e=>{
@@ -2801,35 +2863,69 @@ const Cloud=(()=>{
    }
    const categoryId=loc2uuid[p.cat]||null;
    if(!categoryId)throw new Error('La categoría de la publicación no está disponible en Supabase. Recarga la página e inténtalo de nuevo.');
-   const {data,error}=await c().from('posts').insert({author_id:u.id,category_id:categoryId,content:String(p.title||'').trim()+'\n\n'+String(p.body||'').trim(),location:p.loc||null,status:ST2[p.status]||'pending'}).select().single();
-   if(error)throw error;
-   const oldId=p.id;p.id=data.id;
-   document.querySelectorAll('[data-p="'+oldId+'"]').forEach(e=>{e.dataset.p=data.id;});
-   const urls=[];
+
+   // Subir primero los archivos. No crear una publicación incompleta si falla un video.
+   const mediaRows=[];
    for(const [i,im] of (p.imgs||[]).entries()){
-    try{const url=await up(im,'posts');urls.push(url);const mr=await c().from('post_media').insert({post_id:data.id,media_url:url,media_type:'image',sort_order:i});if(mr.error)throw mr.error;}
-    catch(e){console.warn('[EcoNova] imagen no subida',e);throw new Error('La publicación se creó, pero una imagen no pudo subirse: '+tr(e));}
+    try{const url=await up(im,'posts');mediaRows.push({media_url:url,media_type:'image',sort_order:i});}
+    catch(e){console.warn('[EcoNova] imagen no subida',e);throw new Error('No se pudo subir una imagen: '+tr(e));}
    }
-   p.imgs=urls;
    if(vf){
     toast('Subiendo video…','ok');
-    try{const {url}=await Supabase.upload(vf,u.id,'videos');const r=await c().from('post_media').insert({post_id:data.id,media_url:url,media_type:'video',sort_order:99});if(r.error)throw r.error;p.video=url;}
-    catch(e){console.warn('[EcoNova] video upload',e);await c().from('posts').update({status:'hidden'}).eq('id',data.id);await c().from('post_media').delete().eq('post_id',data.id);throw new Error('El video no se pudo subir y la publicación fue cancelada: '+tr(e));}
+    try{const {url}=await Supabase.upload(vf,u.id,'videos');mediaRows.push({media_url:url,media_type:'video',sort_order:99});}
+    catch(e){console.warn('[EcoNova] video upload',e);throw new Error('El video no se pudo subir; no se publicó nada. Comprueba la conexión, el formato y el límite de 50 MB. '+tr(e));}
    }
-   if(p.status==='PENDING'){
-    const qr=await c().from('moderation_queue').insert({content_type:'post',content_id:data.id,submitted_by:u.id,status:'pending'});
-    if(qr.error){await c().from('post_media').delete().eq('post_id',data.id);await c().from('posts').delete().eq('id',data.id);throw qr.error;}
+
+   let postId=null;
+   try{
+    const {data,error}=await c().from('posts').insert({
+     author_id:u.id,category_id:categoryId,
+     content:String(p.title||'').trim()+'\n\n'+String(p.body||'').trim(),
+     location:p.loc||null,status:ST2[p.status]||'pending'
+    }).select().single();
+    if(error)throw error;
+    postId=data.id;
+    const oldId=p.id;p.id=data.id;
+    document.querySelectorAll('[data-p="'+oldId+'"]').forEach(e=>{e.dataset.p=data.id;});
+    if(mediaRows.length){
+     const rows=mediaRows.map(m=>({post_id:postId,...m}));
+     const mr=await c().from('post_media').insert(rows);
+     if(mr.error)throw mr.error;
+    }
+    p.imgs=mediaRows.filter(m=>m.media_type==='image').map(m=>m.media_url);
+    p.video=(mediaRows.find(m=>m.media_type==='video')||{}).media_url||'';
+    if(p.status==='PENDING'){
+     const qr=await c().from('moderation_queue').insert({content_type:'post',content_id:postId,submitted_by:u.id,status:'pending'});
+     if(qr.error)throw qr.error;
+    }
+   }catch(e){
+    // Compensación: evita dejar una publicación parcial que aparezca/desaparezca al sincronizar.
+    if(postId){
+     await c().from('moderation_queue').delete().eq('content_id',postId);
+     await c().from('post_media').delete().eq('post_id',postId);
+     await c().from('posts').delete().eq('id',postId);
+    }
+    throw e;
    }
-   save();await api.sync();render();
+   save();
+   await api.sync();
+   render();
   }
  };
  const A={};['createPost','like','comment','replyComment','toggleSave','toggleFollow','moderate','updateProfile','logout','setEmblem','removeEmblem','setCommunityStatus','suspend','setVerified','verifyOrg','likeComment','removePost','deleteShared','share','flag','resolveFlag'].forEach(k=>A[k]=API[k].bind(API));
  API.createPost=async function(d){
   A.createPost(d);
-  if(!on()||!me()){const p=DB.posts[0];if(d.video)p.video=URL.createObjectURL(d.video);save();return p;}
   const p=DB.posts[0];
-  await api.pushPost(p,d.video);
-  return p;
+  if(!on()||!me()){if(d.video)p.video=URL.createObjectURL(d.video);save();return p;}
+  try{
+   await api.pushPost(p,d.video);
+   return p;
+  }catch(err){
+   DB.posts=DB.posts.filter(x=>x!==p);
+   save();
+   if(typeof render==='function')render();
+   throw err;
+  }
 };
  API.share=function(id){
   const added=A.share(id);
@@ -2853,13 +2949,20 @@ const Cloud=(()=>{
   c().from('reports').update({status:action==='REMOVE'?'resolved':'dismissed',reviewed_by:u.id,reviewed_at:new Date().toISOString()}).eq('id',fid).then(({error})=>{if(error)fail(error);});
 };
  API.removePost=async function(id){
-  A.removePost(id);
   const u=me();
-  if(!on()||!u||!UUID.test(id))return;
+  // En modo demo/local, conserva el comportamiento local original.
+  if(!on()||!u||!UUID.test(id)){A.removePost(id);render();return;}
+  const p=postById(id);
+  if(!p)throw new Error('Publicación no encontrada.');
+  if(!(p.userId===u.id||isAdmin()))throw new Error('No tienes permiso para eliminar esta publicación.');
+  // No ocultar primero en pantalla: si el servidor rechaza la operación, no reaparecerá luego por sincronización.
   const {error}=await c().from('posts').update({status:'hidden'}).eq('id',id);
-  if(error){fail(error,true,'No se pudo eliminar la publicación del servidor');return;}
-  await c().from('post_media').delete().eq('post_id',id);
-  await c().from('moderation_queue').delete().eq('content_id',id);
+  if(error)throw new Error('El servidor no confirmó la eliminación. La publicación se dejó visible para evitar un falso borrado: '+tr(error));
+  A.removePost(id);
+  const mr=await c().from('post_media').delete().eq('post_id',id);
+  if(mr.error)console.warn('[EcoNova] No se pudieron limpiar todos los medios de la publicación',mr.error);
+  const qr=await c().from('moderation_queue').delete().eq('content_id',id);
+  if(qr.error)console.warn('[EcoNova] No se pudo limpiar la cola de moderación',qr.error);
   DB.posts=DB.posts.filter(p=>p.id!==id);
   save();render();
 };
