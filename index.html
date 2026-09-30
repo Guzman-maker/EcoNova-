@@ -2800,7 +2800,7 @@ const Cloud=(()=>{
  const fromProfile=r=>mk({id:r.id,name:r.name||r.username,email:r.email,kind:KIND[r.kind]||r.kind,role:ROLE[r.role]||r.role,bio:r.bio,loc:r.loc,website:r.website,avatar:r.avatar,cover:r.cover,verified:r.verified,suspended:r.is_active===false,at:Date.parse(r.created_at)});
  const split=t=>{const i=t.indexOf('\n\n');return i>0&&i<160?[t.slice(0,i),t.slice(i+2)]:[t.split('\n')[0].slice(0,90),t];};
  async function up(src,folder){if(!src||!String(src).startsWith('data:'))return src||'';const b=await(await fetch(src)).blob();const ext=(b.type.split('/')[1]||'jpg').replace('jpeg','jpg');return(await Supabase.upload(new File([b],'img.'+ext,{type:b.type}),(await c().auth.getUser()).data.user.id,folder)).url;}
- const ECO_VAPID_PUBLIC='BEEMDxutY80LoI4SmWzaLETQPgs2_qFdU0J9g16iolKFRtwVg-Aa504vv89E1vuGNaf5t56n8K6YGvBvyv4yquo';/* pega aquí tu clave pública VAPID (ver guía) */
+ const ECO_VAPID_PUBLIC='BCNvt9EYFTcxvXW7lWBLBhBsQHzXq787uBBNkqyuBajCUSudYqLAe6LUFy93_VdhzmxNIK5HONPHikSV4CIyv7c';/* pega aquí tu clave pública VAPID (ver guía) */
  async function ecoSubscribePush(uid_){
   try{
    if(!ECO_VAPID_PUBLIC)return 'sin-clave';
