@@ -116,10 +116,18 @@ button[data-action="comment-like"] svg{width:18px;height:18px;min-width:18px;fle
 button[data-action="comment-like"].act{color:#e11d48!important;font-weight:700}
 button[data-action="comment-like"].act svg{fill:#e11d48;stroke:#e11d48}
 button[data-action="comment-like"].like-pop svg{animation:ecoLikePop .42s cubic-bezier(.2,.8,.2,1)}
-#eco-sheet .sf{flex-wrap:wrap}
-#eco-sheet .sf-reply{flex:0 0 100%;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--mut)}
+#eco-sheet .sh{max-height:100%}
+#eco-sheet .sf{display:block;padding:0 0 calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+#eco-sheet .sf-emojis{display:flex;justify-content:space-around;padding:8px 10px 4px}
+#eco-sheet .sf-emojis button{background:none;border:0;font-size:26px;line-height:1;padding:4px 2px;cursor:pointer}
+#eco-sheet .sf-box{margin:4px 12px 0;border:1px solid var(--line2);border-radius:22px;background:var(--bg);overflow:hidden}
+#eco-sheet .sf-reply{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:13px;color:var(--mut);border-bottom:1px solid var(--line);background:var(--surface)}
 #eco-sheet .sf-reply[hidden]{display:none}
-#eco-sheet .sf-reply button{background:none;border:0;color:var(--mut);font-size:14px;cursor:pointer}
+#eco-sheet .sf-reply button{background:none;border:0;color:var(--mut);font-size:16px;cursor:pointer;padding:0 2px}
+#eco-sheet .sf-row{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 14px}
+#eco-sheet .sf .sf-row input{flex:1;min-width:0;border:0;border-radius:0;background:transparent;padding:8px 0;font-size:16px;outline:0;color:var(--ink)}
+#eco-sheet .sf-send{flex:none;width:52px;height:36px;border-radius:18px;border:0;background:var(--green,#0e8f78);color:#fff;display:grid;place-items:center;cursor:pointer}
+#eco-sheet .sf-send svg{width:20px;height:20px}
 
 #eco-sheet .gr{padding:10px 0 4px;touch-action:none}#eco-sheet .gr i{display:block;width:40px;height:4px;border-radius:4px;background:var(--line2);margin:0 auto}
 #eco-sheet .sh h4{text-align:center;padding:6px 0 12px;border-bottom:1px solid var(--line);font-size:15px}
@@ -2151,7 +2159,7 @@ function viewNotifs(){
  list.forEach(n=>n.read=true);save();window.__ecoMarkRead&&window.__ecoMarkRead();
  return`<div><div class="page-head" style="padding-top:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><span class="kicker">Actividad</span><h1>Notificaciones</h1></div>${list.length?`<button class="btn btn-danger btn-sm" data-action="notif-clear">Eliminar todas</button>`:''}</div>
  ${pushCard()}
- <div class="card mt2 notif-scroll">${list.map(n=>`<div class="pd-item" style="display:flex;gap:12px;align-items:flex-start"><div style="flex:1;min-width:0"><b>${esc(n.title)}</b><div class="sm mut">${esc(n.body)}</div><div class="xs mut mt1">${timeAgo(n.at)}</div></div><button class="btn btn-ghost btn-sm" data-action="notif-delete" data-n="${esc(n.id)}" aria-label="Eliminar notificación" title="Eliminar notificación">Eliminar</button></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>'}</div></div>`;
+ <div class="card mt2 notif-scroll">${list.map(n=>`<div class="pd-item" style="display:flex;gap:12px;align-items:flex-start"><div style="flex:1;min-width:0;cursor:pointer" data-action="notif-open" data-p="${esc(n.postId||'')}" data-a="${esc(n.actorId||'')}" data-t="${esc(n.type||'')}"><b>${esc(n.title)}</b><div class="sm mut">${esc(n.body)}</div><div class="xs mut mt1">${timeAgo(n.at)}</div></div><button class="btn btn-ghost btn-sm" data-action="notif-delete" data-n="${esc(n.id)}" aria-label="Eliminar notificación" title="Eliminar notificación">Eliminar</button></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>'}</div></div>`;
 }
 /* ---------- admin ---------- */
 let admTab='resumen';
@@ -2370,7 +2378,7 @@ function ecoNotifFloat(){
  const u=sess();if(!u||dropOpen!=='notif')return;
  const list=DB.notifs.filter(n=>n.userId===u.id).slice(0,60);
  const el=document.createElement('div');el.id='eco-notif-float';
- el.innerHTML='<div class="enf-h">Notificaciones</div><div class="enf-list">'+(list.map(n=>`<div class="pd-item ${n.read?'':'unread'}"><b>${esc(n.title)}</b><span class="sm mut">${esc(n.body)}</span><div class="xs mut mt1">${timeAgo(n.at)}</div></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>')+'</div><a class="enf-all" href="#/notificaciones">Ver todas</a>';
+ el.innerHTML='<div class="enf-h">Notificaciones</div><div class="enf-list">'+(list.map(n=>`<div class="pd-item ${n.read?'':'unread'}" style="cursor:pointer" data-action="notif-open" data-p="${esc(n.postId||'')}" data-a="${esc(n.actorId||'')}" data-t="${esc(n.type||'')}"><b>${esc(n.title)}</b><span class="sm mut">${esc(n.body)}</span><div class="xs mut mt1">${timeAgo(n.at)}</div></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>')+'</div><a class="enf-all" href="#/notificaciones">Ver todas</a>';
  document.body.appendChild(el);
 }
 function chromeTop(){
@@ -2489,13 +2497,14 @@ function ecoSheetHTML(p){
  const row=(c,d)=>{const cu=userById(c.userId),lk=Array.isArray(c.likes)?c.likes:[],on=me&&lk.includes(me.id);return `<div class="comment-row" style="margin-left:${Math.min(d,2)*30}px;padding:8px 16px">${avatar(cu,34,11)}<div class="comment-body" style="flex:1;min-width:0"><div><b>${esc(cu.name)}</b><span class="xs mut"> · ${timeAgo(c.at)}</span></div><div class="mt1">${esc(c.body)}</div><div class="comment-actions"><button type="button" class="xs mut" data-action="sheet-reply" data-p="${p.id}" data-c="${c.id}" data-n="${esc(cu.name)}" style="background:none;border:0;padding:0;font-weight:700;cursor:pointer">Responder</button></div></div><button class="cm-like ${on?'act':''}" style="background:none;border:0;color:var(--mut);display:flex;flex-direction:column;align-items:center;font-size:12px" data-action="comment-like" data-p="${p.id}" data-c="${c.id}">${ic('heart')} ${lk.length}</button></div>`;};
  const top=cs.filter(c=>!c.parentId),kids=id=>cs.filter(r=>r.parentId===id);
  const walk=(c,d)=>row(c,d)+kids(c.id).map(r=>walk(r,d+1)).join('');
- return `<div class="sh" role="dialog" aria-label="Comentarios"><div class="gr"><i></i></div><h4>Comentarios</h4><div class="sl">${top.map(c=>walk(c,0)).join('')||'<p class="sm mut" style="text-align:center;padding:30px 16px">Aún no hay comentarios. ¡Sé el primero!</p>'}</div>${me&&!locked(p)?`<form class="sf" data-form="cmt" data-p="${p.id}"><div class="sf-reply" hidden><span></span><button type="button" data-action="sheet-reply-cancel" aria-label="Cancelar">✕</button></div><input maxlength="500" placeholder="Únete a la conversación…" required><button class="btn btn-green btn-sm" type="submit">Enviar</button></form>`:''}</div>`;
+ return `<div class="sh" role="dialog" aria-label="Comentarios"><div class="gr"><i></i></div><h4>Comentarios</h4><div class="sl">${top.map(c=>walk(c,0)).join('')||'<p class="sm mut" style="text-align:center;padding:30px 16px">Aún no hay comentarios. ¡Sé el primero!</p>'}</div>${me&&!locked(p)?`<form class="sf" data-form="cmt" data-p="${p.id}"><div class="sf-emojis">${['❤️','🙌','🔥','👏','😢','😍','🇲🇽','😭'].map(e=>`<button type="button" data-action="sheet-emoji" data-e="${e}">${e}</button>`).join('')}</div><div class="sf-box"><div class="sf-reply" hidden><span></span><button type="button" data-action="sheet-reply-cancel" aria-label="Cancelar">✕</button></div><div class="sf-row"><input maxlength="500" placeholder="Únete a la conversación" autocomplete="off" required><button class="sf-send" type="submit" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div></div></form>`:''}</div>`;
 }
 function locked(p){return['REJECTED','REMOVED'].includes(p.status);}
 function ecoOpenSheet(id){
  const p=postById(id);if(!p)return;let s=document.getElementById('eco-sheet');
  if(!s){s=document.createElement('div');s.id='eco-sheet';document.body.appendChild(s);document.body.style.overflow='hidden';}
  s.dataset.p=id;s.innerHTML=ecoSheetHTML(p);
+ if(window.visualViewport&&!s._vv){s._vv=1;const vv=window.visualViewport;const fit=()=>{if(document.getElementById('eco-sheet')!==s){vv.removeEventListener('resize',fit);vv.removeEventListener('scroll',fit);return;}s.style.height=vv.height+'px';s.style.top=vv.offsetTop+'px';s.style.bottom='auto';};vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit);fit();}
  s.onclick=e=>{if(e.target===s)ecoCloseSheet();};
  const sh=s.querySelector('.sh'),gr=s.querySelector('.gr'),hd=s.querySelector('h4'),sl=s.querySelector('.sl');
  const full=()=>sh.classList.contains('full'),expand=()=>{sh.classList.add('full');sh.style.transform='';},shrink=()=>sh.classList.remove('full');
@@ -2774,12 +2783,21 @@ document.addEventListener('click',e=>{
    if(!f){toast('Inicia sesión para responder.','err');break;}
    f.dataset.c=el.dataset.c;
    const bar=f.querySelector('.sf-reply');bar.hidden=false;bar.querySelector('span').textContent='Respondiendo a '+(el.dataset.n||'');
-   const inp=f.querySelector('input');inp.placeholder='Escribe tu respuesta…';inp.focus();
+   const inp=f.querySelector('input');inp.placeholder='Escribe tu respuesta…';const mention='@'+(el.dataset.n||'')+' ';f.dataset.m=mention;inp.value=mention;inp.focus();try{inp.setSelectionRange(mention.length,mention.length);}catch(_){}
+   break;
+  }
+  case 'sheet-emoji':{const inp=el.closest('form')?.querySelector('input');if(inp){inp.value+=el.dataset.e;inp.focus();}break;}
+  case 'notif-open':{
+   const pid=el.dataset.p,aid=el.dataset.a,t=el.dataset.t||'';
+   dropOpen=null;try{chromeTop();}catch(_){}
+   if(pid&&postById(pid)){location.hash='#/publicacion/'+pid;if(['comment','reply','comment_like'].includes(t))setTimeout(()=>ecoOpenSheet(pid),400);}
+   else if(aid&&userById(aid)&&userById(aid).id!=='?')location.hash='#/perfil/'+aid;
+   else toast('Esta publicación ya no está disponible.','err');
    break;
   }
   case 'sheet-reply-cancel':{
    const f=el.closest('form');if(!f)break;
-   delete f.dataset.c;f.querySelector('.sf-reply').hidden=true;f.querySelector('input').placeholder='Únete a la conversación';
+   const inp=f.querySelector('input');if(f.dataset.m&&inp.value.trim()===f.dataset.m.trim())inp.value='';delete f.dataset.c;delete f.dataset.m;f.querySelector('.sf-reply').hidden=true;inp.placeholder='Únete a la conversación';
    break;
   }
   case 'more':{const bd=el.previousElementSibling;if(bd){const open=bd.classList.toggle('eco-clamp');el.textContent=open?'Ver más':'Ver menos';}break;}
@@ -3090,7 +3108,7 @@ const Cloud=(()=>{
   notifView(n){const a=DB.users.find(x=>x.id===n.actor_id),nm=a?a.name:'Alguien',pp=DB.posts.find(x=>x.id===n.post_id),t=pp?pp.title:'tu publicación';
    const T={like:'Nuevo like',comment:'Nuevo comentario',reply:'Nueva respuesta',comment_like:'Le gustó tu comentario',follow:'Nuevo seguidor',save:'Guardaron tu publicación',share:'Compartieron tu publicación',new_post:'Nueva publicación',mod_approved:'Tu publicación fue aprobada',mod_rejected:'Tu publicación fue rechazada',mod_changes:'Tu publicación requiere cambios'}[n.type]||'Actividad';
    const note=n.message?` Motivo: ${n.message}`:'';const B=n.type==='like'?`${nm} le dio like a "${t}".`:n.type==='follow'?`${nm} empezó a seguirte.`:n.type==='save'?`${nm} guardó "${t}".`:n.type==='share'?`${nm} compartió "${t}".`:n.type==='new_post'?`${nm} ha hecho una nueva publicación.`:n.type==='mod_approved'?`"${t}" ya es visible para la comunidad.`:n.type==='mod_rejected'?`"${t}" no cumplió las reglas.${note}`:n.type==='mod_changes'?`Ajusta "${t}" y vuelve a enviarla.${note}`:n.type==='comment_like'?`${nm} le dio like a tu comentario en "${t}".`:n.type==='reply'?`${nm} respondió a tu comentario en "${t}".`:`${nm} ${n.type==='reply'?'respondió':'comentó'} en "${t}".`;
-   return{id:n.id,userId:n.user_id,title:T,body:B,at:Date.parse(n.created_at)||Date.now(),read:!!n.read,postId:n.post_id,remote:true};},
+   return{id:n.id,userId:n.user_id,title:T,body:B,at:Date.parse(n.created_at)||Date.now(),read:!!n.read,postId:n.post_id,type:n.type,actorId:n.actor_id,remote:true};},
   startNotifs(uid_){
    if(window.__ecoNotifUid===uid_)return;window.__ecoNotifUid=uid_;
    ecoSubscribePush(uid_);
@@ -3114,7 +3132,7 @@ const Cloud=(()=>{
     const v=api.notifView(pl.new);if(DB.notifs.some(x=>x.id===v.id)||ecoDeletedNotifs().has(v.id))return;DB.notifs.unshift(v);save();
     try{chromeTop();}catch(e){}
     if(document.hidden&&window.Notification&&Notification.permission==='granted'&&navigator.serviceWorker){
-     navigator.serviceWorker.ready.then(r=>r.showNotification(v.title,{body:v.body,icon:'icon-192.png',badge:'icon-192.png',tag:v.id,data:{url:'./index.html#/notificaciones'}}));
+     navigator.serviceWorker.ready.then(r=>r.showNotification(v.title,{body:v.body,icon:'icon-192.png',badge:'icon-192.png',tag:v.id,data:{url:v.postId?'./index.html#/publicacion/'+v.postId:'./index.html#/notificaciones'}}));
     }else toast(v.title+': '+v.body,'ok');
    }).subscribe();}catch(e){console.warn('[EcoNova] realtime notifs',e);}
    if(window.Notification&&Notification.permission==='default'&&!window.__ecoAsk){window.__ecoAsk=1;
