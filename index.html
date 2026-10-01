@@ -1704,11 +1704,17 @@ function supportRow(s,showUser=true){
 
 /* ---------- vistas ---------- */
 let feedTab='ti';
+const FEED_PAGE=20;let feedLimit=FEED_PAGE;
+function feedScore(p){const h=Math.max(0,(Date.now()-p.at)/36e5);return((p.likes?.length||0)+2*(p.comments?.length||0)+(p.savedBy?.length||0)+(p.shares||0))/Math.pow(h+2,1.4);}
+function feedItems(){
+ const u=sess();
+ let l=DB.posts.filter(p=>p.status==='APPROVED'&&!p.sharedFrom);
+ if(feedTab==='sig')l=l.filter(p=>DB.follows.some(f=>f.f===u.id&&f.t===p.userId));
+ return feedTab==='top'?l.slice().sort((a,b)=>(b.sponsored-a.sponsored)||(feedScore(b)-feedScore(a))||(b.at-a.at)):l.slice().sort((a,b)=>b.at-a.at);
+}
 function viewFeed(){
  const u=sess();
- let list=DB.posts.filter(p=>p.status==='APPROVED'&&!p.sharedFrom);
- if(feedTab==='sig')list=list.filter(p=>DB.follows.some(f=>f.f===u.id&&f.t===p.userId));
- list=list.slice().sort((a,b)=>(b.sponsored-a.sponsored)||(b.at-a.at));
+ const list=feedItems().slice(0,feedLimit);
  const creator=u&&(u.id==='u1'||['DEV','ADMIN','MOD'].includes(u.role));
  const mine=creator?[]:DB.posts.filter(p=>p.userId===u.id&&p.status!=='APPROVED'&&p.status!=='REMOVED');
  return`<div class="econova-feed-modern">
@@ -1727,10 +1733,12 @@ function viewFeed(){
   </div>
   ${mine.length?`<div class="notice mt2 mb2">Tienes <b>${mine.length}</b> publicación(es) en revisión o con observaciones. <a class="link" href="#/estado-publicaciones">Ver estado</a></div>`:''}
   <div class="feed-modern-tabs">
-   <button class="fchip ${feedTab==='ti'?'on':''}" data-action="feed-tab" data-t="ti">Para ti</button>
+   <button class="fchip ${feedTab==='ti'?'on':''}" data-action="feed-tab" data-t="ti">Más recientes</button>
+   <button class="fchip ${feedTab==='top'?'on':''}" data-action="feed-tab" data-t="top">Destacadas</button>
    <button class="fchip ${feedTab==='sig'?'on':''}" data-action="feed-tab" data-t="sig">Siguiendo</button>
   </div>
   <div class="feed-modern-list">${list.map(postCard).join('')||'<div class="card pad mt1"><p class="mut">No hay publicaciones aquí todavía. Explora y sigue a más personas u organizaciones.</p></div>'}</div>
+  <div id="feed-more" class="feed-more" role="status" aria-live="polite"></div>
  </div>`;
 }
 let GQ='';
@@ -2861,7 +2869,7 @@ document.addEventListener('click',e=>{
   case 'terms-open':openLegal('terms');break;
   case 'privacy-open':openLegal('privacy');break;
   case 'auth-back':location.hash='#/';break;
-  case 'feed-tab':feedTab=el.dataset.t;render();break;
+  case 'feed-tab':feedTab=el.dataset.t;feedLimit=FEED_PAGE;render();break;
   case 'prof-tab':profTab=el.dataset.t;render();break;
   case 'adm-tab':admTab=el.dataset.t;render();break;
   case 'tag':GQ='#'+el.dataset.t.replace(/^#/,'');location.hash='#/explorar';break;
@@ -3307,6 +3315,22 @@ const Cloud=(()=>{
    DB.donations=dons.map(d=>({id:d.id,userId:null,name:d.donor_name,target:d.target,tlabel:d.target_label,amount:+d.amount,at:Date.parse(d.created_at)||Date.now()}));
    if(s)store.set('econova_session',s.user.id);else store.del('econova_session');
    save();
+  },
+  async older(){
+   const base=DB.posts.filter(p=>p.status==='APPROVED'&&!p.sharedFrom),last=base.length?Math.min(...base.map(p=>p.at)):Date.now();
+   const {data:rows,error}=await c().from('posts').select('*').eq('status','approved').is('shared_from',null).lt('created_at',new Date(last).toISOString()).order('created_at',{ascending:false}).limit(20);
+   if(error)throw error;
+   const have=new Set(DB.posts.map(p=>p.id)),fresh=(rows||[]).filter(r=>!have.has(r.id));
+   if(!fresh.length)return (rows||[]).length;
+   const ids=fresh.map(r=>r.id),{data:{session:s}}=await c().auth.getSession();
+   const [media,cms,lks,svs]=await Promise.all([q(c().from('post_media').select('post_id,media_url,media_type,sort_order').in('post_id',ids).order('sort_order')),q(c().from('comments').select('*').in('post_id',ids).order('created_at')),q(c().from('likes').select('post_id,user_id').in('post_id',ids)),s?q(c().from('saved_posts').select('post_id').eq('user_id',s.user.id).in('post_id',ids)):[]]);
+   const lc=cms.filter(r=>!['rejected','hidden'].includes(r.status)),CL={};
+   if(lc.length)(await q(c().from('comment_likes').select('comment_id,user_id').in('comment_id',lc.map(r=>r.id)))).forEach(r=>{(CL[r.comment_id]=CL[r.comment_id]||[]).push(r.user_id);});
+   const miss=[...new Set([...fresh.map(r=>r.author_id),...lc.map(r=>r.author_id)])].filter(id=>!DB.users.some(u=>u.id===id));
+   if(miss.length)(await q(c().from('profiles').select('*').in('id',miss))).forEach(r=>DB.users.push(fromProfile(r)));
+   fresh.forEach(r=>{const [title,body]=split(r.content||''),pm=media.filter(m=>m.post_id===r.id),k=Object.keys(loc2uuid).find(x=>loc2uuid[x]===r.category_id);
+    DB.posts.push({id:r.id,userId:r.author_id,title,body,cat:k?+k:DB.cats[0].id,loc:r.location||'',imgs:pm.filter(m=>m.media_type!=='video').map(m=>m.media_url),video:(pm.find(m=>m.media_type==='video')||{}).media_url||'',tags:(body.match(/#[\wáéíóúñÁÉÍÓÚÑ]+/g)||[]).map(t=>t.slice(1)),status:'APPROVED',sponsored:DB.promos.some(x=>x.status==='APPROVED'&&x.postId===r.id),likes:lks.filter(l=>l.post_id===r.id).map(l=>l.user_id),comments:lc.filter(m=>m.post_id===r.id).map(m=>({id:m.id,userId:m.author_id,body:m.content,parentId:m.parent_id,likes:CL[m.id]||[],at:Date.parse(m.created_at)})),shares:0,savedBy:svs.filter(x=>x.post_id===r.id).map(()=>s.user.id),sharedFrom:null,sharedAt:null,at:Date.parse(r.created_at)});});
+   return rows.length;
   },
   async login(email,pass){
    if(!on()){API.login(email,pass);return;}
@@ -4034,6 +4058,7 @@ var MapX=(()=>{
    if(typeof Supabase!=='undefined'&&Supabase.enabled()&&typeof Cloud!=='undefined'&&typeof Cloud.sync==='function'){
     await Cloud.sync();
    }
+   if(window.EcoFeedReset)EcoFeedReset();
    if(isHome())render();
    if(showMessage&&typeof toast==='function')toast('Inicio actualizado.','ok');
   }catch(err){
@@ -4074,5 +4099,55 @@ var MapX=(()=>{
 })();
 </script>
 
+<style id="econova-feed-live-css">
+.feed-more{display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;padding:18px 0;font-size:13px;color:var(--mut)}
+.feed-spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--eco);border-radius:50%;animation:ecoRefreshSpin .8s linear infinite}
+.feed-new{position:fixed;top:calc(env(safe-area-inset-top,0px) + 68px);left:50%;transform:translateX(-50%);z-index:60;border:1px solid var(--line);background:var(--card);color:var(--ink);box-shadow:var(--sh1);border-radius:999px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;animation:ecoFeedIn .2s ease-out}
+@keyframes ecoFeedIn{from{opacity:0;transform:translate(-50%,-6px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.feed-new,.feed-spin{animation:none}}
+</style>
+<script id="econova-feed-live">
+(function(){
+ const F={loading:false,end:false,err:false,fresh:new Set(),ch:null,q:false};
+ const isHome=()=>{const h=location.hash||'#/';return h==='#/'||h==='#';};
+ const el=()=>document.getElementById('feed-more');
+ function paint(){const e=el();if(!e)return;
+  const h=F.loading?'<span class="feed-spin"></span><span>Cargando publicaciones…</span>':F.err?'<span>No se pudieron cargar más publicaciones.</span><button class="btn btn-sm" data-feed-retry>Reintentar</button>':(F.end&&feedItems().length)?'<span>Has llegado al final.</span>':'';
+  if(e.dataset.h!==h){e.dataset.h=h;e.innerHTML=h;}}
+ async function more(){
+  if(F.loading||F.err||!isHome()||typeof feedItems!=='function')return;
+  const e=el(),list=document.querySelector('.feed-modern-list');
+  if(!e||!list||e.getBoundingClientRect().top>innerHeight+600){paint();return;}
+  let items=feedItems();
+  if(items.length<=feedLimit&&!F.end){
+   F.loading=true;paint();
+   try{if(Supabase.enabled()&&Cloud.older){if(await Cloud.older()<20)F.end=true;}else F.end=true;}catch(x){console.error('[EcoNova] feed',x);F.err=true;}
+   F.loading=false;items=feedItems();
+  }
+  const next=items.slice(feedLimit,feedLimit+FEED_PAGE);
+  if(next.length&&isHome()&&el()===e){feedLimit+=next.length;list.insertAdjacentHTML('beforeend',next.map(postCard).join(''));}
+  paint();
+ }
+ function pill(){let b=document.getElementById('feed-new');
+  if(!F.fresh.size||!isHome()){if(b)b.remove();return;}
+  if(!b){b=document.createElement('button');b.id='feed-new';b.className='feed-new';b.onclick=()=>{scrollTo({top:0});if(window.EcoNovaRefreshFeed)EcoNovaRefreshFeed(false);};document.body.appendChild(b);}
+  const n=F.fresh.size;b.textContent=n===1?'Hay 1 publicación nueva':'Hay '+n+' publicaciones nuevas';}
+ function live(){
+  const on=isHome()&&typeof Supabase!=='undefined'&&Supabase.enabled()&&typeof sess==='function'&&sess();
+  if(on&&!F.ch){F.ch=Supabase.subscribe('eco-feed-live','posts',pl=>{const r=pl&&pl.new,me=sess();
+    if(!r||!me||r.status!=='approved'||r.shared_from||r.author_id===me.id)return;
+    const ex=DB.posts.find(p=>p.id===r.id);if(ex&&ex.status==='APPROVED')return;
+    F.fresh.add(r.id);pill();});}
+  else if(!on&&F.ch){Supabase.removeSubscription(F.ch);F.ch=null;F.fresh.clear();pill();}
+ }
+ window.EcoFeedReset=function(){F.end=false;F.err=false;F.fresh.clear();feedLimit=FEED_PAGE;pill();};
+ const tick=()=>{if(F.q)return;F.q=true;requestAnimationFrame(()=>{F.q=false;try{live();more();}catch(x){console.warn('[EcoNova] feed',x);}});};
+ document.addEventListener('click',e=>{if(e.target.closest('[data-feed-retry]')){F.err=false;tick();}});
+ addEventListener('scroll',tick,{passive:true});addEventListener('resize',tick,{passive:true});addEventListener('hashchange',tick);
+ addEventListener('pagehide',()=>{if(F.ch){Supabase.removeSubscription(F.ch);F.ch=null;}});
+ new MutationObserver(tick).observe(document.body,{childList:true,subtree:true});
+ tick();
+})();
+</script>
 </body>
 </html>
