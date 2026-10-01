@@ -2094,12 +2094,15 @@ function pushCard(){
  const standalone=(navigator.standalone===true)||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
  const supported=('Notification' in window)&&('serviceWorker' in navigator)&&('PushManager' in window);
- let msg,btns='';
- if(!supported){msg=ios&&!standalone?'En iPhone las notificaciones solo funcionan si abres EcoNova desde el ícono de tu pantalla de inicio (Safari → Compartir → Añadir a pantalla de inicio). Requiere iOS 16.4 o superior.':'Este navegador no admite notificaciones push.';}
- else if(Notification.permission==='denied'){msg='Las notificaciones están bloqueadas para EcoNova. Actívalas en Ajustes del teléfono → Notificaciones → EcoNova.';}
- else if(Notification.permission==='granted'){msg='Notificaciones permitidas en este dispositivo ✅';btns='<button class="btn btn-ghost btn-sm" data-action="push-enable">Registrar de nuevo</button> <button class="btn btn-ghost btn-sm" data-action="push-test">Enviar aviso de prueba</button> <button class="btn btn-ghost btn-sm" data-action="push-diag">Diagnóstico</button>';}
- else{msg='Activa las notificaciones para enterarte de likes, comentarios y decisiones de moderación aunque la app esté cerrada.';btns='<button class="btn btn-green btn-sm" data-action="push-enable">Activar notificaciones</button>';}
- return `<div class="card pad mt2"><b>Avisos en tu teléfono</b><p class="sm mut" style="margin:6px 0 10px">${msg}</p>${btns}</div>`;
+ let title='Notificaciones',msg='',btn='';
+ if(!supported){
+  if(ios&&!standalone){title='Activa las notificaciones';msg='Para recibir avisos en tu iPhone, abre EcoNova desde el ícono de tu pantalla de inicio. Si aún no la agregaste: Safari → Compartir → Añadir a pantalla de inicio.';}
+  else return '';
+ }
+ else if(Notification.permission==='denied'){title='Notificaciones desactivadas';msg='Para recibir avisos, actívalas en Ajustes del teléfono → Notificaciones → EcoNova.';}
+ else if(Notification.permission==='granted'){title='Notificaciones activadas ✅';msg='Recibirás avisos de likes, comentarios y nuevos seguidores aunque la app esté cerrada.';btn='<button class="btn btn-ghost btn-sm" data-action="push-enable">Volver a activar</button>';}
+ else{title='Activa las notificaciones';msg='Entérate de likes, comentarios y nuevos seguidores aunque la app esté cerrada.';btn='<button class="btn btn-green btn-sm" data-action="push-enable">Activar notificaciones</button>';}
+ return `<div class="card pad mt2"><b>${title}</b><p class="sm mut" style="margin:6px 0 ${btn?'10px':'0'}">${msg}</p>${btn}</div>`;
 }
 function viewNotifs(){
  const u=sess();const list=DB.notifs.filter(n=>n.userId===u.id);
@@ -2640,9 +2643,7 @@ document.addEventListener('click',e=>{
   case 'moderator-delete-post':run(()=>{if(confirm('¿Eliminar esta publicación como moderador?')){API.removePost(el.dataset.p);toast('Publicación eliminada por moderación.','ok');}});break;
   case 'community-status':run(()=>{const u=userById(el.dataset.u);const val=el.dataset.t==='ally'?!u.allyAccepted:!u.donorAccepted;API.setCommunityStatus(u.id,el.dataset.t,val);toast(val?(el.dataset.t==='ally'?'Aliado aceptado.':'Donador reconocido.'):(el.dataset.t==='ally'?'Emblema de aliado retirado.':'Emblema de donador retirado.'),'ok');render();});break;
   case 'menu-drop':dropOpen=dropOpen==='menu'?null:'menu';chromeTop();break;
-  case 'push-enable':(async()=>{try{let pm=Notification.permission;if(pm==='default')pm=await Notification.requestPermission();if(pm!=='granted'){toast('No se concedió el permiso de notificaciones.','err');render();return;}const r=window.__ecoSubscribePush?await window.__ecoSubscribePush(sess().id):'sin-modulo';toast(r==='ok'?'Listo: notificaciones activadas en este dispositivo.':'No se pudo registrar: '+r,r==='ok'?'ok':'err');}catch(e){toast('Error: '+(e&&e.message||e),'err');}render();})();break;
-  case 'push-diag':(async()=>{const L=window.__ecoPushDiag?await window.__ecoPushDiag():['Módulo no cargado'];modal('<h3>Diagnóstico de notificaciones</h3><div class="sm" style="line-height:1.8;margin-top:10px">'+L.map(x=>'<div>'+esc(x)+'</div>').join('')+'</div><button class="btn btn-green btn-block mt3" data-action="close-modal">Cerrar</button>');})();break;
-  case 'push-test':(async()=>{try{const reg=await navigator.serviceWorker.ready;await reg.showNotification('EcoNova',{body:'Así se verán tus notificaciones.',icon:'icon-192.png',badge:'icon-192.png',data:{url:'./index.html#/notificaciones'}});toast('Aviso de prueba enviado.','ok');}catch(e){toast('No se pudo mostrar el aviso: '+(e&&e.message||e),'err');}})();break;
+  case 'push-enable':(async()=>{try{let pm=Notification.permission;if(pm==='default')pm=await Notification.requestPermission();if(pm!=='granted'){toast('No se concedió el permiso de notificaciones.','err');render();return;}const r=window.__ecoSubscribePush?await window.__ecoSubscribePush(sess().id):'sin-modulo';if(r!=='ok')console.warn('[EcoNova] push',r);toast(r==='ok'?'Listo: notificaciones activadas.':'No se pudieron activar. Inténtalo de nuevo en unos segundos.',r==='ok'?'ok':'err');}catch(e){console.warn('[EcoNova] push',e);toast('No se pudieron activar las notificaciones.','err');}render();})();break;
   case 'notif-drop':dropOpen=dropOpen==='notif'?null:'notif';if(dropOpen==='notif'){const u=sess();DB.notifs.filter(n=>n.userId===u.id).forEach(n=>n.read=true);save();window.__ecoMarkRead&&window.__ecoMarkRead();}chromeTop();break;
   case 'auth-tab':authMode=el.dataset.m;location.hash=authMode==='registro'?'#/registro':'#/entrar';render();break;
   case 'toggle-auth-pass':{const inp=document.getElementById(el.dataset.target);if(inp)inp.type=inp.type==='password'?'text':'password';break;}
@@ -2968,7 +2969,7 @@ const Cloud=(()=>{
    b.innerHTML='<div style="flex:1;min-width:0"><b>'+(was?'Reactiva tus notificaciones':'Activa las notificaciones')+'</b><div class="sm mut">'+(was?'Se desactivaron en este dispositivo. Toca para volver a recibirlas.':'Entérate de likes y comentarios aunque la app esté cerrada.')+'</div></div><button type="button" class="btn btn-green btn-sm" id="eco-push-on">Activar</button><button type="button" class="btn btn-ghost btn-sm" id="eco-push-later" aria-label="Ahora no">✕</button>';
    document.body.appendChild(b);
    b.querySelector('#eco-push-on').onclick=async()=>{
-    try{const pm=await Notification.requestPermission();if(pm==='granted'){const r=await ecoSubscribePush(uid_);toast(r==='ok'?'Notificaciones activadas.':'No se pudo registrar: '+r,r==='ok'?'ok':'err');}else toast('No se concedió el permiso de notificaciones.','err');}catch(e){toast('Error: '+(e&&e.message||e),'err');}
+    try{const pm=await Notification.requestPermission();if(pm==='granted'){const r=await ecoSubscribePush(uid_);if(r!=='ok')console.warn('[EcoNova] push',r);toast(r==='ok'?'Notificaciones activadas.':'No se pudieron activar. Inténtalo de nuevo.',r==='ok'?'ok':'err');}else toast('No se concedió el permiso de notificaciones.','err');}catch(e){console.warn('[EcoNova] push',e);toast('No se pudieron activar las notificaciones.','err');}
     b.remove();
    };
    b.querySelector('#eco-push-later').onclick=()=>{try{localStorage.setItem('econova-push-snooze',String(Date.now()+3*86400000));}catch(_){}b.remove();};
