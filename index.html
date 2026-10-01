@@ -1594,7 +1594,6 @@ function postCard(p,opts){opts=opts||{};
    </div>
    ${locked?'':`<button class="save-btn ${saved?'act':''}" data-action="save" data-p="${p.id}" title="Guardar publicación">${ic('bkm')} <span>${saved?'Guardada':'Guardar'}</span></button>`}
   </div>
-  <div class="comment-hub"><span class="sm mut">${p.comments.length||0} comentarios</span><a class="btn btn-ghost btn-sm" href="#/comentarios/${p.id}">${ic('msg')} Ver y responder</a></div>
  </article>`;
 }
 function campaignCard(c){
