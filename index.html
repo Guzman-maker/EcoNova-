@@ -2367,10 +2367,35 @@ function sideRail(){
 let lastRenderHash='';
 const ECO_SCROLL={};let ECO_NAV_BACK=false;
 window.addEventListener('popstate',()=>{ECO_NAV_BACK=true;});
+/* EcoNova: mantener la posición exacta al volver a pintar la misma pantalla (like, guardar, comentar…) */
+let ECO_USER_SCROLLED=false;
+['wheel','touchstart','keydown','mousedown'].forEach(ev=>window.addEventListener(ev,()=>{ECO_USER_SCROLLED=true;},{passive:true,capture:true}));
+function ecoScrollAnchor(){
+ const els=document.querySelectorAll('article.post[id], .comment-row');
+ for(const el of els){const r=el.getBoundingClientRect();if(r.bottom>80&&el.id)return{id:el.id,top:r.top};}
+ return null;
+}
+function ecoRestoreScroll(y,anchor){
+ const root=document.documentElement,prev=root.style.scrollBehavior;
+ root.style.scrollBehavior='auto';
+ let done=false;
+ if(anchor){const el=document.getElementById(anchor.id);if(el){window.scrollTo(0,Math.max(0,window.scrollY+el.getBoundingClientRect().top-anchor.top));done=true;}}
+ if(!done)window.scrollTo(0,y);
+ root.style.scrollBehavior=prev;
+}
+function ecoRestoreLater(y,anchor){
+ ECO_USER_SCROLLED=false;
+ [120,350,700].forEach((ms,i,arr)=>setTimeout(()=>{
+  if(!ECO_USER_SCROLLED)ecoRestoreScroll(y,anchor);
+  if(i===arr.length-1)document.body.style.minHeight='';
+ },ms));
+}
 function render(){
  const h=location.hash||'#/';
  const sameRoute=lastRenderHash===h;
  const preservedScroll=window.scrollY||0;
+ const anchor=sameRoute?ecoScrollAnchor():null;
+ if(sameRoute)document.body.style.minHeight=document.documentElement.scrollHeight+'px';else document.body.style.minHeight='';
  if(!sameRoute){if(lastRenderHash)ECO_SCROLL[lastRenderHash]=preservedScroll;document.querySelectorAll('video[data-eco-video]').forEach(v=>{try{v.pause();}catch(e){}});}
  const backY=(!sameRoute&&ECO_NAV_BACK&&ECO_SCROLL[h]!=null)?ECO_SCROLL[h]:0;
  killMaps();dropOpen=null;
@@ -2411,10 +2436,10 @@ function render(){
  if(full)$('#app').innerHTML=view;
  else $('#app').innerHTML=`<div class="app">${u?chromeRail():'<span></span>'}<div style="min-width:0">${view}</div>${u?sideRail():'<span></span>'}</div>`;
  chromeTop();
- window.scrollTo(0,sameRoute?preservedScroll:backY);
+ if(sameRoute)ecoRestoreScroll(preservedScroll,anchor);else window.scrollTo(0,backY);
  lastRenderHash=h;ECO_NAV_BACK=false;
  requestAnimationFrame(()=>{
-  if(sameRoute)window.scrollTo(0,preservedScroll);
+  if(sameRoute){ecoRestoreScroll(preservedScroll,anchor);ecoRestoreLater(preservedScroll,anchor);}
   else if(path==='comentarios'){const cs=document.getElementById('comments-section');if(cs)cs.scrollIntoView({block:'start'});}
   else if(backY)window.scrollTo(0,backY);
   if(path==='mapa')initMap();
@@ -2460,7 +2485,7 @@ function openLegal(type){
 function getPostVideo(id){const box=document.querySelector(`.eco-video-wrap[data-video-post="${CSS.escape(String(id))}"]`);return box?.querySelector('video[data-eco-video]')||null;}
 function ecoLoadVideo(v){if(!v)return;const src=v.dataset.videoSrc;if(src&&!v.getAttribute('src')){v.setAttribute('src',src);v.load();}}
 function videoSeek(id,delta){const v=getPostVideo(id);if(!v)return;ecoLoadVideo(v);if(!Number.isFinite(v.duration)||v.duration<=0)return;v.currentTime=Math.max(0,Math.min(v.duration,v.currentTime+delta));}
-function videoToggle(id){const v=getPostVideo(id);if(!v)return;ecoLoadVideo(v);if(v.paused){const playPromise=v.play();if(playPromise&&playPromise.catch)playPromise.catch(()=>{const box=v.closest('.eco-video-wrap');if(box&&!box.querySelector('.video-error'))box.insertAdjacentHTML('beforeend','<div class="video-error">No se pudo reproducir. Comprueba el formato del video o vuelve a intentarlo.</div>');});}else v.pause();}
+function videoToggle(id){const v=getPostVideo(id);if(!v)return;ecoLoadVideo(v);if(v.paused){delete v.dataset.userPaused;const playPromise=v.play();if(playPromise&&playPromise.catch)playPromise.catch(()=>{const box=v.closest('.eco-video-wrap');if(box&&!box.querySelector('.video-error'))box.insertAdjacentHTML('beforeend','<div class="video-error">No se pudo reproducir. Comprueba el formato del video o vuelve a intentarlo.</div>');});}else{v.dataset.userPaused='1';v.pause();}}
 function syncVideoControls(v){const box=v?.closest?.('.eco-video-wrap');if(!box||!Number.isFinite(v.duration)||v.duration<=0)return;const r=box.querySelector('.video-seek');if(r)r.value=String(Math.round((v.currentTime/v.duration)*1000));const b=box.querySelector('[data-action="video-play"]');if(b)b.textContent=v.paused?'▶':'❚❚';}
 document.addEventListener('timeupdate',e=>{const v=e.target;if(v?.matches?.('video[data-eco-video]'))syncVideoControls(v);},true);
 document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.('video[data-eco-video]'))syncVideoControls(v);},true);
@@ -2471,19 +2496,25 @@ document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.(
  const hasAudioPreference=()=>{try{return localStorage.getItem(AUDIO_KEY)==='1';}catch(_){return false;}};
  const saveAudioPreference=()=>{try{localStorage.setItem(AUDIO_KEY,'1');}catch(_){}};
  const loadNow=v=>{if(typeof ecoLoadVideo==='function')ecoLoadVideo(v);};
+ /* Pausas hechas por el código (no por la persona) se marcan para no confundirlas con una pausa manual. */
+ const autoPause=v=>{if(!v||v.paused)return;v._ecoAuto=true;try{v.pause();}catch(_){v._ecoAuto=false;}};
+ document.addEventListener('pause',e=>{const v=e.target;if(!v||!v.matches||!v.matches('video[data-eco-video]'))return;if(v._ecoAuto)v._ecoAuto=false;else v.dataset.userPaused='1';try{syncVideoControls(v);}catch(_){}},true);
+ document.addEventListener('play',e=>{const v=e.target;if(!v||!v.matches||!v.matches('video[data-eco-video]'))return;if(v._ecoAutoPlay)v._ecoAutoPlay=false;else delete v.dataset.userPaused;try{syncVideoControls(v);}catch(_){}},true);
  const pauseOthers=current=>{
-  document.querySelectorAll('video[data-eco-video]').forEach(v=>{
-   if(v!==current&&!v.paused){try{v.pause();}catch(_){}}
-  });
+  document.querySelectorAll('video[data-eco-video]').forEach(v=>{if(v!==current)autoPause(v);});
  };
  const playAtCenter=v=>{
-  if(!v||document.hidden)return;
-  loadNow(v);v.playsInline=true;pauseOthers(v);
+  if(!v||document.hidden||v.dataset.userPaused==='1')return;
+  pauseOthers(v);
+  if(!v.paused&&!v.ended)return;
+  loadNow(v);v.playsInline=true;
   const wantsAudio=hasAudioPreference();
   v.muted=!wantsAudio;
   let p;
-  try{p=v.play();}catch(_){p=null;}
+  v._ecoAutoPlay=true;
+  try{p=v.play();}catch(_){p=null;v._ecoAutoPlay=false;}
   if(p&&p.catch)p.catch(()=>{
+   v._ecoAutoPlay=false;
    // Si el navegador bloquea autoplay con sonido, volver al modo silencioso permitido.
    if(wantsAudio&&!document.hidden){v.muted=true;try{const fallback=v.play();if(fallback&&fallback.catch)fallback.catch(()=>{});}catch(_){}}
   });
@@ -2505,7 +2536,7 @@ document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.(
    if(ratio>=0.45&&distance<=vh*0.24&&distance<best){candidate=v;best=distance;}
   });
   if(candidate)playAtCenter(candidate);
-  document.querySelectorAll('video[data-eco-video]').forEach(v=>{if(v!==candidate&&!v.paused){try{v.pause();}catch(_){}}});
+  document.querySelectorAll('video[data-eco-video]').forEach(v=>{if(v!==candidate)autoPause(v);});
  };
  let scrollQueued=false;
  const queueCenterCheck=()=>{if(scrollQueued)return;scrollQueued=true;requestAnimationFrame(()=>{scrollQueued=false;updateCenteredVideo();});};
@@ -2515,7 +2546,7 @@ document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.(
   const io=new IntersectionObserver(entries=>entries.forEach(entry=>{
    const v=entry.target;
    if(entry.isIntersecting){loadNow(v);queueCenterCheck();}
-   else if(entry.intersectionRatio===0){try{v.pause();}catch(_){}}
+   else if(entry.intersectionRatio===0){autoPause(v);delete v.dataset.userPaused;}
   }),{threshold:[0,0.25,0.5,0.75],rootMargin:'0px 0px'});
   const observeVideos=()=>{
    document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(v=>{
@@ -2524,15 +2555,19 @@ document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.(
    });
   };
   observeVideos();queueCenterCheck();
-  const mo=new MutationObserver(()=>{observeVideos();queueCenterCheck();});
+  const mo=new MutationObserver(muts=>{
+   /* Solo reaccionar a elementos nuevos; cambiar el texto del botón ▶/❚❚ no debe reiniciar el video. */
+   if(!muts.some(m=>[...m.addedNodes].some(n=>n.nodeType===1)))return;
+   observeVideos();queueCenterCheck();
+  });
   mo.observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
  }else{
   document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(v=>{v.muted=!hasAudioPreference();loadNow(v);});
  }
  document.addEventListener('visibilitychange',()=>{
-  if(document.hidden)document.querySelectorAll('video[data-eco-video]').forEach(v=>v.pause());
+  if(document.hidden)document.querySelectorAll('video[data-eco-video]').forEach(autoPause);
  });
- window.addEventListener('pagehide',()=>document.querySelectorAll('video[data-eco-video]').forEach(v=>v.pause()));
+ window.addEventListener('pagehide',()=>document.querySelectorAll('video[data-eco-video]').forEach(autoPause));
 })();
 document.addEventListener('change',e=>{const r=e.target;if(!r.matches?.('[data-video-seek]'))return;const v=getPostVideo(r.dataset.videoSeek);if(v&&Number.isFinite(v.duration))v.currentTime=(Number(r.value)/1000)*v.duration;},true);
 /* Media reliability: preserve native video controls/audio and report broken media. */
@@ -2636,7 +2671,16 @@ document.addEventListener('click',e=>{
   case 'video-back':videoSeek(el.dataset.p,-10);break;
   case 'video-forward':videoSeek(el.dataset.p,10);break;
   case 'video-play':videoToggle(el.dataset.p);break;
-  case 'save':run(()=>{if(!sess())return guard();const on=API.toggleSave(el.dataset.p);toast(on?'Guardada en tu colección.':'Quitada de guardados.','ok');});break;
+  case 'save':{
+   if(!sess())return guard();
+   try{
+    const on=API.toggleSave(el.dataset.p);
+    toast(on?'Guardada en tu colección.':'Quitada de guardados.','ok');
+    if((location.hash||'').indexOf('#/guardados')===0){render();}
+    else document.querySelectorAll('button[data-action="save"][data-p="'+el.dataset.p+'"]').forEach(b=>{b.classList.toggle('act',on);const sp=b.querySelector('span');if(sp)sp.textContent=on?'Guardada':'Guardar';});
+   }catch(m){if(m)toast(m,'err');}
+   break;
+  }
   case 'share-profile':run(()=>{const added=API.share(el.dataset.p);closeModal();toast(added?'Publicación añadida a tu perfil.':'Ya estaba en tu perfil.','ok');});break;
   case 'share-profile-user':openProfileShareMenu(el.dataset.u);break;
   case 'profile-native':{const u=el.dataset.url,t=el.dataset.text||'Perfil de EcoNova';if(navigator.share){navigator.share({title:t,text:t,url:u}).catch(()=>{});}else{copyShareLink(u);toast('Tu navegador no admite compartir nativo. Enlace copiado.','ok');}break;}
@@ -2850,8 +2894,11 @@ const Cloud=(()=>{
    if(!('serviceWorker' in navigator)||!('PushManager' in window)||!window.Notification)return 'sin-soporte';
    if(Notification.permission!=='granted')return 'sin-permiso';
    const reg=await navigator.serviceWorker.ready;
+   const b64=ECO_VAPID_PUBLIC+'='.repeat((4-ECO_VAPID_PUBLIC.length%4)%4);const raw=atob(b64.replace(/-/g,'+').replace(/_/g,'/'));const keyBytes=Uint8Array.from(raw,ch=>ch.charCodeAt(0));
    let sub=await reg.pushManager.getSubscription();
-   if(!sub){const b=ECO_VAPID_PUBLIC+'='.repeat((4-ECO_VAPID_PUBLIC.length%4)%4);const raw=atob(b.replace(/-/g,'+').replace(/_/g,'/'));sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(raw,ch=>ch.charCodeAt(0))});}
+   /* Si la suscripción guardada usa otra clave VAPID, el servidor no puede enviarle push: se vuelve a crear. */
+   if(sub&&sub.options&&sub.options.applicationServerKey){const cur=new Uint8Array(sub.options.applicationServerKey);if(cur.length!==keyBytes.length||cur.some((x,i)=>x!==keyBytes[i])){try{await sub.unsubscribe();}catch(_){}sub=null;}}
+   if(!sub){sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:keyBytes});}
    const j=sub.toJSON();
    const {error}=await c().from('push_subscriptions').upsert({user_id:uid_,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:'endpoint'});
    if(error)return 'base-de-datos: '+(error.message||error.code);
@@ -2868,6 +2915,11 @@ const Cloud=(()=>{
   startNotifs(uid_){
    if(window.__ecoNotifUid===uid_)return;window.__ecoNotifUid=uid_;
    ecoSubscribePush(uid_);
+   /* Reafirmar la suscripción cada vez que la app vuelve a primer plano (máx. cada 10 min) y si el SW avisa que cambió. */
+   let _lastSub=Date.now();
+   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-_lastSub>600000){_lastSub=Date.now();ecoSubscribePush(uid_);}});
+   window.addEventListener('online',()=>ecoSubscribePush(uid_));
+   if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',ev=>{if(ev.data&&ev.data.type==='push-resubscribed')ecoSubscribePush(uid_);});
    window.__ecoMarkRead=()=>{c().from('user_notifications').update({read:true}).eq('user_id',uid_).eq('read',false).then(()=>{});};
   window.__ecoDeleteNotification=(id)=>{
    if(!UUID.test(String(id)))return;
@@ -3629,7 +3681,7 @@ var MapX=(()=>{
 })();
 </script>
 
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(e=>console.warn('[EcoNova] sw',e)));}</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{try{r.update();}catch(_){}document.addEventListener('visibilitychange',()=>{if(!document.hidden){try{r.update();}catch(_){}}});}).catch(e=>console.warn('[EcoNova] sw',e)));}</script>
 
 <script id="econova-refresh-feed">
 (function(){
