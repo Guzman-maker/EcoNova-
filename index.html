@@ -2,8 +2,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta name="color-scheme" content="light dark">
-<script>(function(){try{var t=localStorage.getItem('econova-theme')||'auto';var d=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(e){}})();</script>
+<meta name="color-scheme" content="light">
+<script>document.documentElement.setAttribute('data-theme','light');try{localStorage.removeItem('econova-theme');}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EcoNova</title>
@@ -88,23 +88,11 @@ h1,h2,h3,h4{font-family:var(--disp);line-height:1.15;letter-spacing:-.01em}
 .menu-panel{width:min(390px,92vw);max-height:min(82vh,720px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}.menu-panel::-webkit-scrollbar{width:7px}.menu-panel::-webkit-scrollbar-thumb{background:var(--line2);border-radius:20px}.menu-profile{display:flex;gap:12px;align-items:center;padding:16px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,#f5faf6,#fff)}.menu-profile .info{min-width:0;flex:1}.menu-profile .info b{display:flex;align-items:center;gap:5px}.menu-section{padding:8px 0;border-bottom:1px solid var(--line)}.menu-section:last-child{border-bottom:0}.menu-title{padding:7px 16px 5px;font-size:10px;text-transform:uppercase;letter-spacing:.11em;color:var(--mut);font-weight:800}.menu-item{display:flex;align-items:center;gap:11px;width:100%;padding:11px 16px;border:0;background:none;color:var(--ink);text-align:left;font-size:13.5px}.menu-item:hover{background:var(--bg)}.menu-item svg{width:18px;height:18px;flex:none;color:var(--eco)}.menu-item .mi{flex:1}.menu-item small{color:var(--mut);font-size:11px;display:block;margin-top:2px}.menu-item.danger{color:var(--red)}.menu-item.danger svg{color:var(--red)}
 .panel-drop{position:absolute;top:48px;right:0;width:min(340px,88vw);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh2);overflow:hidden;z-index:50}
 
-/* ===== EcoNova · modo oscuro ===== */
-html[data-theme=dark]{color-scheme:dark;--bg:#0c120e;--surface:#151d18;--card:#151d18;--ink:#e8efe9;--mut:#9aa9a0;--line:#25312a;--line2:#33423a;--green-t:#12301f;--amber-t:#33280f;--red-t:#3a1c18;--blue-t:#14283a;--yellow-t:#332d12;--sh:0 1px 2px rgba(0,0,0,.5);--sh1:0 1px 2px rgba(0,0,0,.5);--sh2:0 22px 44px -20px rgba(0,0,0,.7);--ref-text:#e8efe9;--ref-muted:#9aa9a0;--ref-border:#25312a;--ref-mint:#12301f}
-html[data-theme=dark] body{background:var(--bg);color:var(--ink)}
-html[data-theme=dark] #topbar,html[data-theme=dark] #bottomnav,html[data-theme=dark] .modal-card,html[data-theme=dark] .panel-drop,html[data-theme=dark] .menu-panel,html[data-theme=dark] #eco-notif-float,html[data-theme=dark] #eco-push-banner{background:rgba(21,29,24,.96)!important;color:var(--ink)}
-html[data-theme=dark] .card,html[data-theme=dark] .post,html[data-theme=dark] .kpi,html[data-theme=dark] .activity-card,html[data-theme=dark] .feed-modern-create{background:var(--surface)!important;border-color:var(--line)!important;color:var(--ink)}
-html[data-theme=dark] input,html[data-theme=dark] textarea,html[data-theme=dark] select,html[data-theme=dark] .top-search{background:#1b251f!important;color:var(--ink)!important;border-color:var(--line2)!important}
-html[data-theme=dark] .btn-ghost,html[data-theme=dark] .chip,html[data-theme=dark] .tb-ico{background:#1b251f!important;color:var(--ink)!important;border-color:var(--line2)!important}
-html[data-theme=dark] .menu-item:hover,html[data-theme=dark] .pd-item:hover{background:#1b251f!important}
-html[data-theme=dark] .pd-item.unread{background:#12301f!important}
-html[data-theme=dark] h1,html[data-theme=dark] h2,html[data-theme=dark] h3,html[data-theme=dark] h4,html[data-theme=dark] b{color:inherit}
-html[data-theme=dark] .rail a{color:var(--mut)}html[data-theme=dark] .rail a.on{color:var(--eco)}
-html[data-theme=dark] [style*="background:#fff"],html[data-theme=dark] [style*="background: #fff"]{background:var(--surface)!important}
 /* ===== Carrusel de fotos ===== */
-.post .eco-car{position:relative;margin:12px 18px 0;border-radius:16px;overflow:hidden;background:#000}
+.post .eco-car{position:relative;margin:12px 0 0;border-radius:0;overflow:hidden;background:#000}
 .eco-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
 .eco-track::-webkit-scrollbar{display:none}
-.eco-track img{flex:0 0 100%;width:100%;max-height:520px;aspect-ratio:4/5;object-fit:cover;scroll-snap-align:center;scroll-snap-stop:always;border-radius:0}
+.eco-track{align-items:center}.eco-track img{flex:0 0 100%;width:100%;height:auto;max-height:80vh;max-height:80dvh;aspect-ratio:auto;object-fit:contain;scroll-snap-align:center;scroll-snap-stop:always;border-radius:0;display:block}.post .eco-dots{padding:10px 0 4px}
 .eco-dots{display:flex;justify-content:center;gap:6px;padding:9px 0 2px}
 .eco-dots i{width:6px;height:6px;border-radius:50%;background:var(--line2);transition:.15s}.eco-dots i.on{background:var(--eco);transform:scale(1.25)}
 .eco-count{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:3px 9px;border-radius:99px;pointer-events:none}
@@ -116,7 +104,7 @@ html[data-theme=dark] [style*="background:#fff"],html[data-theme=dark] [style*="
 #eco-viewer .vc{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#fff;font-size:13px;opacity:.85}
 /* ===== Comentarios en hoja inferior ===== */
 #eco-sheet{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.5);display:flex;align-items:flex-end}
-#eco-sheet .sh{width:100%;max-width:640px;margin:0 auto;height:72dvh;height:72vh;height:72dvh;background:var(--surface);color:var(--ink);border-radius:22px 22px 0 0;display:flex;flex-direction:column;animation:ecoUp .22s ease;transition:transform .2s}
+#eco-sheet .sh.full{height:100vh;height:100dvh;max-width:none;border-radius:0;padding-top:env(safe-area-inset-top)}#eco-sheet .sh{width:100%;max-width:640px;margin:0 auto;height:72vh;height:72dvh;transition:height .25s ease,transform .2s,border-radius .2s;background:var(--surface);color:var(--ink);border-radius:22px 22px 0 0;display:flex;flex-direction:column;animation:ecoUp .22s ease;transition:transform .2s}
 @keyframes ecoUp{from{transform:translateY(100%)}to{transform:none}}
 #eco-sheet .gr{padding:10px 0 4px;touch-action:none}#eco-sheet .gr i{display:block;width:40px;height:4px;border-radius:4px;background:var(--line2);margin:0 auto}
 #eco-sheet .sh h4{text-align:center;padding:6px 0 12px;border-bottom:1px solid var(--line);font-size:15px}
@@ -1588,9 +1576,10 @@ function postCard(p,opts){opts=opts||{};
    </div>
    <button class="tb-ico" style="border:none;background:none" data-action="post-menu" data-p="${p.id}">${ic('dots')}</button>
   </div>
+  ${p.imgs.length&&!opts.noMedia?`<div class="eco-car"><div class="eco-track">${p.imgs.map(i=>`<img loading="lazy" src="${i}" alt="">`).join('')}</div>${p.imgs.length>1?`<span class="eco-count">1/${p.imgs.length}</span>`:''}</div>${p.imgs.length>1?`<div class="eco-dots">${p.imgs.map((_,k)=>`<i class="${k?'':'on'}"></i>`).join('')}</div>`:''}`:''}
   <h3 class="ttl">${esc(p.title)}</h3>
   <div class="bd">${esc(p.body)}</div>
-  ${p.imgs.length&&!opts.noMedia?`<div class="eco-car"><div class="eco-track">${p.imgs.map(i=>`<img loading="lazy" src="${i}" alt="">`).join('')}</div>${p.imgs.length>1?`<span class="eco-count">1/${p.imgs.length}</span>`:''}</div>${p.imgs.length>1?`<div class="eco-dots">${p.imgs.map((_,k)=>`<i class="${k?'':'on'}"></i>`).join('')}</div>`:''}`:''}${opts.noMedia&&(p.video||p.imgs.length)?`<div class="sm mut" style="margin-top:8px">${p.video?'🎬 Esta publicación tiene video':'🖼️ Esta publicación tiene fotos'} · <a class="link" href="#/publicacion/${p.id}">Verla completa</a></div>`:''}${p.video&&!opts.noMedia?`<div class="eco-video-wrap" data-video-post="${p.id}"><video data-eco-video data-video-src="${esc(p.video)}" controls playsinline webkit-playsinline preload="none" aria-label="Video de la publicación"></video><div class="eco-video-controls"><button type="button" data-action="video-back" data-p="${p.id}" aria-label="Retroceder 10 segundos">↶ 10</button><button type="button" data-action="video-play" data-p="${p.id}" aria-label="Reproducir o pausar">▶</button><input class="video-seek" type="range" min="0" max="1000" value="0" step="1" data-video-seek="${p.id}" aria-label="Posición del video"><button type="button" data-action="video-forward" data-p="${p.id}" aria-label="Adelantar 10 segundos">10 ↷</button></div></div>`:''}
+  ${opts.noMedia&&(p.video||p.imgs.length)?`<div class="sm mut" style="margin-top:8px">${p.video?'🎬 Esta publicación tiene video':'🖼️ Esta publicación tiene fotos'} · <a class="link" href="#/publicacion/${p.id}">Verla completa</a></div>`:''}${p.video&&!opts.noMedia?`<div class="eco-video-wrap" data-video-post="${p.id}"><video data-eco-video data-video-src="${esc(p.video)}" controls playsinline webkit-playsinline preload="none" aria-label="Video de la publicación"></video><div class="eco-video-controls"><button type="button" data-action="video-back" data-p="${p.id}" aria-label="Retroceder 10 segundos">↶ 10</button><button type="button" data-action="video-play" data-p="${p.id}" aria-label="Reproducir o pausar">▶</button><input class="video-seek" type="range" min="0" max="1000" value="0" step="1" data-video-seek="${p.id}" aria-label="Posición del video"><button type="button" data-action="video-forward" data-p="${p.id}" aria-label="Adelantar 10 segundos">10 ↷</button></div></div>`:''}
   ${p.loc?`<div class="locs">${ic('pin')} ${esc(p.loc)}</div>`:''}
   ${p.tags.length?`<div class="tags">${p.tags.map(t=>`<span data-action="tag" data-t="${t}">#${t}</span>`).join('')}</div>`:''}
   <div class="bar">
@@ -2120,7 +2109,7 @@ function viewSettings(){
   ${blocked.length?blocked.map(x=>`<div class="sug-row" style="margin-top:10px">${avatar(x,38,12)}<div class="info"><b>${esc(x.name)}</b><span>Cuenta bloqueada</span></div><button class="btn btn-ghost btn-sm" data-action="unblock" data-u="${x.id}">Desbloquear</button></div>`).join(''):'<p class="sm mut mt2">No tienes cuentas bloqueadas.</p>'}
  </div>
  <div class="card pad mt2"><h3>Tu actividad</h3><p class="sm mut">Consulta tus búsquedas, me gusta, guardados, compartidos y seguimientos.</p><a class="btn btn-ghost mt2" href="#/actividad">Ver actividad</a></div>
- ${ecoThemeCard()}<div class="card pad mt2"><h3>EcoNova</h3><p class="sm mut">Accesos rápidos a las áreas de la plataforma.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:12px"><a class="btn btn-ghost" href="#/perfil/${u.id}">Mi perfil</a><a class="btn btn-ghost" href="#/guardados">Guardados</a><a class="btn btn-ghost" href="#/notificaciones">Notificaciones</a><a class="btn btn-ghost" href="#/donar">Donación / Fondo</a><a class="btn btn-ghost" href="#/transparencia">Transparencia</a></div></div>
+ <div class="card pad mt2"><h3>EcoNova</h3><p class="sm mut">Accesos rápidos a las áreas de la plataforma.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:12px"><a class="btn btn-ghost" href="#/perfil/${u.id}">Mi perfil</a><a class="btn btn-ghost" href="#/guardados">Guardados</a><a class="btn btn-ghost" href="#/notificaciones">Notificaciones</a><a class="btn btn-ghost" href="#/donar">Donación / Fondo</a><a class="btn btn-ghost" href="#/transparencia">Transparencia</a></div></div>
  <div class="card pad mt2"><h3>Sesión</h3><p class="sm mut">${esc(u.email)}</p><button class="btn btn-danger mt2" data-action="logout">Cerrar sesión</button></div>
  </div>`;
 }
@@ -2466,9 +2455,6 @@ function ecoRestoreLater(y,anchor){
 }
 
 /* ===== EcoNova · tema, carrusel, visor y hoja de comentarios ===== */
-function ecoApplyTheme(t){try{localStorage.setItem('econova-theme',t);}catch(_){}const d=t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');const m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',d?'#0c120e':'#ffffff');}
-try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if((localStorage.getItem('econova-theme')||'auto')==='auto')ecoApplyTheme('auto');});}catch(_){}
-function ecoThemeCard(){const t=(function(){try{return localStorage.getItem('econova-theme')||'auto';}catch(_){return 'auto';}})();const b=(k,l)=>`<button type="button" class="btn btn-ghost btn-sm ${t===k?'on':''}" data-action="theme" data-t="${k}">${l}</button>`;return `<div class="card pad mt2"><h3>Apariencia</h3><p class="sm mut">Elige cómo se ve EcoNova en tu dispositivo.</p><div class="th-opts">${b('light','☀️ Claro')}${b('dark','🌙 Oscuro')}${b('auto','📱 Automático')}</div></div>`;}
 function ecoViewer(imgs,i){
  ecoCloseViewer();const v=document.createElement('div');v.id='eco-viewer';
  v.innerHTML='<div class="vt">'+imgs.map(u=>`<img src="${u}" alt="">`).join('')+'</div><button class="vx" type="button" aria-label="Cerrar">✕</button>'+(imgs.length>1?`<div class="vc">${i+1} / ${imgs.length}</div>`:'');
@@ -2483,11 +2469,6 @@ function ecoCloseViewer(){const v=document.getElementById('eco-viewer');if(v)v.r
 (function(){
  /* puntos + contador al deslizar */
  document.addEventListener('scroll',e=>{const t=e.target;if(!t||!t.classList||!t.classList.contains('eco-track'))return;const n=Math.round(t.scrollLeft/t.clientWidth),car=t.parentElement;car.querySelectorAll('.eco-dots i').forEach((d,k)=>d.classList.toggle('on',k===n));const c=car.querySelector('.eco-count');if(c)c.textContent=(n+1)+'/'+t.children.length;},true);
- /* tocar = pantalla completa · deslizar hacia arriba = pantalla completa */
- let sx=0,sy=0,tr=null;
- document.addEventListener('touchstart',e=>{tr=e.target.closest&&e.target.closest('.eco-track');if(tr){sx=e.touches[0].clientX;sy=e.touches[0].clientY;}},{passive:true,capture:true});
- document.addEventListener('touchend',e=>{if(!tr)return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy,t=tr;tr=null;if(dy<-70&&Math.abs(dy)>Math.abs(dx)*1.6){ecoViewer([...t.querySelectorAll('img')].map(i=>i.src),Math.round(t.scrollLeft/t.clientWidth));}},{passive:true,capture:true});
- document.addEventListener('click',e=>{const im=e.target.closest&&e.target.closest('.eco-track img');if(!im)return;const t=im.parentElement;ecoViewer([...t.querySelectorAll('img')].map(i=>i.src),[...t.children].indexOf(im));},true);
 })();
 function ecoSheetHTML(p){
  const me=sess(),cs=Array.isArray(p.comments)?p.comments:[];
@@ -2502,10 +2483,23 @@ function ecoOpenSheet(id){
  if(!s){s=document.createElement('div');s.id='eco-sheet';document.body.appendChild(s);document.body.style.overflow='hidden';}
  s.dataset.p=id;s.innerHTML=ecoSheetHTML(p);
  s.onclick=e=>{if(e.target===s)ecoCloseSheet();};
- const sh=s.querySelector('.sh'),gr=s.querySelector('.gr');let y0=null;
- gr.addEventListener('touchstart',e=>{y0=e.touches[0].clientY;},{passive:true});
- gr.addEventListener('touchmove',e=>{if(y0==null)return;const d=Math.max(0,e.touches[0].clientY-y0);sh.style.transition='none';sh.style.transform='translateY('+d+'px)';},{passive:true});
- gr.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientY-(y0||0);y0=null;sh.style.transition='';if(d>110)ecoCloseSheet();else sh.style.transform='';},{passive:true});
+ const sh=s.querySelector('.sh'),gr=s.querySelector('.gr'),hd=s.querySelector('h4'),sl=s.querySelector('.sl');
+ const full=()=>sh.classList.contains('full'),expand=()=>{sh.classList.add('full');sh.style.transform='';},shrink=()=>sh.classList.remove('full');
+ let y0=null;
+ [gr,hd].forEach(el=>{
+  el.addEventListener('touchstart',e=>{y0=e.touches[0].clientY;},{passive:true});
+  el.addEventListener('touchmove',e=>{if(y0==null)return;const d=e.touches[0].clientY-y0;if(d>0&&!full()){sh.style.transition='none';sh.style.transform='translateY('+d+'px)';}},{passive:true});
+  el.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientY-(y0==null?0:y0);y0=null;sh.style.transition='';sh.style.transform='';if(d<-50)expand();else if(d>110){if(full())shrink();else ecoCloseSheet();}},{passive:true});
+ });
+ /* deslizar hacia arriba sobre la lista = pantalla completa */
+ let ly=null;
+ sl.addEventListener('touchstart',e=>{ly=e.touches[0].clientY;},{passive:true});
+ sl.addEventListener('touchmove',e=>{if(ly==null||full())return;if(ly-e.touches[0].clientY>35){expand();ly=null;}},{passive:true});
+ sl.addEventListener('touchend',()=>{ly=null;},{passive:true});
+ /* si ya está arriba del todo y deslizas hacia abajo en pantalla completa, vuelve a normal */
+ let dy0=null;
+ sl.addEventListener('touchstart',e=>{dy0=e.touches[0].clientY;},{passive:true});
+ sl.addEventListener('touchend',e=>{if(dy0!=null&&full()&&sl.scrollTop<=0&&e.changedTouches[0].clientY-dy0>120)shrink();dy0=null;},{passive:true});
 }
 function ecoCloseSheet(){const s=document.getElementById('eco-sheet');if(s)s.remove();document.body.style.overflow='';}
 window.addEventListener('hashchange',()=>{ecoCloseSheet();ecoCloseViewer();});
@@ -2760,7 +2754,6 @@ document.addEventListener('click',e=>{
   }
   case 'cmts':ecoOpenSheet(el.dataset.p);break;
   case 'sheet-close':ecoCloseSheet();break;
-  case 'theme':ecoApplyTheme(el.dataset.t);render();break;
   case 'comment-like':{
    try{
     API.likeComment(el.dataset.p,el.dataset.c);
