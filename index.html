@@ -3076,8 +3076,43 @@ const Cloud=(()=>{
   save();render();
 };
 API.deleteShared=function(id){A.deleteShared(id);render();};
-API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))return;const liked=postById(id).likes.includes(u.id);
-  (liked?c().from('likes').insert({post_id:id,user_id:u.id}):c().from('likes').delete().eq('post_id',id).eq('user_id',u.id)).then(({error})=>{if(error&&error.code!=='23505')fail(error,true,'No se pudo guardar tu like');});};
+API.like=function(id){
+  A.like(id);
+  const u=me();
+  if(!on()||!u||!UUID.test(id))return;
+  const p=postById(id);
+  if(!p)return;
+  const liked=p.likes.includes(u.id);
+  const ownerId=p.userId;
+  const request=liked
+    ? c().from('likes').insert({post_id:id,user_id:u.id})
+    : c().from('likes').delete().eq('post_id',id).eq('user_id',u.id);
+  request.then(async({error})=>{
+    if(error){
+      if(error.code!=='23505')fail(error,true,'No se pudo guardar tu like');
+      return;
+    }
+    // La app local ya mostraba el aviso, pero en modo Supabase faltaba crear
+    // la fila remota que dispara Realtime y el envío push al dueño del post.
+    // Solo crearla al dar like (nunca al quitarlo), y no notificarse a sí mismo.
+    if(!liked||ownerId===u.id||!UUID.test(ownerId))return;
+    const owner=DB.users.find(x=>x.id===ownerId);
+    if(owner&&owner.notifyLikes===false)return;
+    const {error:notifyError}=await c().from('user_notifications').insert({
+      user_id:ownerId,
+      actor_id:u.id,
+      post_id:id,
+      type:'like',
+      read:false
+    });
+    if(notifyError){
+      console.warn('[EcoNova] No se pudo crear la notificación de like',notifyError);
+      fail(notifyError,true,'El like se guardó, pero no se pudo enviar la notificación');
+    }
+  }).catch(error=>{
+    console.warn('[EcoNova] Error al guardar like/notificación',error);
+  });
+};
  const pushCm=(id,body,parent)=>{const u=me();if(!on()||!u||!UUID.test(id)||(parent&&!UUID.test(parent)))return;const p=postById(id),cm=p.comments[p.comments.length-1];
   c().from('comments').insert({post_id:id,author_id:u.id,parent_id:parent||null,content:body}).select().single().then(({data,error})=>{if(error)return fail(error,true,'No se pudo publicar tu comentario');const old=cm.id;cm.id=data.id;p.comments.forEach(x=>{if(x.parentId===old)x.parentId=data.id;});document.querySelectorAll('[data-c="'+old+'"]').forEach(e=>{e.dataset.c=data.id;});save();});};
  API.comment=function(id,body){A.comment(id,body);pushCm(id,body,null);};
