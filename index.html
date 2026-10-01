@@ -85,6 +85,10 @@ h1,h2,h3,h4{font-family:var(--disp);line-height:1.15;letter-spacing:-.01em}
 .avt{border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;flex:none;font-family:var(--disp);box-shadow:0 0 0 2px #fff,0 1px 3px rgba(15,25,19,.15);background-position:center;background-size:cover;background-repeat:no-repeat}.avt-photo{background-color:var(--green-d)}
 .menu-panel{width:min(390px,92vw);max-height:min(82vh,720px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}.menu-panel::-webkit-scrollbar{width:7px}.menu-panel::-webkit-scrollbar-thumb{background:var(--line2);border-radius:20px}.menu-profile{display:flex;gap:12px;align-items:center;padding:16px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,#f5faf6,#fff)}.menu-profile .info{min-width:0;flex:1}.menu-profile .info b{display:flex;align-items:center;gap:5px}.menu-section{padding:8px 0;border-bottom:1px solid var(--line)}.menu-section:last-child{border-bottom:0}.menu-title{padding:7px 16px 5px;font-size:10px;text-transform:uppercase;letter-spacing:.11em;color:var(--mut);font-weight:800}.menu-item{display:flex;align-items:center;gap:11px;width:100%;padding:11px 16px;border:0;background:none;color:var(--ink);text-align:left;font-size:13.5px}.menu-item:hover{background:var(--bg)}.menu-item svg{width:18px;height:18px;flex:none;color:var(--eco)}.menu-item .mi{flex:1}.menu-item small{color:var(--mut);font-size:11px;display:block;margin-top:2px}.menu-item.danger{color:var(--red)}.menu-item.danger svg{color:var(--red)}
 .panel-drop{position:absolute;top:48px;right:0;width:min(340px,88vw);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh2);overflow:hidden;z-index:50}
+#eco-notif-float{position:fixed;z-index:950;top:calc(66px + env(safe-area-inset-top));right:10px;left:10px;margin-left:auto;max-width:380px;display:flex;flex-direction:column;max-height:calc(100vh - 66px - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-height:calc(100dvh - 66px - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom));background:var(--surface,#fff);border:1px solid var(--line);border-radius:15px;box-shadow:0 18px 45px rgba(15,25,19,.22);overflow:hidden}
+#eco-notif-float .enf-h{flex:0 0 auto;padding:12px 16px;border-bottom:1px solid var(--line);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--mut)}
+#eco-notif-float .enf-list{flex:1 1 auto;min-height:0;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
+#eco-notif-float .enf-all{flex:0 0 auto;display:block;text-align:center;font-weight:700;color:var(--eco);padding:12px 16px;border-top:1px solid var(--line);background:var(--surface,#fff)}
 .panel-drop.notif-drop{max-height:min(70vh,520px);max-height:min(70dvh,520px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
 .panel-drop.notif-drop h4{position:sticky;top:0;background:var(--surface);z-index:2}
 .panel-drop.notif-drop .pd-all{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line)}
@@ -2314,9 +2318,19 @@ function viewVerify(){
 
 /* ---------- chrome ---------- */
 let dropOpen=null;
+
+/* Panel flotante de notificaciones: va FUERA de #topbar (su backdrop-filter rompe el scroll táctil en iOS). */
+function ecoNotifFloat(){
+ const old=document.getElementById('eco-notif-float');if(old)old.remove();
+ const u=sess();if(!u||dropOpen!=='notif')return;
+ const list=DB.notifs.filter(n=>n.userId===u.id).slice(0,60);
+ const el=document.createElement('div');el.id='eco-notif-float';
+ el.innerHTML='<div class="enf-h">Notificaciones</div><div class="enf-list">'+(list.map(n=>`<div class="pd-item ${n.read?'':'unread'}"><b>${esc(n.title)}</b><span class="sm mut">${esc(n.body)}</span><div class="xs mut mt1">${timeAgo(n.at)}</div></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>')+'</div><a class="enf-all" href="#/notificaciones">Ver todas</a>';
+ document.body.appendChild(el);
+}
 function chromeTop(){
  const currentPath=(location.hash||'#/').replace('#/','').split('/')[0];
- if(['entrar','registro','verificar'].includes(currentPath)){ $('#topbar').innerHTML=''; $('#bottomnav').innerHTML=''; return; }
+ if(['entrar','registro','verificar'].includes(currentPath)){ $('#topbar').innerHTML=''; $('#bottomnav').innerHTML=''; ecoNotifFloat(); return; }
  const u=sess();const unread=u?DB.notifs.filter(n=>n.userId===u.id&&!n.read).length:0;
  $('#topbar').innerHTML=`<div class="wrap in">
   ${brandHTML(false)}
@@ -2332,10 +2346,11 @@ function chromeTop(){
     ${isAdmin()?`<div class="menu-section"><div class="menu-title">Administración</div><a class="menu-item" href="#/admin" style="color:var(--red)">${ic('shield')}<span class="mi"><b>Panel de administración</b><small>${isDeveloper()?'Control total, emblemas, usuarios y finanzas':'Moderación, usuarios y comunidad'}</small></span></a></div>`:''}
     <div class="menu-section"><button class="menu-item danger" data-action="logout">${ic('alert')}<span class="mi"><b>Cerrar sesión</b><small>Salir de esta cuenta</small></span></button></div>
    </div>`:''}
-   ${dropOpen==='notif'?`<div class="panel-drop notif-drop"><h4>Notificaciones</h4>${DB.notifs.filter(n=>n.userId===u.id).slice(0,40).map(n=>`<div class="pd-item ${n.read?'':'unread'}"><b>${esc(n.title)}</b><span class="sm mut">${esc(n.body)}</span><div class="xs mut mt1">${timeAgo(n.at)}</div></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>'}<a class="pd-item pd-all" href="#/notificaciones" style="text-align:center;font-weight:700;color:var(--eco)">Ver todas</a></div>`:''}`
+   `
    :`<a class="btn btn-ghost btn-sm" href="#/entrar">Entrar</a><a class="btn btn-green btn-sm" href="#/registro">Crear cuenta</a>`}
   </div></div>`;
  const h=location.hash||'#/';
+ ecoNotifFloat();
  $('#bottomnav').innerHTML=`<div class="in"><a class="bn ${h==='#/'?'on':''}" href="#/">${ic('home')}Inicio</a><a class="bn ${h==='#/mapa'?'on':''}" href="#/mapa">${ic('pin')}Mapa</a><button class="bn-pub" data-action="new-post">${ic('plus')}</button><a class="bn ${h.startsWith('#/campana')?'on':''}" href="#/campanas">${ic('cal')}Campañas</a><a class="bn ${h.startsWith('#/perfil')?'on':''}" href="${u?'#/perfil/'+u.id:'#/entrar'}">${ic('users')}Perfil</a></div>`;
 }
 function chromeRail(){
