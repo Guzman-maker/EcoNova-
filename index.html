@@ -2535,6 +2535,7 @@ function ecoSheetHTML(p){
  const foot=me&&!locked(p)?`<form class="sf" data-form="cmt" data-p="${p.id}"><div class="sf-emojis">${['❤️','🙌','🔥','👏','😢','😍','😮','😂'].map(e=>`<button type="button" data-action="sheet-emoji" data-e="${e}">${e}</button>`).join('')}</div><div class="sf-in"><span class="sf-av">${avatar(me,44,15)}</span><button type="button" class="sf-cam" data-action="sheet-soon" aria-label="Cámara">${CAM}</button><div class="sf-box"><div class="sf-reply" hidden><span></span><button type="button" data-action="sheet-reply-cancel" aria-label="Cancelar">✕</button></div><div class="sf-row"><input maxlength="500" placeholder="${ph}" data-ph="${ph}" autocomplete="off" required><button type="button" class="sf-ic" data-action="sheet-soon" aria-label="Imagen">${IMG}</button><button type="button" class="sf-ic" data-action="sheet-soon" aria-label="Sticker">${STK}</button><button class="sf-send" type="submit" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div></div></div></form>`:'';
  return `<div class="sh" role="dialog" aria-label="Comentarios"><div class="gr"><i></i></div><h4>Comentarios${empty?DOTS:''}</h4><div class="sl${empty?' empty':''}">${empty?'<b>Todavía no hay comentarios</b><span>Inicia la conversación.</span>':top.map(thread).join('')}</div>${foot}</div>`;
 }
+function locked(p){return['REJECTED','REMOVED'].includes(p.status);}
 function ecoOpenThread(id){
  const s=document.getElementById('eco-sheet');if(!s)return;const p=postById(s.dataset.p);if(!p)return;
  const cs=p.comments||[];let c=cs.find(x=>x.id===id),g=0;while(c&&c.parentId&&g++<50)c=cs.find(x=>x.id===c.parentId);
@@ -2545,7 +2546,7 @@ function ecoOpenThread(id){
 function ecoOpenSheet(id){
  const p=postById(id);if(!p)return;let s=document.getElementById('eco-sheet');
  if(!s){window._ecoThreads=new Set();s=document.createElement('div');s.id='eco-sheet';document.body.appendChild(s);document.body.style.overflow='hidden';}
- s.dataset.p=id;s.innerHTML=ecoSheetHTML(p);
+ s.dataset.p=id;try{s.innerHTML=ecoSheetHTML(p);}catch(err){console.error('[EcoNova] comentarios',err);s.remove();document.body.style.overflow='';try{toast('No se pudieron cargar los comentarios.','err');}catch(_){}return;}
  if(window.visualViewport&&!s._vv){s._vv=1;const vv=window.visualViewport;const fit=()=>{if(document.getElementById('eco-sheet')!==s){vv.removeEventListener('resize',fit);vv.removeEventListener('scroll',fit);return;}s.style.height=vv.height+'px';s.style.top=vv.offsetTop+'px';s.style.bottom='auto';};vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit);fit();}
  s.onclick=e=>{if(e.target===s)ecoCloseSheet();};
  const sh=s.querySelector('.sh'),gr=s.querySelector('.gr'),hd=s.querySelector('h4'),sl=s.querySelector('.sl');
