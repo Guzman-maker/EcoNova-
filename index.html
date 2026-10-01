@@ -110,6 +110,17 @@ h1,h2,h3,h4{font-family:var(--disp);line-height:1.15;letter-spacing:-.01em}
 #eco-sheet{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.5);display:flex;align-items:flex-end}
 #eco-sheet .sh.full{height:100vh;height:100dvh;max-width:none;border-radius:0;padding-top:env(safe-area-inset-top)}#eco-sheet .sh{width:100%;max-width:640px;margin:0 auto;height:72vh;height:72dvh;transition:height .25s ease,transform .2s,border-radius .2s;background:var(--surface);color:var(--ink);border-radius:22px 22px 0 0;display:flex;flex-direction:column;animation:ecoUp .22s ease;transition:transform .2s}
 @keyframes ecoUp{from{transform:translateY(100%)}to{transform:none}}
+/* Corazón de comentarios: tamaño fijo, rojo y animación */
+button[data-action="comment-like"]{transition:color .15s;cursor:pointer}
+button[data-action="comment-like"] svg{width:18px;height:18px;min-width:18px;flex:none;transition:fill .15s,stroke .15s}
+button[data-action="comment-like"].act{color:#e11d48!important;font-weight:700}
+button[data-action="comment-like"].act svg{fill:#e11d48;stroke:#e11d48}
+button[data-action="comment-like"].like-pop svg{animation:ecoLikePop .42s cubic-bezier(.2,.8,.2,1)}
+#eco-sheet .sf{flex-wrap:wrap}
+#eco-sheet .sf-reply{flex:0 0 100%;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--mut)}
+#eco-sheet .sf-reply[hidden]{display:none}
+#eco-sheet .sf-reply button{background:none;border:0;color:var(--mut);font-size:14px;cursor:pointer}
+
 #eco-sheet .gr{padding:10px 0 4px;touch-action:none}#eco-sheet .gr i{display:block;width:40px;height:4px;border-radius:4px;background:var(--line2);margin:0 auto}
 #eco-sheet .sh h4{text-align:center;padding:6px 0 12px;border-bottom:1px solid var(--line);font-size:15px}
 #eco-sheet .sl{flex:1;min-height:0;overflow-y:scroll;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:6px 0}
@@ -2475,10 +2486,10 @@ function ecoCloseViewer(){const v=document.getElementById('eco-viewer');if(v)v.r
 })();
 function ecoSheetHTML(p){
  const me=sess(),cs=Array.isArray(p.comments)?p.comments:[];
- const row=(c,d)=>{const cu=userById(c.userId),lk=Array.isArray(c.likes)?c.likes:[],on=me&&lk.includes(me.id);return `<div class="comment-row" style="margin-left:${Math.min(d,2)*30}px;padding:8px 16px">${avatar(cu,34,11)}<div class="comment-body" style="flex:1;min-width:0"><div><b>${esc(cu.name)}</b><span class="xs mut"> · ${timeAgo(c.at)}</span></div><div class="mt1">${esc(c.body)}</div><div class="comment-actions"><a class="xs mut" href="#/comentarios/${p.id}" data-action="sheet-close">Responder</a></div></div><button class="${on?'act':''}" style="background:none;border:0;color:var(--mut);display:flex;flex-direction:column;align-items:center;font-size:12px" data-action="comment-like" data-p="${p.id}" data-c="${c.id}">${ic('heart')} ${lk.length}</button></div>`;};
+ const row=(c,d)=>{const cu=userById(c.userId),lk=Array.isArray(c.likes)?c.likes:[],on=me&&lk.includes(me.id);return `<div class="comment-row" style="margin-left:${Math.min(d,2)*30}px;padding:8px 16px">${avatar(cu,34,11)}<div class="comment-body" style="flex:1;min-width:0"><div><b>${esc(cu.name)}</b><span class="xs mut"> · ${timeAgo(c.at)}</span></div><div class="mt1">${esc(c.body)}</div><div class="comment-actions"><button type="button" class="xs mut" data-action="sheet-reply" data-p="${p.id}" data-c="${c.id}" data-n="${esc(cu.name)}" style="background:none;border:0;padding:0;font-weight:700;cursor:pointer">Responder</button></div></div><button class="cm-like ${on?'act':''}" style="background:none;border:0;color:var(--mut);display:flex;flex-direction:column;align-items:center;font-size:12px" data-action="comment-like" data-p="${p.id}" data-c="${c.id}">${ic('heart')} ${lk.length}</button></div>`;};
  const top=cs.filter(c=>!c.parentId),kids=id=>cs.filter(r=>r.parentId===id);
  const walk=(c,d)=>row(c,d)+kids(c.id).map(r=>walk(r,d+1)).join('');
- return `<div class="sh" role="dialog" aria-label="Comentarios"><div class="gr"><i></i></div><h4>Comentarios</h4><div class="sl">${top.map(c=>walk(c,0)).join('')||'<p class="sm mut" style="text-align:center;padding:30px 16px">Aún no hay comentarios. ¡Sé el primero!</p>'}</div>${me&&!locked(p)?`<form class="sf" data-form="cmt" data-p="${p.id}"><input maxlength="500" placeholder="Únete a la conversación…" required><button class="btn btn-green btn-sm" type="submit">Enviar</button></form>`:''}</div>`;
+ return `<div class="sh" role="dialog" aria-label="Comentarios"><div class="gr"><i></i></div><h4>Comentarios</h4><div class="sl">${top.map(c=>walk(c,0)).join('')||'<p class="sm mut" style="text-align:center;padding:30px 16px">Aún no hay comentarios. ¡Sé el primero!</p>'}</div>${me&&!locked(p)?`<form class="sf" data-form="cmt" data-p="${p.id}"><div class="sf-reply" hidden><span></span><button type="button" data-action="sheet-reply-cancel" aria-label="Cancelar">✕</button></div><input maxlength="500" placeholder="Únete a la conversación…" required><button class="btn btn-green btn-sm" type="submit">Enviar</button></form>`:''}</div>`;
 }
 function locked(p){return['REJECTED','REMOVED'].includes(p.status);}
 function ecoOpenSheet(id){
@@ -2758,12 +2769,25 @@ document.addEventListener('click',e=>{
   }
   case 'cmts':ecoOpenSheet(el.dataset.p);break;
   case 'sheet-close':ecoCloseSheet();break;
+  case 'sheet-reply':{
+   const f=document.querySelector('#eco-sheet form.sf');
+   if(!f){toast('Inicia sesión para responder.','err');break;}
+   f.dataset.c=el.dataset.c;
+   const bar=f.querySelector('.sf-reply');bar.hidden=false;bar.querySelector('span').textContent='Respondiendo a '+(el.dataset.n||'');
+   const inp=f.querySelector('input');inp.placeholder='Escribe tu respuesta…';inp.focus();
+   break;
+  }
+  case 'sheet-reply-cancel':{
+   const f=el.closest('form');if(!f)break;
+   delete f.dataset.c;f.querySelector('.sf-reply').hidden=true;f.querySelector('input').placeholder='Únete a la conversación';
+   break;
+  }
   case 'more':{const bd=el.previousElementSibling;if(bd){const open=bd.classList.toggle('eco-clamp');el.textContent=open?'Ver más':'Ver menos';}break;}
   case 'comment-like':{
    try{
     API.likeComment(el.dataset.p,el.dataset.c);
     const p=postById(el.dataset.p),u=sess(),cm=(p?.comments||[]).find(x=>x.id===el.dataset.c);
-    if(cm&&u){const liked=(cm.likes||[]).includes(u.id);el.classList.toggle('act',liked);el.innerHTML=ic('heart')+' '+cm.likes.length;}
+    if(cm&&u){const liked=(cm.likes||[]).includes(u.id);el.classList.toggle('act',liked);el.innerHTML=ic('heart')+' '+cm.likes.length;el.classList.remove('like-pop');if(liked){void el.offsetWidth;el.classList.add('like-pop');}}
    }catch(m){toast(m,'err');}
    break;
   }
@@ -2907,13 +2931,13 @@ document.addEventListener('submit',e=>{
   if(d==='cmt'){
    const postId=f.dataset.p,body=f.querySelector('input').value.trim();
    if(!body)return;
-   API.comment(postId,body);toast('Comentario publicado.','ok');
+   const parentC=f.dataset.c||'';if(parentC){API.replyComment(postId,parentC,body);toast('Respuesta publicada.','ok');}else{API.comment(postId,body);toast('Comentario publicado.','ok');}
    if(f.closest&&f.closest('#eco-sheet')){const sl=document.querySelector('#eco-sheet .sl');ecoOpenSheet(postId);const n=document.querySelector('#eco-sheet .sl');if(n)n.scrollTop=n.scrollHeight;
     document.querySelectorAll('[data-action="cmts"][data-p="'+postId+'"] span').forEach(x=>x.textContent=String(postById(postId).comments.length));return;}
    if(location.hash!=='#/comentarios/'+postId)location.hash='#/comentarios/'+postId;
    render();
   }
-  if(d==='comment-reply'){API.replyComment(f.dataset.p,f.dataset.c,$('#reply-body').value.trim());closeModal();toast('Respuesta publicada.','ok');location.hash='#/comentarios/'+f.dataset.p;render();}
+  if(d==='comment-reply'){API.replyComment(f.dataset.p,f.dataset.c,$('#reply-body').value.trim());closeModal();toast('Respuesta publicada.','ok');render();}
   if(d==='edit-profile'){API.updateProfile({name:$('#ep-name').value,bio:$('#ep-bio').value,loc:$('#ep-loc').value,website:$('#ep-web').value,avatar:profileEditImg,cover:profileEditCover});closeModal();toast('Perfil actualizado.','ok');render();}
   if(d==='profile-settings'){API.updateProfile({name:$('#set-name').value,bio:$('#set-bio').value,loc:$('#set-loc').value,website:$('#set-web').value,avatar:sess().avatar||''});API.updatePrivacy({showFollowers:$('#pr-followers').checked,showFollowing:$('#pr-following').checked,showPosts:$('#pr-posts').checked,privateProfile:$('#pr-private').checked,allowComments:$('#pr-comments').checked,notifyLikes:$('#nt-likes').checked,notifyComments:$('#nt-comments').checked,notifyFollows:$('#nt-follows').checked});toast('Ajustes actualizados.','ok');render();}
   if(d==='ban'){API.banUser(f.dataset.u,f.dataset.type,$('#ban-reason').value);closeModal();toast('Sanción aplicada.','ok');render();}
@@ -3064,8 +3088,8 @@ const Cloud=(()=>{
  const api={
   up,
   notifView(n){const a=DB.users.find(x=>x.id===n.actor_id),nm=a?a.name:'Alguien',pp=DB.posts.find(x=>x.id===n.post_id),t=pp?pp.title:'tu publicación';
-   const T={like:'Nuevo like',comment:'Nuevo comentario',reply:'Nueva respuesta',follow:'Nuevo seguidor',save:'Guardaron tu publicación',share:'Compartieron tu publicación',new_post:'Nueva publicación',mod_approved:'Tu publicación fue aprobada',mod_rejected:'Tu publicación fue rechazada',mod_changes:'Tu publicación requiere cambios'}[n.type]||'Actividad';
-   const note=n.message?` Motivo: ${n.message}`:'';const B=n.type==='like'?`${nm} le dio like a "${t}".`:n.type==='follow'?`${nm} empezó a seguirte.`:n.type==='save'?`${nm} guardó "${t}".`:n.type==='share'?`${nm} compartió "${t}".`:n.type==='new_post'?`${nm} ha hecho una nueva publicación.`:n.type==='mod_approved'?`"${t}" ya es visible para la comunidad.`:n.type==='mod_rejected'?`"${t}" no cumplió las reglas.${note}`:n.type==='mod_changes'?`Ajusta "${t}" y vuelve a enviarla.${note}`:`${nm} ${n.type==='reply'?'respondió':'comentó'} en "${t}".`;
+   const T={like:'Nuevo like',comment:'Nuevo comentario',reply:'Nueva respuesta',comment_like:'Le gustó tu comentario',follow:'Nuevo seguidor',save:'Guardaron tu publicación',share:'Compartieron tu publicación',new_post:'Nueva publicación',mod_approved:'Tu publicación fue aprobada',mod_rejected:'Tu publicación fue rechazada',mod_changes:'Tu publicación requiere cambios'}[n.type]||'Actividad';
+   const note=n.message?` Motivo: ${n.message}`:'';const B=n.type==='like'?`${nm} le dio like a "${t}".`:n.type==='follow'?`${nm} empezó a seguirte.`:n.type==='save'?`${nm} guardó "${t}".`:n.type==='share'?`${nm} compartió "${t}".`:n.type==='new_post'?`${nm} ha hecho una nueva publicación.`:n.type==='mod_approved'?`"${t}" ya es visible para la comunidad.`:n.type==='mod_rejected'?`"${t}" no cumplió las reglas.${note}`:n.type==='mod_changes'?`Ajusta "${t}" y vuelve a enviarla.${note}`:n.type==='comment_like'?`${nm} le dio like a tu comentario en "${t}".`:n.type==='reply'?`${nm} respondió a tu comentario en "${t}".`:`${nm} ${n.type==='reply'?'respondió':'comentó'} en "${t}".`;
    return{id:n.id,userId:n.user_id,title:T,body:B,at:Date.parse(n.created_at)||Date.now(),read:!!n.read,postId:n.post_id,remote:true};},
   startNotifs(uid_){
    if(window.__ecoNotifUid===uid_)return;window.__ecoNotifUid=uid_;
