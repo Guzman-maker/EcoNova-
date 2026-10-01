@@ -2095,9 +2095,9 @@ function pushCard(){
 function viewNotifs(){
  const u=sess();const list=DB.notifs.filter(n=>n.userId===u.id);
  list.forEach(n=>n.read=true);save();window.__ecoMarkRead&&window.__ecoMarkRead();
- return`<div><div class="page-head" style="padding-top:6px"><span class="kicker">Actividad</span><h1>Notificaciones</h1></div>
+ return`<div><div class="page-head" style="padding-top:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><span class="kicker">Actividad</span><h1>Notificaciones</h1></div>${list.length?`<button class="btn btn-danger btn-sm" data-action="notif-clear">Eliminar todas</button>`:''}</div>
  ${pushCard()}
- <div class="card mt2" style="overflow:hidden">${list.map(n=>`<div class="pd-item"><b>${esc(n.title)}</b><span class="sm mut">${esc(n.body)}</span><div class="xs mut mt1">${timeAgo(n.at)}</div></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>'}</div></div>`;
+ <div class="card mt2" style="overflow:hidden">${list.map(n=>`<div class="pd-item" style="display:flex;gap:12px;align-items:flex-start"><div style="flex:1;min-width:0"><b>${esc(n.title)}</b><div class="sm mut">${esc(n.body)}</div><div class="xs mut mt1">${timeAgo(n.at)}</div></div><button class="btn btn-ghost btn-sm" data-action="notif-delete" data-n="${esc(n.id)}" aria-label="Eliminar notificación" title="Eliminar notificación">Eliminar</button></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>'}</div></div>`;
 }
 /* ---------- admin ---------- */
 let admTab='resumen';
@@ -2590,9 +2590,46 @@ document.addEventListener('click',e=>{
   case 'adm-tab':admTab=el.dataset.t;render();break;
   case 'tag':GQ='#'+el.dataset.t.replace(/^#/,'');location.hash='#/explorar';break;
   case 'follow':run(()=>{if(!sess())return guard();const on=API.toggleFollow(el.dataset.u);if(on)toast('Ahora sigues a esta cuenta.','ok');});break;
-  case 'like':{if(!sess())return guard();const y=window.scrollY||0;try{API.like(el.dataset.p);render();requestAnimationFrame(()=>window.scrollTo(0,y));}catch(m){toast(m,'err');}break;}
+  case 'like':{
+   if(!sess())return guard();
+   try{
+    const postId=el.dataset.p;API.like(postId);
+    const p=postById(postId),u=sess();
+    if(p&&u){
+     const liked=p.likes.includes(u.id);
+     el.classList.toggle('act',liked);
+     const count=el.querySelector('span');if(count)count.textContent=String(p.likes.length);
+     el.setAttribute('aria-pressed',liked?'true':'false');
+     el.title=liked?'Ya no me gusta':'Me gusta';
+    }
+   }catch(m){toast(m,'err');}
+   break;
+  }
   case 'cmts':location.hash='#/comentarios/'+el.dataset.p;break;
-  case 'comment-like':run(()=>{API.likeComment(el.dataset.p,el.dataset.c);});break;
+  case 'comment-like':{
+   try{
+    API.likeComment(el.dataset.p,el.dataset.c);
+    const p=postById(el.dataset.p),u=sess(),cm=(p?.comments||[]).find(x=>x.id===el.dataset.c);
+    if(cm&&u){const liked=(cm.likes||[]).includes(u.id);el.classList.toggle('act',liked);el.innerHTML=ic('heart')+' '+cm.likes.length;}
+   }catch(m){toast(m,'err');}
+   break;
+  }
+  case 'notif-delete':{
+   const u=sess(),n=DB.notifs.find(x=>x.id===el.dataset.n&&x.userId===u?.id);
+   if(!n)break;
+   if(!confirm('¿Eliminar esta notificación?'))break;
+   DB.notifs=DB.notifs.filter(x=>x.id!==n.id);save();
+   if(n.remote&&window.__ecoDeleteNotification)window.__ecoDeleteNotification(n.id);
+   toast('Notificación eliminada.','ok');render();break;
+  }
+  case 'notif-clear':{
+   const u=sess();if(!u)break;
+   if(!confirm('¿Eliminar todas tus notificaciones?'))break;
+   const ids=DB.notifs.filter(n=>n.userId===u.id);
+   DB.notifs=DB.notifs.filter(n=>n.userId!==u.id);save();
+   ids.filter(n=>n.remote).forEach(n=>window.__ecoDeleteNotification&&window.__ecoDeleteNotification(n.id));
+   toast('Notificaciones eliminadas.','ok');render();break;
+  }
   case 'comment-reply':{const p=postById(el.dataset.p);const c=(p?.comments||[]).find(x=>x.id===el.dataset.c);if(!c)return;modal(`<h3>Responder comentario</h3><p class="sm mut mb2">${esc(userById(c.userId).name)}</p><form data-form="comment-reply" data-p="${el.dataset.p}" data-c="${el.dataset.c}"><textarea id="reply-body" required maxlength=500 placeholder="Escribe tu respuesta…"></textarea><button class="btn btn-green btn-block mt2" type="submit">Responder</button></form>`);break;}
   case 'share':openShareMenu(el.dataset.p);break;
   case 'share-native':{const p=postById(el.dataset.p);if(!p)break;const l=shareLink(p);if(navigator.share){navigator.share({title:p.title,text:l.text,url:l.url}).catch(()=>{});}else{copyShareLink(l.url);toast('Tu navegador no admite compartir nativo. Enlace copiado.','ok');}break;}
@@ -2709,7 +2746,13 @@ document.addEventListener('submit',e=>{
    API.createPost(payload).then(()=>{closeModal();toast((['DEV','ADMIN','MOD'].includes(sess()?.role)||sess()?.id==='u1')?'Publicación publicada directamente.':'Enviada a moderación. Te avisaremos al aprobarla.','ok');render();}).catch(m=>toast(String(m?.message||m),'err'));
    return;
   }
-  if(d==='cmt'){API.comment(f.dataset.p,f.querySelector('input').value.trim());toast('Comentario publicado.','ok');location.hash='#/comentarios/'+f.dataset.p;render();}
+  if(d==='cmt'){
+   const postId=f.dataset.p,body=f.querySelector('input').value.trim();
+   if(!body)return;
+   API.comment(postId,body);toast('Comentario publicado.','ok');
+   if(location.hash!=='#/comentarios/'+postId)location.hash='#/comentarios/'+postId;
+   render();
+  }
   if(d==='comment-reply'){API.replyComment(f.dataset.p,f.dataset.c,$('#reply-body').value.trim());closeModal();toast('Respuesta publicada.','ok');location.hash='#/comentarios/'+f.dataset.p;render();}
   if(d==='edit-profile'){API.updateProfile({name:$('#ep-name').value,bio:$('#ep-bio').value,loc:$('#ep-loc').value,website:$('#ep-web').value,avatar:profileEditImg,cover:profileEditCover});closeModal();toast('Perfil actualizado.','ok');render();}
   if(d==='profile-settings'){API.updateProfile({name:$('#set-name').value,bio:$('#set-bio').value,loc:$('#set-loc').value,website:$('#set-web').value,avatar:sess().avatar||''});API.updatePrivacy({showFollowers:$('#pr-followers').checked,showFollowing:$('#pr-following').checked,showPosts:$('#pr-posts').checked,privateProfile:$('#pr-private').checked,allowComments:$('#pr-comments').checked,notifyLikes:$('#nt-likes').checked,notifyComments:$('#nt-comments').checked,notifyFollows:$('#nt-follows').checked});toast('Ajustes actualizados.','ok');render();}
@@ -2826,6 +2869,12 @@ const Cloud=(()=>{
    if(window.__ecoNotifUid===uid_)return;window.__ecoNotifUid=uid_;
    ecoSubscribePush(uid_);
    window.__ecoMarkRead=()=>{c().from('user_notifications').update({read:true}).eq('user_id',uid_).eq('read',false).then(()=>{});};
+  window.__ecoDeleteNotification=(id)=>{
+   if(!UUID.test(String(id)))return;
+   c().from('user_notifications').delete().eq('id',id).eq('user_id',uid_).then(({error})=>{
+    if(error)console.warn('[EcoNova] No se pudo eliminar la notificación remota',error);
+   });
+  };
    try{c().channel('eco-notifs-'+uid_).on('postgres_changes',{event:'INSERT',schema:'public',table:'user_notifications',filter:'user_id=eq.'+uid_},pl=>{
     const v=api.notifView(pl.new);if(DB.notifs.some(x=>x.id===v.id))return;DB.notifs.unshift(v);save();
     try{chromeTop();}catch(e){}
