@@ -89,6 +89,10 @@ h1,h2,h3,h4{font-family:var(--disp);line-height:1.15;letter-spacing:-.01em}
 .panel-drop{position:absolute;top:48px;right:0;width:min(340px,88vw);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh2);overflow:hidden;z-index:50}
 
 /* ===== Carrusel de fotos ===== */
+.post .bd.eco-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden}
+.post .eco-more[hidden]{display:none!important}
+.post .eco-more{display:block;background:none;border:0;padding:4px 18px 0;color:var(--mut);font-weight:700;font-size:13.5px;cursor:pointer}
+@media(max-width:640px){.post.card{margin-left:-12px;margin-right:-12px;border-radius:0;border-left:0;border-right:0;box-shadow:none}}
 .post .eco-car{position:relative;margin:12px 0 0;border-radius:0;overflow:hidden;background:#000}
 .eco-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
 .eco-track::-webkit-scrollbar{display:none}
@@ -1578,7 +1582,7 @@ function postCard(p,opts){opts=opts||{};
   </div>
   ${p.imgs.length&&!opts.noMedia?`<div class="eco-car"><div class="eco-track">${p.imgs.map(i=>`<img loading="lazy" src="${i}" alt="">`).join('')}</div>${p.imgs.length>1?`<span class="eco-count">1/${p.imgs.length}</span>`:''}</div>${p.imgs.length>1?`<div class="eco-dots">${p.imgs.map((_,k)=>`<i class="${k?'':'on'}"></i>`).join('')}</div>`:''}`:''}
   <h3 class="ttl">${esc(p.title)}</h3>
-  <div class="bd">${esc(p.body)}</div>
+  <div class="bd${(!opts.full&&((p.body||'').length>110||((p.body||'').match(/\n/g)||[]).length>=3))?' eco-clamp':''}">${esc(p.body)}</div>${(!opts.full&&((p.body||'').length>110||((p.body||'').match(/\n/g)||[]).length>=3))?`<button type="button" class="eco-more" data-action="more" hidden>Ver más</button>`:''}
   ${opts.noMedia&&(p.video||p.imgs.length)?`<div class="sm mut" style="margin-top:8px">${p.video?'🎬 Esta publicación tiene video':'🖼️ Esta publicación tiene fotos'} · <a class="link" href="#/publicacion/${p.id}">Verla completa</a></div>`:''}${p.video&&!opts.noMedia?`<div class="eco-video-wrap" data-video-post="${p.id}"><video data-eco-video data-video-src="${esc(p.video)}" controls playsinline webkit-playsinline preload="none" aria-label="Video de la publicación"></video><div class="eco-video-controls"><button type="button" data-action="video-back" data-p="${p.id}" aria-label="Retroceder 10 segundos">↶ 10</button><button type="button" data-action="video-play" data-p="${p.id}" aria-label="Reproducir o pausar">▶</button><input class="video-seek" type="range" min="0" max="1000" value="0" step="1" data-video-seek="${p.id}" aria-label="Posición del video"><button type="button" data-action="video-forward" data-p="${p.id}" aria-label="Adelantar 10 segundos">10 ↷</button></div></div>`:''}
   ${p.loc?`<div class="locs">${ic('pin')} ${esc(p.loc)}</div>`:''}
   ${p.tags.length?`<div class="tags">${p.tags.map(t=>`<span data-action="tag" data-t="${t}">#${t}</span>`).join('')}</div>`:''}
@@ -2055,7 +2059,7 @@ function viewComments(id){
 function viewSinglePost(id){
  const p=postById(id);
  if(!p)return '<div class="card pad mt3"><h3>Publicación no encontrada</h3><a class="link" href="#/">Volver al inicio</a></div>';
- return `<div class="page-head" style="padding-top:6px"><span class="kicker">Publicación</span><h1>Ver publicación</h1><p class="mut">Contenido compartido desde EcoNova.</p></div>${postCard(p)}`;
+ return `<div class="page-head" style="padding-top:6px"><span class="kicker">Publicación</span><h1>Ver publicación</h1><p class="mut">Contenido compartido desde EcoNova.</p></div>${postCard(p,{full:true})}`;
 }
 function viewPostStatus(){
  const me=sess();
@@ -2501,6 +2505,7 @@ function ecoOpenSheet(id){
  sl.addEventListener('touchstart',e=>{dy0=e.touches[0].clientY;},{passive:true});
  sl.addEventListener('touchend',e=>{if(dy0!=null&&full()&&sl.scrollTop<=0&&e.changedTouches[0].clientY-dy0>120)shrink();dy0=null;},{passive:true});
 }
+function ecoClampCheck(){document.querySelectorAll('.post .bd.eco-clamp').forEach(b=>{const m=b.nextElementSibling;if(m&&m.classList.contains('eco-more'))m.hidden=!(b.scrollHeight>b.clientHeight+1);});document.querySelectorAll('.post .bd:not(.eco-clamp)').forEach(b=>{const m=b.nextElementSibling;if(m&&m.classList.contains('eco-more')&&m.textContent==='Ver más')m.hidden=true;});}
 function ecoCloseSheet(){const s=document.getElementById('eco-sheet');if(s)s.remove();document.body.style.overflow='';}
 window.addEventListener('hashchange',()=>{ecoCloseSheet();ecoCloseViewer();});
 function render(){
@@ -2557,7 +2562,7 @@ function render(){
   else if(backY)window.scrollTo(0,backY);
   if(path==='mapa')initMap();
   if(path==='reportar')initPickMap();
-  counters();
+  counters();ecoClampCheck();setTimeout(ecoClampCheck,350);
  });
 }
 function counters(){$$('[data-count]').forEach(el=>{const t=+el.dataset.count;let c=0;const s=Math.max(1,Math.round(t/36));const iv=setInterval(()=>{c+=s;if(c>=t){c=t;clearInterval(iv);}el.textContent=c.toLocaleString('es-MX');},28);});}
@@ -2754,6 +2759,7 @@ document.addEventListener('click',e=>{
   }
   case 'cmts':ecoOpenSheet(el.dataset.p);break;
   case 'sheet-close':ecoCloseSheet();break;
+  case 'more':{const bd=el.previousElementSibling;if(bd){const open=bd.classList.toggle('eco-clamp');el.textContent=open?'Ver más':'Ver menos';}break;}
   case 'comment-like':{
    try{
     API.likeComment(el.dataset.p,el.dataset.c);
