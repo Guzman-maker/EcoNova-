@@ -85,6 +85,11 @@ h1,h2,h3,h4{font-family:var(--disp);line-height:1.15;letter-spacing:-.01em}
 .avt{border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;flex:none;font-family:var(--disp);box-shadow:0 0 0 2px #fff,0 1px 3px rgba(15,25,19,.15);background-position:center;background-size:cover;background-repeat:no-repeat}.avt-photo{background-color:var(--green-d)}
 .menu-panel{width:min(390px,92vw);max-height:min(82vh,720px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}.menu-panel::-webkit-scrollbar{width:7px}.menu-panel::-webkit-scrollbar-thumb{background:var(--line2);border-radius:20px}.menu-profile{display:flex;gap:12px;align-items:center;padding:16px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,#f5faf6,#fff)}.menu-profile .info{min-width:0;flex:1}.menu-profile .info b{display:flex;align-items:center;gap:5px}.menu-section{padding:8px 0;border-bottom:1px solid var(--line)}.menu-section:last-child{border-bottom:0}.menu-title{padding:7px 16px 5px;font-size:10px;text-transform:uppercase;letter-spacing:.11em;color:var(--mut);font-weight:800}.menu-item{display:flex;align-items:center;gap:11px;width:100%;padding:11px 16px;border:0;background:none;color:var(--ink);text-align:left;font-size:13.5px}.menu-item:hover{background:var(--bg)}.menu-item svg{width:18px;height:18px;flex:none;color:var(--eco)}.menu-item .mi{flex:1}.menu-item small{color:var(--mut);font-size:11px;display:block;margin-top:2px}.menu-item.danger{color:var(--red)}.menu-item.danger svg{color:var(--red)}
 .panel-drop{position:absolute;top:48px;right:0;width:min(340px,88vw);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh2);overflow:hidden;z-index:50}
+.panel-drop.notif-drop{max-height:min(70vh,520px);max-height:min(70dvh,520px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
+.panel-drop.notif-drop h4{position:sticky;top:0;background:var(--surface);z-index:2}
+.panel-drop.notif-drop .pd-all{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line)}
+.notif-scroll{max-height:68vh;max-height:68dvh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+@media(max-width:700px){.panel-drop.notif-drop{position:fixed;top:calc(74px + env(safe-area-inset-top));left:10px;right:10px;width:auto;max-height:calc(100dvh - 74px - 100px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}}
 .panel-drop h4{padding:12px 16px;border-bottom:1px solid var(--line);font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut)}
 .pd-item{display:block;width:100%;text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);font-size:13.5px;transition:.12s}
 .pd-item:last-child{border:none} .pd-item:hover{background:var(--bg)}
@@ -2088,16 +2093,16 @@ function pushCard(){
  let msg,btns='';
  if(!supported){msg=ios&&!standalone?'En iPhone las notificaciones solo funcionan si abres EcoNova desde el ícono de tu pantalla de inicio (Safari → Compartir → Añadir a pantalla de inicio). Requiere iOS 16.4 o superior.':'Este navegador no admite notificaciones push.';}
  else if(Notification.permission==='denied'){msg='Las notificaciones están bloqueadas para EcoNova. Actívalas en Ajustes del teléfono → Notificaciones → EcoNova.';}
- else if(Notification.permission==='granted'){msg='Notificaciones permitidas en este dispositivo ✅';btns='<button class="btn btn-ghost btn-sm" data-action="push-enable">Registrar de nuevo</button> <button class="btn btn-ghost btn-sm" data-action="push-test">Enviar aviso de prueba</button>';}
+ else if(Notification.permission==='granted'){msg='Notificaciones permitidas en este dispositivo ✅';btns='<button class="btn btn-ghost btn-sm" data-action="push-enable">Registrar de nuevo</button> <button class="btn btn-ghost btn-sm" data-action="push-test">Enviar aviso de prueba</button> <button class="btn btn-ghost btn-sm" data-action="push-diag">Diagnóstico</button>';}
  else{msg='Activa las notificaciones para enterarte de likes, comentarios y decisiones de moderación aunque la app esté cerrada.';btns='<button class="btn btn-green btn-sm" data-action="push-enable">Activar notificaciones</button>';}
  return `<div class="card pad mt2"><b>Avisos en tu teléfono</b><p class="sm mut" style="margin:6px 0 10px">${msg}</p>${btns}</div>`;
 }
 function viewNotifs(){
  const u=sess();const list=DB.notifs.filter(n=>n.userId===u.id);
  list.forEach(n=>n.read=true);save();window.__ecoMarkRead&&window.__ecoMarkRead();
- return`<div><div class="page-head" style="padding-top:6px"><span class="kicker">Actividad</span><h1>Notificaciones</h1></div>
+ return`<div><div class="page-head" style="padding-top:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><span class="kicker">Actividad</span><h1>Notificaciones</h1></div>${list.length?`<button class="btn btn-danger btn-sm" data-action="notif-clear">Eliminar todas</button>`:''}</div>
  ${pushCard()}
- <div class="card mt2" style="overflow:hidden">${list.map(n=>`<div class="pd-item"><b>${esc(n.title)}</b><span class="sm mut">${esc(n.body)}</span><div class="xs mut mt1">${timeAgo(n.at)}</div></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>'}</div></div>`;
+ <div class="card mt2 notif-scroll">${list.map(n=>`<div class="pd-item" style="display:flex;gap:12px;align-items:flex-start"><div style="flex:1;min-width:0"><b>${esc(n.title)}</b><div class="sm mut">${esc(n.body)}</div><div class="xs mut mt1">${timeAgo(n.at)}</div></div><button class="btn btn-ghost btn-sm" data-action="notif-delete" data-n="${esc(n.id)}" aria-label="Eliminar notificación" title="Eliminar notificación">Eliminar</button></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>'}</div></div>`;
 }
 /* ---------- admin ---------- */
 let admTab='resumen';
@@ -2327,7 +2332,7 @@ function chromeTop(){
     ${isAdmin()?`<div class="menu-section"><div class="menu-title">Administración</div><a class="menu-item" href="#/admin" style="color:var(--red)">${ic('shield')}<span class="mi"><b>Panel de administración</b><small>${isDeveloper()?'Control total, emblemas, usuarios y finanzas':'Moderación, usuarios y comunidad'}</small></span></a></div>`:''}
     <div class="menu-section"><button class="menu-item danger" data-action="logout">${ic('alert')}<span class="mi"><b>Cerrar sesión</b><small>Salir de esta cuenta</small></span></button></div>
    </div>`:''}
-   ${dropOpen==='notif'?`<div class="panel-drop"><h4>Notificaciones</h4>${DB.notifs.filter(n=>n.userId===u.id).slice(0,7).map(n=>`<div class="pd-item ${n.read?'':'unread'}"><b>${esc(n.title)}</b><span class="sm mut">${esc(n.body)}</span><div class="xs mut mt1">${timeAgo(n.at)}</div></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>'}<a class="pd-item" href="#/notificaciones" style="text-align:center;font-weight:700;color:var(--eco)">Ver todas</a></div>`:''}`
+   ${dropOpen==='notif'?`<div class="panel-drop notif-drop"><h4>Notificaciones</h4>${DB.notifs.filter(n=>n.userId===u.id).slice(0,40).map(n=>`<div class="pd-item ${n.read?'':'unread'}"><b>${esc(n.title)}</b><span class="sm mut">${esc(n.body)}</span><div class="xs mut mt1">${timeAgo(n.at)}</div></div>`).join('')||'<div class="pd-item mut">Sin notificaciones.</div>'}<a class="pd-item pd-all" href="#/notificaciones" style="text-align:center;font-weight:700;color:var(--eco)">Ver todas</a></div>`:''}`
    :`<a class="btn btn-ghost btn-sm" href="#/entrar">Entrar</a><a class="btn btn-green btn-sm" href="#/registro">Crear cuenta</a>`}
   </div></div>`;
  const h=location.hash||'#/';
@@ -2367,10 +2372,47 @@ function sideRail(){
 let lastRenderHash='';
 const ECO_SCROLL={};let ECO_NAV_BACK=false;
 window.addEventListener('popstate',()=>{ECO_NAV_BACK=true;});
+/* EcoNova: notificaciones eliminadas (no deben reaparecer al sincronizar) y confirmación propia (Safari bloquea confirm()) */
+const ECO_DEL_KEY='econova-deleted-notifs-v1';
+function ecoDeletedNotifs(){try{return new Set(JSON.parse(localStorage.getItem(ECO_DEL_KEY)||'[]'));}catch(_){return new Set();}}
+function ecoMarkDeletedNotifs(ids){try{const a=[...ecoDeletedNotifs(),...ids];localStorage.setItem(ECO_DEL_KEY,JSON.stringify(a.slice(-500)));}catch(_){}}
+let ECO_CONFIRM_CB=null;
+function ecoConfirm(msg,cb,okLabel){ECO_CONFIRM_CB=cb;modal(`<h3>${esc(msg)}</h3><div style="display:flex;gap:8px;margin-top:16px"><button type="button" class="btn btn-danger" data-action="eco-confirm-yes">${esc(okLabel||'Eliminar')}</button><button type="button" class="btn btn-ghost" data-action="close-modal">Cancelar</button></div>`);}
+function ecoRemoveNotifs(list){
+ const ids=list.map(n=>n.id);ecoMarkDeletedNotifs(ids);
+ const set=new Set(ids);DB.notifs=DB.notifs.filter(x=>!set.has(x.id));save();
+ list.filter(n=>n.remote).forEach(n=>{try{window.__ecoDeleteNotification&&window.__ecoDeleteNotification(n.id);}catch(_){}});
+ toast(ids.length>1?'Notificaciones eliminadas.':'Notificación eliminada.','ok');render();
+}
+/* EcoNova: mantener la posición exacta al volver a pintar la misma pantalla (like, guardar, comentar…) */
+let ECO_USER_SCROLLED=false;
+['wheel','touchstart','keydown','mousedown'].forEach(ev=>window.addEventListener(ev,()=>{ECO_USER_SCROLLED=true;},{passive:true,capture:true}));
+function ecoScrollAnchor(){
+ const els=document.querySelectorAll('article.post[id], .comment-row');
+ for(const el of els){const r=el.getBoundingClientRect();if(r.bottom>80&&el.id)return{id:el.id,top:r.top};}
+ return null;
+}
+function ecoRestoreScroll(y,anchor){
+ const root=document.documentElement,prev=root.style.scrollBehavior;
+ root.style.scrollBehavior='auto';
+ let done=false;
+ if(anchor){const el=document.getElementById(anchor.id);if(el){window.scrollTo(0,Math.max(0,window.scrollY+el.getBoundingClientRect().top-anchor.top));done=true;}}
+ if(!done)window.scrollTo(0,y);
+ root.style.scrollBehavior=prev;
+}
+function ecoRestoreLater(y,anchor){
+ ECO_USER_SCROLLED=false;
+ [120,350,700].forEach((ms,i,arr)=>setTimeout(()=>{
+  if(!ECO_USER_SCROLLED)ecoRestoreScroll(y,anchor);
+  if(i===arr.length-1)document.body.style.minHeight='';
+ },ms));
+}
 function render(){
  const h=location.hash||'#/';
  const sameRoute=lastRenderHash===h;
  const preservedScroll=window.scrollY||0;
+ const anchor=sameRoute?ecoScrollAnchor():null;
+ if(sameRoute)document.body.style.minHeight=document.documentElement.scrollHeight+'px';else document.body.style.minHeight='';
  if(!sameRoute){if(lastRenderHash)ECO_SCROLL[lastRenderHash]=preservedScroll;document.querySelectorAll('video[data-eco-video]').forEach(v=>{try{v.pause();}catch(e){}});}
  const backY=(!sameRoute&&ECO_NAV_BACK&&ECO_SCROLL[h]!=null)?ECO_SCROLL[h]:0;
  killMaps();dropOpen=null;
@@ -2411,10 +2453,10 @@ function render(){
  if(full)$('#app').innerHTML=view;
  else $('#app').innerHTML=`<div class="app">${u?chromeRail():'<span></span>'}<div style="min-width:0">${view}</div>${u?sideRail():'<span></span>'}</div>`;
  chromeTop();
- window.scrollTo(0,sameRoute?preservedScroll:backY);
+ if(sameRoute)ecoRestoreScroll(preservedScroll,anchor);else window.scrollTo(0,backY);
  lastRenderHash=h;ECO_NAV_BACK=false;
  requestAnimationFrame(()=>{
-  if(sameRoute)window.scrollTo(0,preservedScroll);
+  if(sameRoute){ecoRestoreScroll(preservedScroll,anchor);ecoRestoreLater(preservedScroll,anchor);}
   else if(path==='comentarios'){const cs=document.getElementById('comments-section');if(cs)cs.scrollIntoView({block:'start'});}
   else if(backY)window.scrollTo(0,backY);
   if(path==='mapa')initMap();
@@ -2460,7 +2502,7 @@ function openLegal(type){
 function getPostVideo(id){const box=document.querySelector(`.eco-video-wrap[data-video-post="${CSS.escape(String(id))}"]`);return box?.querySelector('video[data-eco-video]')||null;}
 function ecoLoadVideo(v){if(!v)return;const src=v.dataset.videoSrc;if(src&&!v.getAttribute('src')){v.setAttribute('src',src);v.load();}}
 function videoSeek(id,delta){const v=getPostVideo(id);if(!v)return;ecoLoadVideo(v);if(!Number.isFinite(v.duration)||v.duration<=0)return;v.currentTime=Math.max(0,Math.min(v.duration,v.currentTime+delta));}
-function videoToggle(id){const v=getPostVideo(id);if(!v)return;ecoLoadVideo(v);if(v.paused){const playPromise=v.play();if(playPromise&&playPromise.catch)playPromise.catch(()=>{const box=v.closest('.eco-video-wrap');if(box&&!box.querySelector('.video-error'))box.insertAdjacentHTML('beforeend','<div class="video-error">No se pudo reproducir. Comprueba el formato del video o vuelve a intentarlo.</div>');});}else v.pause();}
+function videoToggle(id){const v=getPostVideo(id);if(!v)return;ecoLoadVideo(v);if(v.paused){delete v.dataset.userPaused;const playPromise=v.play();if(playPromise&&playPromise.catch)playPromise.catch(()=>{const box=v.closest('.eco-video-wrap');if(box&&!box.querySelector('.video-error'))box.insertAdjacentHTML('beforeend','<div class="video-error">No se pudo reproducir. Comprueba el formato del video o vuelve a intentarlo.</div>');});}else{v.dataset.userPaused='1';v.pause();}}
 function syncVideoControls(v){const box=v?.closest?.('.eco-video-wrap');if(!box||!Number.isFinite(v.duration)||v.duration<=0)return;const r=box.querySelector('.video-seek');if(r)r.value=String(Math.round((v.currentTime/v.duration)*1000));const b=box.querySelector('[data-action="video-play"]');if(b)b.textContent=v.paused?'▶':'❚❚';}
 document.addEventListener('timeupdate',e=>{const v=e.target;if(v?.matches?.('video[data-eco-video]'))syncVideoControls(v);},true);
 document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.('video[data-eco-video]'))syncVideoControls(v);},true);
@@ -2471,19 +2513,25 @@ document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.(
  const hasAudioPreference=()=>{try{return localStorage.getItem(AUDIO_KEY)==='1';}catch(_){return false;}};
  const saveAudioPreference=()=>{try{localStorage.setItem(AUDIO_KEY,'1');}catch(_){}};
  const loadNow=v=>{if(typeof ecoLoadVideo==='function')ecoLoadVideo(v);};
+ /* Pausas hechas por el código (no por la persona) se marcan para no confundirlas con una pausa manual. */
+ const autoPause=v=>{if(!v||v.paused)return;v._ecoAuto=true;try{v.pause();}catch(_){v._ecoAuto=false;}};
+ document.addEventListener('pause',e=>{const v=e.target;if(!v||!v.matches||!v.matches('video[data-eco-video]'))return;if(v._ecoAuto)v._ecoAuto=false;else v.dataset.userPaused='1';try{syncVideoControls(v);}catch(_){}},true);
+ document.addEventListener('play',e=>{const v=e.target;if(!v||!v.matches||!v.matches('video[data-eco-video]'))return;if(v._ecoAutoPlay)v._ecoAutoPlay=false;else delete v.dataset.userPaused;try{syncVideoControls(v);}catch(_){}},true);
  const pauseOthers=current=>{
-  document.querySelectorAll('video[data-eco-video]').forEach(v=>{
-   if(v!==current&&!v.paused){try{v.pause();}catch(_){}}
-  });
+  document.querySelectorAll('video[data-eco-video]').forEach(v=>{if(v!==current)autoPause(v);});
  };
  const playAtCenter=v=>{
-  if(!v||document.hidden)return;
-  loadNow(v);v.playsInline=true;pauseOthers(v);
+  if(!v||document.hidden||v.dataset.userPaused==='1')return;
+  pauseOthers(v);
+  if(!v.paused&&!v.ended)return;
+  loadNow(v);v.playsInline=true;
   const wantsAudio=hasAudioPreference();
   v.muted=!wantsAudio;
   let p;
-  try{p=v.play();}catch(_){p=null;}
+  v._ecoAutoPlay=true;
+  try{p=v.play();}catch(_){p=null;v._ecoAutoPlay=false;}
   if(p&&p.catch)p.catch(()=>{
+   v._ecoAutoPlay=false;
    // Si el navegador bloquea autoplay con sonido, volver al modo silencioso permitido.
    if(wantsAudio&&!document.hidden){v.muted=true;try{const fallback=v.play();if(fallback&&fallback.catch)fallback.catch(()=>{});}catch(_){}}
   });
@@ -2505,7 +2553,7 @@ document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.(
    if(ratio>=0.45&&distance<=vh*0.24&&distance<best){candidate=v;best=distance;}
   });
   if(candidate)playAtCenter(candidate);
-  document.querySelectorAll('video[data-eco-video]').forEach(v=>{if(v!==candidate&&!v.paused){try{v.pause();}catch(_){}}});
+  document.querySelectorAll('video[data-eco-video]').forEach(v=>{if(v!==candidate)autoPause(v);});
  };
  let scrollQueued=false;
  const queueCenterCheck=()=>{if(scrollQueued)return;scrollQueued=true;requestAnimationFrame(()=>{scrollQueued=false;updateCenteredVideo();});};
@@ -2515,7 +2563,7 @@ document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.(
   const io=new IntersectionObserver(entries=>entries.forEach(entry=>{
    const v=entry.target;
    if(entry.isIntersecting){loadNow(v);queueCenterCheck();}
-   else if(entry.intersectionRatio===0){try{v.pause();}catch(_){}}
+   else if(entry.intersectionRatio===0){autoPause(v);delete v.dataset.userPaused;}
   }),{threshold:[0,0.25,0.5,0.75],rootMargin:'0px 0px'});
   const observeVideos=()=>{
    document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(v=>{
@@ -2524,15 +2572,19 @@ document.addEventListener('loadedmetadata',e=>{const v=e.target;if(v?.matches?.(
    });
   };
   observeVideos();queueCenterCheck();
-  const mo=new MutationObserver(()=>{observeVideos();queueCenterCheck();});
+  const mo=new MutationObserver(muts=>{
+   /* Solo reaccionar a elementos nuevos; cambiar el texto del botón ▶/❚❚ no debe reiniciar el video. */
+   if(!muts.some(m=>[...m.addedNodes].some(n=>n.nodeType===1)))return;
+   observeVideos();queueCenterCheck();
+  });
   mo.observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
  }else{
   document.querySelectorAll('video[data-eco-video][data-video-src]').forEach(v=>{v.muted=!hasAudioPreference();loadNow(v);});
  }
  document.addEventListener('visibilitychange',()=>{
-  if(document.hidden)document.querySelectorAll('video[data-eco-video]').forEach(v=>v.pause());
+  if(document.hidden)document.querySelectorAll('video[data-eco-video]').forEach(autoPause);
  });
- window.addEventListener('pagehide',()=>document.querySelectorAll('video[data-eco-video]').forEach(v=>v.pause()));
+ window.addEventListener('pagehide',()=>document.querySelectorAll('video[data-eco-video]').forEach(autoPause));
 })();
 document.addEventListener('change',e=>{const r=e.target;if(!r.matches?.('[data-video-seek]'))return;const v=getPostVideo(r.dataset.videoSeek);if(v&&Number.isFinite(v.duration))v.currentTime=(Number(r.value)/1000)*v.duration;},true);
 /* Media reliability: preserve native video controls/audio and report broken media. */
@@ -2574,6 +2626,7 @@ document.addEventListener('click',e=>{
   case 'community-status':run(()=>{const u=userById(el.dataset.u);const val=el.dataset.t==='ally'?!u.allyAccepted:!u.donorAccepted;API.setCommunityStatus(u.id,el.dataset.t,val);toast(val?(el.dataset.t==='ally'?'Aliado aceptado.':'Donador reconocido.'):(el.dataset.t==='ally'?'Emblema de aliado retirado.':'Emblema de donador retirado.'),'ok');render();});break;
   case 'menu-drop':dropOpen=dropOpen==='menu'?null:'menu';chromeTop();break;
   case 'push-enable':(async()=>{try{let pm=Notification.permission;if(pm==='default')pm=await Notification.requestPermission();if(pm!=='granted'){toast('No se concedió el permiso de notificaciones.','err');render();return;}const r=window.__ecoSubscribePush?await window.__ecoSubscribePush(sess().id):'sin-modulo';toast(r==='ok'?'Listo: notificaciones activadas en este dispositivo.':'No se pudo registrar: '+r,r==='ok'?'ok':'err');}catch(e){toast('Error: '+(e&&e.message||e),'err');}render();})();break;
+  case 'push-diag':(async()=>{const L=window.__ecoPushDiag?await window.__ecoPushDiag():['Módulo no cargado'];modal('<h3>Diagnóstico de notificaciones</h3><div class="sm" style="line-height:1.8;margin-top:10px">'+L.map(x=>'<div>'+esc(x)+'</div>').join('')+'</div><button class="btn btn-green btn-block mt3" data-action="close-modal">Cerrar</button>');})();break;
   case 'push-test':(async()=>{try{const reg=await navigator.serviceWorker.ready;await reg.showNotification('EcoNova',{body:'Así se verán tus notificaciones.',icon:'icon-192.png',badge:'icon-192.png',data:{url:'./index.html#/notificaciones'}});toast('Aviso de prueba enviado.','ok');}catch(e){toast('No se pudo mostrar el aviso: '+(e&&e.message||e),'err');}})();break;
   case 'notif-drop':dropOpen=dropOpen==='notif'?null:'notif';if(dropOpen==='notif'){const u=sess();DB.notifs.filter(n=>n.userId===u.id).forEach(n=>n.read=true);save();window.__ecoMarkRead&&window.__ecoMarkRead();}chromeTop();break;
   case 'auth-tab':authMode=el.dataset.m;location.hash=authMode==='registro'?'#/registro':'#/entrar';render();break;
@@ -2590,16 +2643,58 @@ document.addEventListener('click',e=>{
   case 'adm-tab':admTab=el.dataset.t;render();break;
   case 'tag':GQ='#'+el.dataset.t.replace(/^#/,'');location.hash='#/explorar';break;
   case 'follow':run(()=>{if(!sess())return guard();const on=API.toggleFollow(el.dataset.u);if(on)toast('Ahora sigues a esta cuenta.','ok');});break;
-  case 'like':{if(!sess())return guard();const y=window.scrollY||0;try{API.like(el.dataset.p);render();requestAnimationFrame(()=>window.scrollTo(0,y));}catch(m){toast(m,'err');}break;}
+  case 'like':{
+   if(!sess())return guard();
+   try{
+    const postId=el.dataset.p;API.like(postId);
+    const p=postById(postId),u=sess();
+    if(p&&u){
+     const liked=p.likes.includes(u.id);
+     el.classList.toggle('act',liked);
+     const count=el.querySelector('span');if(count)count.textContent=String(p.likes.length);
+     el.setAttribute('aria-pressed',liked?'true':'false');
+     el.title=liked?'Ya no me gusta':'Me gusta';
+    }
+   }catch(m){toast(m,'err');}
+   break;
+  }
   case 'cmts':location.hash='#/comentarios/'+el.dataset.p;break;
-  case 'comment-like':run(()=>{API.likeComment(el.dataset.p,el.dataset.c);});break;
+  case 'comment-like':{
+   try{
+    API.likeComment(el.dataset.p,el.dataset.c);
+    const p=postById(el.dataset.p),u=sess(),cm=(p?.comments||[]).find(x=>x.id===el.dataset.c);
+    if(cm&&u){const liked=(cm.likes||[]).includes(u.id);el.classList.toggle('act',liked);el.innerHTML=ic('heart')+' '+cm.likes.length;}
+   }catch(m){toast(m,'err');}
+   break;
+  }
+  case 'notif-delete':{
+   const u=sess(),n=DB.notifs.find(x=>String(x.id)===String(el.dataset.n)&&x.userId===u?.id);
+   if(!n)break;
+   ecoConfirm('¿Eliminar esta notificación?',()=>ecoRemoveNotifs([n]));
+   break;
+  }
+  case 'notif-clear':{
+   const u=sess();if(!u)break;
+   ecoConfirm('¿Eliminar todas tus notificaciones?',()=>ecoRemoveNotifs(DB.notifs.filter(n=>n.userId===u.id)),'Eliminar todas');
+   break;
+  }
+  case 'eco-confirm-yes':{const cb=ECO_CONFIRM_CB;ECO_CONFIRM_CB=null;closeModal();if(cb)cb();break;}
   case 'comment-reply':{const p=postById(el.dataset.p);const c=(p?.comments||[]).find(x=>x.id===el.dataset.c);if(!c)return;modal(`<h3>Responder comentario</h3><p class="sm mut mb2">${esc(userById(c.userId).name)}</p><form data-form="comment-reply" data-p="${el.dataset.p}" data-c="${el.dataset.c}"><textarea id="reply-body" required maxlength=500 placeholder="Escribe tu respuesta…"></textarea><button class="btn btn-green btn-block mt2" type="submit">Responder</button></form>`);break;}
   case 'share':openShareMenu(el.dataset.p);break;
   case 'share-native':{const p=postById(el.dataset.p);if(!p)break;const l=shareLink(p);if(navigator.share){navigator.share({title:p.title,text:l.text,url:l.url}).catch(()=>{});}else{copyShareLink(l.url);toast('Tu navegador no admite compartir nativo. Enlace copiado.','ok');}break;}
   case 'video-back':videoSeek(el.dataset.p,-10);break;
   case 'video-forward':videoSeek(el.dataset.p,10);break;
   case 'video-play':videoToggle(el.dataset.p);break;
-  case 'save':run(()=>{if(!sess())return guard();const on=API.toggleSave(el.dataset.p);toast(on?'Guardada en tu colección.':'Quitada de guardados.','ok');});break;
+  case 'save':{
+   if(!sess())return guard();
+   try{
+    const on=API.toggleSave(el.dataset.p);
+    toast(on?'Guardada en tu colección.':'Quitada de guardados.','ok');
+    if((location.hash||'').indexOf('#/guardados')===0){render();}
+    else document.querySelectorAll('button[data-action="save"][data-p="'+el.dataset.p+'"]').forEach(b=>{b.classList.toggle('act',on);const sp=b.querySelector('span');if(sp)sp.textContent=on?'Guardada':'Guardar';});
+   }catch(m){if(m)toast(m,'err');}
+   break;
+  }
   case 'share-profile':run(()=>{const added=API.share(el.dataset.p);closeModal();toast(added?'Publicación añadida a tu perfil.':'Ya estaba en tu perfil.','ok');});break;
   case 'share-profile-user':openProfileShareMenu(el.dataset.u);break;
   case 'profile-native':{const u=el.dataset.url,t=el.dataset.text||'Perfil de EcoNova';if(navigator.share){navigator.share({title:t,text:t,url:u}).catch(()=>{});}else{copyShareLink(u);toast('Tu navegador no admite compartir nativo. Enlace copiado.','ok');}break;}
@@ -2709,7 +2804,13 @@ document.addEventListener('submit',e=>{
    API.createPost(payload).then(()=>{closeModal();toast((['DEV','ADMIN','MOD'].includes(sess()?.role)||sess()?.id==='u1')?'Publicación publicada directamente.':'Enviada a moderación. Te avisaremos al aprobarla.','ok');render();}).catch(m=>toast(String(m?.message||m),'err'));
    return;
   }
-  if(d==='cmt'){API.comment(f.dataset.p,f.querySelector('input').value.trim());toast('Comentario publicado.','ok');location.hash='#/comentarios/'+f.dataset.p;render();}
+  if(d==='cmt'){
+   const postId=f.dataset.p,body=f.querySelector('input').value.trim();
+   if(!body)return;
+   API.comment(postId,body);toast('Comentario publicado.','ok');
+   if(location.hash!=='#/comentarios/'+postId)location.hash='#/comentarios/'+postId;
+   render();
+  }
   if(d==='comment-reply'){API.replyComment(f.dataset.p,f.dataset.c,$('#reply-body').value.trim());closeModal();toast('Respuesta publicada.','ok');location.hash='#/comentarios/'+f.dataset.p;render();}
   if(d==='edit-profile'){API.updateProfile({name:$('#ep-name').value,bio:$('#ep-bio').value,loc:$('#ep-loc').value,website:$('#ep-web').value,avatar:profileEditImg,cover:profileEditCover});closeModal();toast('Perfil actualizado.','ok');render();}
   if(d==='profile-settings'){API.updateProfile({name:$('#set-name').value,bio:$('#set-bio').value,loc:$('#set-loc').value,website:$('#set-web').value,avatar:sess().avatar||''});API.updatePrivacy({showFollowers:$('#pr-followers').checked,showFollowing:$('#pr-following').checked,showPosts:$('#pr-posts').checked,privateProfile:$('#pr-private').checked,allowComments:$('#pr-comments').checked,notifyLikes:$('#nt-likes').checked,notifyComments:$('#nt-comments').checked,notifyFollows:$('#nt-follows').checked});toast('Ajustes actualizados.','ok');render();}
@@ -2807,8 +2908,11 @@ const Cloud=(()=>{
    if(!('serviceWorker' in navigator)||!('PushManager' in window)||!window.Notification)return 'sin-soporte';
    if(Notification.permission!=='granted')return 'sin-permiso';
    const reg=await navigator.serviceWorker.ready;
+   const b64=ECO_VAPID_PUBLIC+'='.repeat((4-ECO_VAPID_PUBLIC.length%4)%4);const raw=atob(b64.replace(/-/g,'+').replace(/_/g,'/'));const keyBytes=Uint8Array.from(raw,ch=>ch.charCodeAt(0));
    let sub=await reg.pushManager.getSubscription();
-   if(!sub){const b=ECO_VAPID_PUBLIC+'='.repeat((4-ECO_VAPID_PUBLIC.length%4)%4);const raw=atob(b.replace(/-/g,'+').replace(/_/g,'/'));sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(raw,ch=>ch.charCodeAt(0))});}
+   /* Si la suscripción guardada usa otra clave VAPID, el servidor no puede enviarle push: se vuelve a crear. */
+   if(sub&&sub.options&&sub.options.applicationServerKey){const cur=new Uint8Array(sub.options.applicationServerKey);if(cur.length!==keyBytes.length||cur.some((x,i)=>x!==keyBytes[i])){try{await sub.unsubscribe();}catch(_){}sub=null;}}
+   if(!sub){sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:keyBytes});}
    const j=sub.toJSON();
    const {error}=await c().from('push_subscriptions').upsert({user_id:uid_,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:'endpoint'});
    if(error)return 'base-de-datos: '+(error.message||error.code);
@@ -2816,6 +2920,45 @@ const Cloud=(()=>{
   }catch(e){console.warn('[EcoNova] push',e);return 'error: '+(e&&e.message||e);}
  }
  window.__ecoSubscribePush=ecoSubscribePush;
+ /* Diagnóstico: dice en qué punto exacto se rompe la cadena de notificaciones en ESTE dispositivo. */
+ window.__ecoPushDiag=async function(){
+  const L=[];
+  try{
+   const standalone=(navigator.standalone===true)||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+   L.push('Modo: '+(standalone?'app instalada':'navegador')+' · '+location.origin+location.pathname);
+   L.push('Permiso: '+(window.Notification?Notification.permission:'sin soporte'));
+   const regs=navigator.serviceWorker?await navigator.serviceWorker.getRegistrations():[];
+   L.push('Service worker: '+(regs.length?('activo ('+regs.map(r=>(r.active?'ok':'sin activar')).join(',')+')'):'NO registrado'));
+   const reg=regs[0];const sub=reg?await reg.pushManager.getSubscription():null;
+   L.push('Suscripción en el dispositivo: '+(sub?'sí':'NO'));
+   if(sub){const {data,error}=await c().from('push_subscriptions').select('endpoint').eq('endpoint',sub.endpoint).limit(1);
+    L.push('Suscripción en el servidor: '+(error?('error '+(error.message||error.code)):(data&&data.length?'sí':'NO')));}
+  }catch(e){L.push('Error: '+(e&&e.message||e));}
+  return L;
+ };
+ /* Si el permiso se perdió (p. ej. tras una actualización), un solo toque lo reactiva desde cualquier pantalla. */
+ function ecoPushBanner(uid_){
+  try{
+   const old=document.getElementById('eco-push-banner');
+   const supported=('Notification' in window)&&('serviceWorker' in navigator)&&('PushManager' in window);
+   if(!supported||!uid_){if(old)old.remove();return;}
+   if(Notification.permission==='granted'){try{localStorage.setItem('econova-push-on','1');}catch(_){} if(old)old.remove();return;}
+   if(Notification.permission!=='default'){if(old)old.remove();return;}
+   let snooze=0;try{snooze=+localStorage.getItem('econova-push-snooze')||0;}catch(_){}
+   if(Date.now()<snooze){if(old)old.remove();return;}
+   if(old)return;
+   let was=false;try{was=localStorage.getItem('econova-push-on')==='1';}catch(_){}
+   const b=document.createElement('div');b.id='eco-push-banner';
+   b.style.cssText='position:fixed;left:10px;right:10px;bottom:calc(86px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;z-index:900;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 34px rgba(15,25,19,.22);padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:14px';
+   b.innerHTML='<div style="flex:1;min-width:0"><b>'+(was?'Reactiva tus notificaciones':'Activa las notificaciones')+'</b><div class="sm mut">'+(was?'Se desactivaron en este dispositivo. Toca para volver a recibirlas.':'Entérate de likes y comentarios aunque la app esté cerrada.')+'</div></div><button type="button" class="btn btn-green btn-sm" id="eco-push-on">Activar</button><button type="button" class="btn btn-ghost btn-sm" id="eco-push-later" aria-label="Ahora no">✕</button>';
+   document.body.appendChild(b);
+   b.querySelector('#eco-push-on').onclick=async()=>{
+    try{const pm=await Notification.requestPermission();if(pm==='granted'){const r=await ecoSubscribePush(uid_);toast(r==='ok'?'Notificaciones activadas.':'No se pudo registrar: '+r,r==='ok'?'ok':'err');}else toast('No se concedió el permiso de notificaciones.','err');}catch(e){toast('Error: '+(e&&e.message||e),'err');}
+    b.remove();
+   };
+   b.querySelector('#eco-push-later').onclick=()=>{try{localStorage.setItem('econova-push-snooze',String(Date.now()+3*86400000));}catch(_){}b.remove();};
+  }catch(e){console.warn('[EcoNova] banner push',e);}
+ }
  const api={
   up,
   notifView(n){const a=DB.users.find(x=>x.id===n.actor_id),nm=a?a.name:'Alguien',pp=DB.posts.find(x=>x.id===n.post_id),t=pp?pp.title:'tu publicación';
@@ -2825,9 +2968,24 @@ const Cloud=(()=>{
   startNotifs(uid_){
    if(window.__ecoNotifUid===uid_)return;window.__ecoNotifUid=uid_;
    ecoSubscribePush(uid_);
+   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(_){}
+   ecoPushBanner(uid_);
+   /* Reafirmar la suscripción cada vez que la app vuelve a primer plano (máx. cada 10 min) y si el SW avisa que cambió. */
+   let _lastSub=Date.now();
+   document.addEventListener('visibilitychange',()=>{if(!document.hidden){ecoPushBanner(uid_);if(Date.now()-_lastSub>600000){_lastSub=Date.now();ecoSubscribePush(uid_);}}});
+   window.addEventListener('online',()=>ecoSubscribePush(uid_));
+   if(navigator.serviceWorker)navigator.serviceWorker.addEventListener('message',ev=>{if(ev.data&&ev.data.type==='push-resubscribed')ecoSubscribePush(uid_);});
    window.__ecoMarkRead=()=>{c().from('user_notifications').update({read:true}).eq('user_id',uid_).eq('read',false).then(()=>{});};
+  window.__ecoDeleteNotification=(id)=>{
+   if(!UUID.test(String(id)))return;
+   c().from('user_notifications').delete().eq('id',id).eq('user_id',uid_).select('id').then(({data,error})=>{
+    if(error)console.warn('[EcoNova] No se pudo eliminar la notificación remota',error);
+    else if(!data||!data.length)console.warn('[EcoNova] El servidor no borró la notificación (¿falta la política DELETE en user_notifications?). Se mantiene oculta en este dispositivo.');
+   });
+  };
+
    try{c().channel('eco-notifs-'+uid_).on('postgres_changes',{event:'INSERT',schema:'public',table:'user_notifications',filter:'user_id=eq.'+uid_},pl=>{
-    const v=api.notifView(pl.new);if(DB.notifs.some(x=>x.id===v.id))return;DB.notifs.unshift(v);save();
+    const v=api.notifView(pl.new);if(DB.notifs.some(x=>x.id===v.id)||ecoDeletedNotifs().has(v.id))return;DB.notifs.unshift(v);save();
     try{chromeTop();}catch(e){}
     if(document.hidden&&window.Notification&&Notification.permission==='granted'&&navigator.serviceWorker){
      navigator.serviceWorker.ready.then(r=>r.showNotification(v.title,{body:v.body,icon:'icon-192.png',badge:'icon-192.png',tag:v.id,data:{url:'./index.html#/notificaciones'}}));
@@ -2873,7 +3031,7 @@ const Cloud=(()=>{
    {const chg=new Set((modq||[]).filter(x=>x.content_type==='post'&&x.decision==='changes'&&x.status==='pending').map(x=>x.content_id));DB.posts.forEach(p=>{if(chg.has(p.id)&&p.status==='PENDING')p.status='CHANGES';});}
    DB.follows=fol.map(r=>({f:r.follower_id,t:r.following_id}));
    if(s){const nr=await q(c().from('user_notifications').select('*').eq('user_id',s.user.id).order('created_at',{ascending:false}).limit(60));
-    DB.notifs=nr.map(n=>api.notifView(n));api.startNotifs(s.user.id);}
+    {const gone=ecoDeletedNotifs();DB.notifs=nr.filter(n=>!gone.has(n.id)).map(n=>api.notifView(n));}api.startNotifs(s.user.id);}
    const dons=await q(c().from('donations_public').select('*').order('created_at',{ascending:false}).limit(500));
    DB.donations=dons.map(d=>({id:d.id,userId:null,name:d.donor_name,target:d.target,tlabel:d.target_label,amount:+d.amount,at:Date.parse(d.created_at)||Date.now()}));
    if(s)store.set('econova_session',s.user.id);else store.del('econova_session');
@@ -3580,7 +3738,7 @@ var MapX=(()=>{
 })();
 </script>
 
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(e=>console.warn('[EcoNova] sw',e)));}</script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{try{r.update();}catch(_){}document.addEventListener('visibilitychange',()=>{if(!document.hidden){try{r.update();}catch(_){}}});}).catch(e=>console.warn('[EcoNova] sw',e)));}</script>
 
 <script id="econova-refresh-feed">
 (function(){
