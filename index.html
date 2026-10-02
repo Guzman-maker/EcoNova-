@@ -1916,7 +1916,7 @@ function viewCampaign(id){
    <img src="${c.img}" alt="" style="width:100%;height:230px;object-fit:cover">
    <div class="pad">
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="badge ${CSTC[c.status]}">${CST[c.status]}</span><span class="chip">${esc(c.kind)}</span><span class="chip">${esc(catById(c.cat).name)}</span></div>
-    <h1 style="font-size:clamp(24px,3.6vw,34px);margin:10px 0 6px">${esc(c.name)}</h1><button class="btn btn-ghost btn-sm" data-action="share-card" data-k="campaign" data-c="${c.id}">🖼️ Tarjeta para compartir</button>
+    <h1 style="font-size:clamp(24px,3.6vw,34px);margin:10px 0 6px">${esc(c.name)}</h1>
     <div class="xs mut" style="display:flex;gap:16px;flex-wrap:wrap">
      <span>${esc(c.place)}</span>
      <span>Organiza: <a class="link" href="#/perfil/${org.id}">${esc(org.name)}</a></span>
@@ -2744,7 +2744,7 @@ function openProfileShareMenu(id){
 function openShareMenu(id){
  const p=postById(id);if(!p)return;
  const l=shareLink(p);
- modal(`<h3>Compartir publicación</h3><p class="sm mut mb2">Elige una de estas tres opciones.</p><div style="display:flex;flex-direction:column;gap:9px"><button class="share-choice" data-action="share-card" data-k="post" data-p="${p.id}"><span class="share-symbol">🖼️</span><span><b>Tarjeta para compartir</b><small class="mut" style="display:block">Imagen lista para WhatsApp e Instagram.</small></span></button><button class="share-choice" data-action="share-card" data-k="me"><span class="share-symbol">🌱</span><span><b>Tarjeta de mi impacto</b><small class="mut" style="display:block">Tus publicaciones y me gusta recibidos.</small></span></button><button class="share-choice" data-action="share-profile" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Compartir en mi perfil</b><small class="mut" style="display:block">Aparecerá en la pestaña Compartidas de tu perfil.</small></span></button><button class="share-choice" data-action="share-native" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Compartir en mi teléfono</b><small class="mut" style="display:block">WhatsApp, Messenger, Facebook y las demás apps disponibles.</small></span></button><button class="share-choice" data-action="share-copy" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Copiar enlace</b><small class="mut" style="display:block">Copiar el enlace de la publicación.</small></span></button></div>`);
+ modal(`<h3>Compartir publicación</h3><p class="sm mut mb2">Elige una de estas tres opciones.</p><div style="display:flex;flex-direction:column;gap:9px"><button class="share-choice" data-action="share-profile" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Compartir en mi perfil</b><small class="mut" style="display:block">Aparecerá en la pestaña Compartidas de tu perfil.</small></span></button><button class="share-choice" data-action="share-native" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Compartir en mi teléfono</b><small class="mut" style="display:block">WhatsApp, Messenger, Facebook y las demás apps disponibles.</small></span></button><button class="share-choice" data-action="share-copy" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Copiar enlace</b><small class="mut" style="display:block">Copiar el enlace de la publicación.</small></span></button></div>`);
 }
 function openLegal(type){
  const title=type==='terms'?'Términos y Condiciones':'Política de Privacidad';
@@ -2858,34 +2858,6 @@ document.addEventListener('click',e=>{
 function ecoSkel(n){let h='';for(let i=0;i<(n||2);i++)h+='<div class="sk-card"><div class="sk-row"><div class="sk sk-av"></div><div style="flex:1;display:flex;flex-direction:column;gap:7px"><div class="sk sk-ln" style="width:45%"></div><div class="sk sk-ln" style="width:28%"></div></div></div><div class="sk sk-img"></div><div class="sk sk-ln" style="width:90%"></div><div class="sk sk-ln" style="width:60%"></div></div>';return h;}
 function ecoHaptic(){try{if(navigator.vibrate&&navigator.vibrate(12))return;}catch(_){}try{let l=document.getElementById('eco-hap');if(!l){l=document.createElement('label');l.id='eco-hap';l.style.cssText='position:fixed;left:-99px;top:0;opacity:0;pointer-events:none';l.innerHTML='<input type="checkbox" switch>';document.body.appendChild(l);}l.click();}catch(_){}}
 function ecoBurst(b){const r=b.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;['❤️','💚','❤️'].forEach((e,i)=>{const t=document.createElement('span');t.className='eco-burst';t.textContent=e;t.style.cssText='left:'+(x-9)+'px;top:'+(y-9)+'px;--dx:'+((i-1)*22)+'px;animation-delay:'+(i*50)+'ms';document.body.appendChild(t);setTimeout(()=>t.remove(),900);});}
-function ecoCardMake(o){return new Promise(res=>{
- const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
- const rr=(a,b,w,h,r)=>{x.beginPath();if(x.roundRect)x.roundRect(a,b,w,h,r);else x.rect(a,b,w,h);};
- const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#0e5c3e');g.addColorStop(1,'#2e7d32');x.fillStyle=g;x.fillRect(0,0,W,H);
- x.fillStyle='rgba(255,255,255,.07)';x.beginPath();x.arc(W-110,200,270,0,7);x.fill();x.beginPath();x.arc(90,H-260,330,0,7);x.fill();
- const lines=(t,mw,max)=>{const w=String(t||'').replace(/\s+/g,' ').trim().split(' '),L=[];let l='';for(const a of w){const tt=l?l+' '+a:a;if(x.measureText(tt).width>mw&&l){L.push(l);l=a;}else l=tt;}if(l)L.push(l);if(L.length>max){L.length=max;L[max-1]=L[max-1].replace(/\s*\S*$/,'')+'…';}return L;};
- const fin=im=>{
-  x.fillStyle='#fff';rr(70,60,200,170,32);x.fill();
-  if(im){const k=Math.min(160/im.width,130/im.height),w=im.width*k,h=im.height*k;x.drawImage(im,170-w/2,145-h/2,w,h);}
-  x.textBaseline='alphabetic';x.fillStyle='rgba(255,255,255,.8)';x.font='700 32px system-ui,sans-serif';x.fillText(o.kicker,90,380);
-  x.fillStyle='#fff';x.font='800 70px system-ui,sans-serif';let y=480;lines(o.title,900,5).forEach(l=>{x.fillText(l,90,y);y+=86;});
-  if(o.sub){x.fillStyle='rgba(255,255,255,.85)';x.font='500 36px system-ui,sans-serif';x.fillText(o.sub,90,y+20);}
-  const n=o.stats.length,pw=(W-180-(n-1)*24)/n;
-  o.stats.forEach((st,i)=>{const px=90+i*(pw+24);x.fillStyle='#fff';rr(px,1000,pw,190,32);x.fill();x.textAlign='center';x.fillStyle='#0e5c3e';x.font='800 78px system-ui,sans-serif';x.fillText(st[0],px+pw/2,1100);x.fillStyle='#5b6b62';x.font='600 30px system-ui,sans-serif';x.fillText(st[1],px+pw/2,1150);x.textAlign='left';});
-  x.fillStyle='rgba(255,255,255,.9)';x.font='600 32px system-ui,sans-serif';x.textAlign='center';x.fillText('EcoNova · Tu aliado en un mundo más verde 🌱',W/2,1275);
-  c.toBlob(b=>res(b),'image/png');};
- const im=new Image();im.onload=()=>fin(im);im.onerror=()=>fin(null);im.src=LOGO_SRC;});}
-async function ecoShareCard(kind,id){
- let o;const me=sess();
- if(kind==='campaign'){const c=campById(id);if(!c)return;o={kicker:'CAMPAÑA EN ECONOVA',title:c.name,sub:c.kind||'',stats:[[String((c.participants||[]).length),'participantes']]};}
- else if(kind==='me'){if(!me)return;const mine=DB.posts.filter(p=>p.userId===me.id&&p.status==='APPROVED');o={kicker:'MI IMPACTO EN ECONOVA',title:me.name,sub:'Cuidando el planeta, una acción a la vez',stats:[[String(mine.length),'publicaciones'],[String(mine.reduce((a,p)=>a+(p.likes||[]).length,0)),'me gusta recibidos']]};}
- else{const p=postById(id);if(!p)return;o={kicker:'PUBLICACIÓN EN ECONOVA',title:p.title||p.content||p.body||'',sub:'Por '+userById(p.userId).name,stats:[[String((p.likes||[]).length),'me gusta'],[String((p.comments||[]).length),'comentarios']]};}
- toast('Creando tarjeta…');
- const blob=await ecoCardMake(o);if(!blob)return toast('No se pudo crear la tarjeta.','err');
- const f=new File([blob],'econova.png',{type:'image/png'});
- try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],text:'Mira esto en EcoNova 🌱'});return;}}catch(e){if(e&&e.name==='AbortError')return;}
- const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='econova.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast('Tarjeta guardada en tus descargas.','ok');
-}
 /* ---------- eventos ---------- */
 let postImgs=[],postVideo=null;
 document.addEventListener('click',e=>{
@@ -3024,7 +2996,6 @@ document.addEventListener('click',e=>{
    }catch(m){if(m)toast(m,'err');}
    break;
   }
-  case 'share-card':closeModal();ecoShareCard(el.dataset.k,el.dataset.k==='campaign'?el.dataset.c:el.dataset.p);break;
   case 'share-profile':run(()=>{const added=API.share(el.dataset.p);closeModal();toast(added?'Publicación añadida a tu perfil.':'Ya estaba en tu perfil.','ok');});break;
   case 'share-profile-user':openProfileShareMenu(el.dataset.u);break;
   case 'profile-native':{const u=el.dataset.url,t=el.dataset.text||'Perfil de EcoNova';if(navigator.share){navigator.share({title:t,text:t,url:u}).catch(()=>{});}else{copyShareLink(u);toast('Tu navegador no admite compartir nativo. Enlace copiado.','ok');}break;}
