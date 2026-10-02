@@ -2621,11 +2621,20 @@ function ecoOpenSheet(id){
  const sh=s.querySelector('.sh'),gr=s.querySelector('.gr'),hd=s.querySelector('h4'),sl=s.querySelector('.sl');
  const full=()=>sh.classList.contains('full'),expand=()=>{sh.classList.add('full');sh.style.transform='';},shrink=()=>sh.classList.remove('full');
  s.addEventListener('focusin',e=>{if(e.target.matches&&e.target.matches('.sf input'))expand();});
+ /* bloquea el scroll del feed mientras la hoja está abierta (solo se mueve lo que tiene scroll propio) */
+ if(!s._lock){s._lock=1;let sy=0,sx=0,sc=null;
+  const scroller=t=>{while(t&&t!==s){if(t.nodeType===1){const o=getComputedStyle(t).overflowY;if((o==='auto'||o==='scroll')&&t.scrollHeight>t.clientHeight+1)return t;}t=t.parentNode;}return null;};
+  s.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;sx=e.touches[0].clientX;sc=scroller(e.target);},{passive:true});
+  s.addEventListener('touchmove',e=>{if(!e.cancelable||!e.touches[0])return;const dy=e.touches[0].clientY-sy,dx=e.touches[0].clientX-sx;if(Math.abs(dx)>Math.abs(dy))return;if(!sc){e.preventDefault();return;}const top=sc.scrollTop<=0,bot=sc.scrollTop+sc.clientHeight>=sc.scrollHeight-1;if((dy>0&&top)||(dy<0&&bot))e.preventDefault();},{passive:false});
+ }
+ /* arrastrar el encabezado (cuadrito de arriba), como Instagram: hacia abajo en pantalla completa la achica y estando en tamaño normal la cierra; hacia arriba la expande; el feed no se mueve */
  let y0=null;
+ const hdReset=()=>{y0=null;sh.style.transition='';sh.style.transform='';};
  [gr,hd].forEach(el=>{
   el.addEventListener('touchstart',e=>{y0=e.touches[0].clientY;},{passive:true});
-  el.addEventListener('touchmove',e=>{if(y0==null)return;const d=e.touches[0].clientY-y0;if(d>0&&!full()){sh.style.transition='none';sh.style.transform='translateY('+d+'px)';}},{passive:true});
-  el.addEventListener('touchend',e=>{const d=e.changedTouches[0].clientY-(y0==null?0:y0);y0=null;sh.style.transition='';sh.style.transform='';if(d<-50)expand();else if(d>110){if(full())shrink();else ecoCloseSheet();}},{passive:true});
+  el.addEventListener('touchmove',e=>{if(y0==null)return;if(e.cancelable)e.preventDefault();const d=e.touches[0].clientY-y0;if(d>0){sh.style.transition='none';sh.style.transform='translateY('+d+'px)';}},{passive:false});
+  el.addEventListener('touchend',e=>{if(y0==null)return;const d=e.changedTouches[0].clientY-y0;hdReset();if(d<-50)expand();else if(d>110){if(full())shrink();else ecoCloseSheet();}},{passive:true});
+  el.addEventListener('touchcancel',hdReset,{passive:true});
  });
  /* deslizar hacia arriba sobre la lista = pantalla completa */
  let ly=null;
