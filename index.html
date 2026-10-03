@@ -1192,7 +1192,14 @@ body.auth-route .eav.morph::after{display:none!important}
 </style>
 
 <style id="econova-logros-css">
-/* ═════════ EcoNova · Logros, racha y perfiles destacados ═════════ */
+/* ═════════ EcoNova · Logros, insignias, racha y perfiles destacados ═════════ */
+.eb{display:block;overflow:visible;filter:drop-shadow(0 4px 6px rgba(20,40,30,.2))}
+.eb.lk{filter:none}
+.eb.ok.t-gold{filter:drop-shadow(0 3px 7px rgba(214,150,10,.45))}
+.eb.ok.t-diamond{filter:drop-shadow(0 0 9px rgba(111,211,245,.7))}
+.eb-sp{transform-box:fill-box;transform-origin:center;animation:ebTw 1.8s ease-in-out infinite}
+.eb-sp.s2{animation-delay:.7s}
+@keyframes ebTw{0%,100%{opacity:.25;transform:scale(.6)}50%{opacity:1;transform:scale(1.15)}}
 .eco-eng{margin:12px 0;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;box-shadow:0 1px 2px rgba(15,25,19,.035),0 8px 28px rgba(15,25,19,.035)}
 .eco-eng a{color:inherit;text-decoration:none}
 .eco-eng-top{display:flex;align-items:center;gap:12px}
@@ -1235,36 +1242,111 @@ body.auth-route .eav.morph::after{display:none!important}
 .eco-prev{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .eco-prev>b{font-size:12px}.eco-prev>div{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
 .eco-prev a{display:flex;align-items:center;gap:6px;font-size:12px;text-decoration:none;color:inherit}
+.eco-tiers{display:flex;align-items:center;justify-content:center;gap:8px;margin:20px 0 -6px;font-size:11px;font-weight:800}
+.eco-tiers i{font-style:normal;color:var(--mut)}
+.eco-tiers span,.eco-ach-it .tier{padding:3px 10px;border-radius:99px;font-size:10.5px;font-weight:800;letter-spacing:.03em}
+.t-bronze.tier,.eco-tiers .t-bronze{background:#fbe6d0;color:#8a4a1c}
+.t-silver.tier,.eco-tiers .t-silver{background:#e8edf2;color:#4b5866}
+.t-gold.tier,.eco-tiers .t-gold{background:#fff0b8;color:#8a5a00}
+.t-diamond.tier,.eco-tiers .t-diamond{background:#dcf4ff;color:#1f3f99}
+.t-eco.tier{background:#d9f5e5;color:#0b3b2a}
 .eco-ach-cat{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:22px 2px 10px}
 .eco-ach-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 @media(min-width:700px){.eco-ach-grid{grid-template-columns:repeat(3,1fr)}}
-.eco-ach-it{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:13px 12px;display:flex;flex-direction:column;gap:5px;min-width:0}
-.eco-ach-it .ic{font-size:28px;filter:grayscale(1);opacity:.45}
-.eco-ach-it.ok{border-color:#9fd3b5;background:linear-gradient(180deg,#f6fcf8,#fff)}
-.eco-ach-it.ok .ic{filter:none;opacity:1}
+.eco-ach-it{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;min-width:0}
+.eco-ach-it.ok{border-color:#a9d9bd;background:linear-gradient(180deg,#f6fcf8,#fff)}
 .eco-ach-it b{font-size:13.5px;color:var(--ink)}
 .eco-ach-it small{font-size:11.5px;line-height:1.4;color:var(--mut)}
 .eco-ach-it em{font-style:normal;font-size:11px;color:var(--mut)}
 .eco-ach-it em.ok{color:#1c8053;font-weight:800}
-.eco-ach-it .eco-bar{margin-top:4px}
+.eco-ach-it .eco-bar{width:100%;margin-top:2px}
 .eco-how h3{font-size:16px;margin:0 0 8px}
 .eco-how .r{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px}
 .eco-how .r b{color:var(--eco);white-space:nowrap}
 .eco-fbadge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;background:linear-gradient(135deg,#fff3c4,#ffe28a);color:#6b4a00;font-size:11px;font-weight:800}
 .eco-fbadge.soft{background:#e6f4ec;color:#105652}
+/* perfil */
 .eco-pa{margin-top:14px}
 .eco-pa-hd{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;background:#f3f8f5}
 .eco-pa-hd .lv{font-size:28px}.eco-pa-hd b{display:block;font-size:14px;color:var(--ink)}.eco-pa-hd small{font-size:11.5px;color:var(--mut)}.eco-pa-hd>div{flex:1;min-width:0}
-.eco-pa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.eco-pa-it{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;border-radius:14px;border:1px solid #cfe6d8;background:#f9fdfa;text-align:center}
-.eco-pa-it span{font-size:26px}.eco-pa-it b{font-size:11.5px;line-height:1.25;color:var(--ink)}
+.eco-pa-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.eco-pa-stats>div{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 6px;border-radius:14px;background:#fff;border:1px solid var(--line)}
+.eco-pa-stats span{font-size:20px}.eco-pa-stats b{font-size:20px;color:var(--ink);font-weight:900}.eco-pa-stats small{font-size:10.5px;color:var(--mut);font-weight:700}
+.eco-sec{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:20px 2px 10px}
+.eco-pa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.eco-pa-it{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 4px 10px;border-radius:16px;border:1px solid #cfe6d8;background:linear-gradient(180deg,#f9fdfa,#fff);text-align:center}
+.eco-pa-it b{font-size:11.5px;line-height:1.25;color:var(--ink)}.eco-pa-it small{font-size:10px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+.eco-next{display:flex;gap:14px;align-items:center;padding:14px;border-radius:18px;background:#f6f8f7;border:1px dashed #cfd8d3}
+.eco-next>div{flex:1;min-width:0}.eco-next b{display:block;font-size:14px;color:var(--ink)}.eco-next small{display:block;font-size:11.5px;color:var(--mut);margin:2px 0 8px;line-height:1.4}.eco-next em{display:block;font-style:normal;font-size:11px;color:var(--mut);margin-top:5px}
+.eco-hist h4{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:22px 2px 10px}
+.hd-row{display:grid;grid-template-columns:repeat(14,1fr);gap:4px}
+.hd{aspect-ratio:1;border-radius:7px;background:#e9efeb;display:grid;place-items:center}
+.hd i{font-style:normal;font-size:8.5px;font-weight:700;color:#9aa8a1}
+.hd.on{background:linear-gradient(135deg,#ffb74d,#f57c00)}.hd.on i{color:#fff}
+.hd.now{outline:2px solid #105652;outline-offset:1px}
+.hd-wrap small{display:block;margin-top:7px;font-size:11px;color:var(--mut)}
+.hd-runs{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.hd-runs>div{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:12px;background:#fff6ea;font-size:12.5px}
+.hd-runs b{color:var(--ink)}.hd-runs em{margin-left:auto;font-style:normal;font-size:11px;color:var(--mut)}
+.hd-tl{margin-top:12px;display:flex;flex-direction:column;gap:2px}
+.hd-tl>div{display:flex;align-items:center;gap:12px;padding:8px 2px;border-top:1px solid var(--line)}
+.hd-tl b{flex:1;font-size:13px;color:var(--ink)}.hd-tl em{font-style:normal;font-size:11.5px;color:var(--mut)}
 .eco-priv-note{margin:14px 2px 0;padding:9px 12px;border-radius:12px;background:#f3f8f5;color:#105652;font-size:12px;font-weight:600}
-#eco-ach-pop{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);transform:translate(-50%,-140%);z-index:3100;width:min(92vw,380px);display:flex;gap:12px;align-items:center;padding:13px 15px;border-radius:18px;background:#0f382c;color:#fff;text-decoration:none;box-shadow:0 14px 40px rgba(0,0,0,.28);transition:transform .45s cubic-bezier(.2,.9,.3,1.2)}
+/* círculo flotante de racha */
+#eco-streak-fab{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);z-index:940;width:56px;height:56px;border-radius:50%;border:0;padding:0;background:#fff;box-shadow:0 6px 20px rgba(15,40,28,.2),0 0 0 1px rgba(15,40,28,.06);display:grid;place-items:center;cursor:pointer;transition:transform .35s cubic-bezier(.2,.9,.3,1.1),opacity .3s;-webkit-tap-highlight-color:transparent;font-family:inherit}
+@media(min-width:861px){#eco-streak-fab{bottom:28px;right:24px}}
+#eco-streak-fab.hide{transform:translateX(86px);opacity:0;pointer-events:none}
+#eco-streak-fab:active{transform:scale(.94)}
+#eco-streak-fab .f-ring{position:absolute;inset:0;width:100%;height:100%}
+#eco-streak-fab .bg{fill:none;stroke:#e6eee9;stroke-width:4}
+#eco-streak-fab .pg{fill:none;stroke:#f08a24;stroke-width:4;stroke-linecap:round;transition:stroke-dasharray .6s}
+#eco-streak-fab.tr-bronze .pg{stroke:#d98a43}#eco-streak-fab.tr-silver .pg{stroke:#8794a3}#eco-streak-fab.tr-gold .pg{stroke:#f0b429}#eco-streak-fab.tr-diamond .pg{stroke:#4cc9f0}
+#eco-streak-fab .f-in{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;gap:1px}
+#eco-streak-fab .f-fl{font-size:17px}
+#eco-streak-fab .f-in b{font-size:14px;font-weight:900;color:#0f172a}
+#eco-streak-fab.m-none,#eco-streak-fab.m-lost{opacity:.9}
+#eco-streak-fab.m-none .f-fl,#eco-streak-fab.m-lost .f-fl{filter:grayscale(1);opacity:.65}
+#eco-streak-fab.m-lost .pg,#eco-streak-fab.m-none .pg{stroke:#9fb3a8}
+#eco-streak-fab.m-badge{background:radial-gradient(circle at 50% 35%,#fff,#f6faf7)}
+#eco-streak-fab .eb{filter:none}
+#eco-streak-fab .f-dot{position:absolute;top:3px;right:3px;width:11px;height:11px;border-radius:50%;background:#f5a524;border:2px solid #fff}
+#eco-streak-fab.pulse{animation:ecoFabPulse 1.1s ease 2}
+@keyframes ecoFabPulse{0%{transform:scale(1)}30%{transform:scale(1.25)}60%{transform:scale(.95)}100%{transform:scale(1)}}
+/* pestaña inferior */
+#eco-streak-sheet{position:fixed;inset:0;z-index:1300;background:rgba(10,20,15,.45);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .25s}
+#eco-streak-sheet.on{opacity:1}
+#eco-streak-sheet .ss{width:min(100%,520px);max-height:88vh;overflow:auto;background:#fff;border-radius:26px 26px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.9,.3,1)}
+#eco-streak-sheet.on .ss{transform:none}
+.ss-grab{width:42px;height:5px;border-radius:99px;background:#d5ded9;margin:2px auto 12px}
+.ss-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.ss-hd>b{font-size:17px;color:var(--ink)}
+.ss-chip{padding:3px 10px;border-radius:99px;background:#eef2f0;color:#5c6a61;font-size:11px;font-weight:800}
+.ss-chip.on{background:#ffe9cc;color:#a85a00}
+.ss-x{margin-left:auto;border:0;background:#f1f4f2;width:30px;height:30px;border-radius:50%;font-size:13px;color:#5c6a61;cursor:pointer}
+.ss-big{display:flex;align-items:center;gap:14px;padding:14px;border-radius:18px;background:linear-gradient(135deg,#fff6ea,#ffefd9)}
+.ss-big>div:nth-child(2){flex:1}
+.ss-big b{display:block;font-size:26px;font-weight:900;color:var(--ink);line-height:1.05}.ss-big small{font-size:12px;color:var(--mut)}
+.ss-seed{width:64px;height:64px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:32px}
+.ss-rec{text-align:center;padding-left:14px;border-left:1px solid rgba(0,0,0,.08)}.ss-rec b{font-size:22px!important}
+.ss-dots{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:16px}
+.ss-dots .d{aspect-ratio:1;border-radius:50%;background:#eaf0ec;display:grid;place-items:center;font-size:12px;font-weight:800;color:#94a39b}
+.ss-dots .d.on{background:linear-gradient(135deg,#ffb74d,#f57c00);color:#fff}
+.ss-dots .d.ms{outline:2px solid #d9e3dd;outline-offset:2px}
+.ss-dots .d.ms.on{outline-color:#f5a524}
+.ss-dl{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:6px;font-size:9.5px;font-weight:800;text-align:center}
+.ss-dl span{color:#8a9992;text-transform:uppercase;letter-spacing:.04em}
+.ss-next{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:12px 14px;border-radius:14px;background:#f3f8f5}
+.ss-next small{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
+.ss-next b{display:block;font-size:14px;color:var(--ink);margin-top:2px}.ss-next em{display:block;font-style:normal;font-size:11px;color:#1c8053;font-weight:700;margin-top:2px}
+.ss-pc{text-align:right}.ss-pc b{font-size:13px}.ss-pc small{font-size:18px;font-weight:900;color:#105652;letter-spacing:0;text-transform:none}
+.ss-msg{margin:14px 2px 0;font-size:13px;line-height:1.5;color:#44544b}
+.ss-act{display:flex;gap:8px;margin-top:16px}.ss-act .btn{flex:1;justify-content:center;text-align:center}
+#eco-ach-pop{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);transform:translate(-50%,-140%);z-index:3100;width:min(92vw,380px);display:flex;gap:12px;align-items:center;padding:12px 15px;border-radius:20px;background:#0f382c;color:#fff;text-decoration:none;box-shadow:0 14px 40px rgba(0,0,0,.28);transition:transform .45s cubic-bezier(.2,.9,.3,1.2)}
 #eco-ach-pop.on{transform:translate(-50%,0)}
-#eco-ach-pop .ap-ic{font-size:34px;flex:none}
-#eco-ach-pop small{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#8fe0b3;font-weight:800}
+#eco-ach-pop .ap-ic{flex:none;line-height:0}
+#eco-ach-pop small{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#8fe0b3;font-weight:800}
 #eco-ach-pop b{display:block;font-size:15px;margin:2px 0}
-#eco-ach-pop span:not(.ap-ic){font-size:11.5px;color:#cfe6d8;line-height:1.35;display:block}
+#eco-ach-pop div>span{font-size:11.5px;color:#cfe6d8;line-height:1.35;display:block}
 </style>
 
 </head>
@@ -2794,7 +2876,7 @@ function render(){
   else if(backY)window.scrollTo(0,backY);
   if(path==='mapa')initMap();
   if(path==='reportar')initPickMap();
-  counters();ecoClampCheck();setTimeout(ecoClampCheck,350);try{ecoAchCheck();}catch(_){}
+  counters();ecoClampCheck();setTimeout(ecoClampCheck,350);try{ecoAchCheck();ecoFabSync();}catch(_){}
  });
 }
 function counters(){$$('[data-count]').forEach(el=>{const t=+el.dataset.count;let c=0;const s=Math.max(1,Math.round(t/36));const iv=setInterval(()=>{c+=s;if(c>=t){c=t;clearInterval(iv);}el.textContent=c.toLocaleString('es-MX');},28);});}
@@ -3260,30 +3342,89 @@ function renderPreviews(target){
  el.innerHTML=arr.map((p,i)=>`<div class="pv"><img src="${p}"><button type="button" data-del-photo="${target}:${i}">×</button></div>`).join('');
  el.querySelectorAll('[data-del-photo]').forEach(b=>b.onclick=()=>{const [t,i]=b.dataset.delPhoto.split(':');map[t][1].splice(+i,1);renderPreviews(t);});
 }
-/* ═════════ EcoNova · Logros, niveles, racha y Perfiles destacados del mes ═════════
+/* ═════════ EcoNova · Logros, insignias, racha y Perfiles destacados del mes ═════════
    Todo se calcula en vivo con los comentarios/publicaciones que ya existen (no necesita tablas nuevas).
    Anti-spam: solo cuentan comentarios de 6+ caracteres, sin repetir texto, y no los de una conversación contigo mismo. */
 const ECO_MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const ECO_MES3=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const ECO_TIERS={bronze:'Bronce',silver:'Plata',gold:'Oro',diamond:'Diamante',eco:'Eco'};
+/* tier = nivel de la insignia (bronce → plata → oro → diamante) · shape = forma de la medalla */
 const ECO_ACH=[
- {id:'first',ic:'🌱',n:'Primera voz',d:'Escribe tu primer comentario en la publicación de alguien más.',cat:'Conversación',m:'comments',goal:1,u:['comentario','comentarios']},
- {id:'c10',ic:'💬',n:'Conversador',d:'Escribe 10 comentarios.',cat:'Conversación',m:'comments',goal:10,u:['comentario','comentarios']},
- {id:'c50',ic:'🗣️',n:'Voz de la comunidad',d:'Escribe 50 comentarios.',cat:'Conversación',m:'comments',goal:50,u:['comentario','comentarios']},
- {id:'c150',ic:'🏆',n:'Líder de conversación',d:'Escribe 150 comentarios.',cat:'Conversación',m:'comments',goal:150,u:['comentario','comentarios']},
- {id:'reply5',ic:'🤝',n:'Buen vecino',d:'Responde a 5 comentarios de otras personas.',cat:'Comunidad',m:'replies',goal:5,u:['respuesta','respuestas']},
- {id:'posts10',ic:'🧭',n:'Curioso',d:'Comenta en 10 publicaciones distintas de otras personas.',cat:'Comunidad',m:'postsCommented',goal:10,u:['publicación distinta','publicaciones distintas']},
- {id:'long5',ic:'🧠',n:'Aportador',d:'Escribe 5 comentarios de 100 caracteres o más que aporten ideas.',cat:'Comunidad',m:'longs',goal:5,u:['comentario largo','comentarios largos']},
- {id:'streak3',ic:'🔥',n:'Racha de 3 días',d:'Comenta 3 días seguidos.',cat:'Constancia',m:'bestStreak',goal:3,u:['día seguido','días seguidos']},
- {id:'streak7',ic:'⚡',n:'Racha de 7 días',d:'Comenta 7 días seguidos.',cat:'Constancia',m:'bestStreak',goal:7,u:['día seguido','días seguidos']},
- {id:'likes10',ic:'💚',n:'Comentario querido',d:'Recibe 10 “me gusta” en tus comentarios.',cat:'Reconocimiento',m:'likesRecv',goal:10,u:['“me gusta”','“me gusta”']},
- {id:'star5',ic:'⭐',n:'Comentario estrella',d:'Logra que uno solo de tus comentarios reciba 5 “me gusta”.',cat:'Reconocimiento',m:'bestComment',goal:5,u:['“me gusta” en un mismo comentario','“me gusta” en un mismo comentario']},
- {id:'post1',ic:'📸',n:'Primera publicación',d:'Publica algo y que un moderador lo apruebe.',cat:'Reconocimiento',m:'posts',goal:1,u:['publicación aprobada','publicaciones aprobadas']}
+ {id:'first',ic:'🌱',n:'Primera voz',d:'Escribe tu primer comentario en la publicación de alguien más.',cat:'Conversación',m:'comments',goal:1,u:['comentario','comentarios'],tier:'bronze',shape:'circle'},
+ {id:'c10',ic:'💬',n:'Conversador',d:'Escribe 10 comentarios.',cat:'Conversación',m:'comments',goal:10,u:['comentario','comentarios'],tier:'silver',shape:'hex'},
+ {id:'c50',ic:'🗣️',n:'Voz de la comunidad',d:'Escribe 50 comentarios.',cat:'Conversación',m:'comments',goal:50,u:['comentario','comentarios'],tier:'gold',shape:'shield'},
+ {id:'c150',ic:'🏆',n:'Líder de conversación',d:'Escribe 150 comentarios.',cat:'Conversación',m:'comments',goal:150,u:['comentario','comentarios'],tier:'diamond',shape:'star'},
+ {id:'reply5',ic:'🤝',n:'Buen vecino',d:'Responde a 5 comentarios de otras personas.',cat:'Comunidad',m:'replies',goal:5,u:['respuesta','respuestas'],tier:'bronze',shape:'hex'},
+ {id:'posts10',ic:'🧭',n:'Curioso',d:'Comenta en 10 publicaciones distintas de otras personas.',cat:'Comunidad',m:'postsCommented',goal:10,u:['publicación distinta','publicaciones distintas'],tier:'silver',shape:'circle'},
+ {id:'long5',ic:'🧠',n:'Aportador',d:'Escribe 5 comentarios de 100 caracteres o más que aporten ideas.',cat:'Comunidad',m:'longs',goal:5,u:['comentario largo','comentarios largos'],tier:'silver',shape:'shield'},
+ {id:'streak3',ic:'🔥',n:'Racha de 3 días',d:'Comenta 3 días seguidos.',cat:'Constancia',m:'bestStreak',goal:3,u:['día seguido','días seguidos'],tier:'bronze',shape:'flame',num:3},
+ {id:'streak7',ic:'🔥',n:'Racha de 7 días',d:'Comenta 7 días seguidos. ¡Insignia especial!',cat:'Constancia',m:'bestStreak',goal:7,u:['día seguido','días seguidos'],tier:'silver',shape:'flame',num:7,special:true},
+ {id:'streak14',ic:'🔥',n:'Racha de 14 días',d:'Comenta 14 días seguidos.',cat:'Constancia',m:'bestStreak',goal:14,u:['día seguido','días seguidos'],tier:'gold',shape:'flame',num:14},
+ {id:'streak30',ic:'🔥',n:'Racha de 30 días',d:'Comenta 30 días seguidos. Solo para leyendas.',cat:'Constancia',m:'bestStreak',goal:30,u:['día seguido','días seguidos'],tier:'diamond',shape:'flame',num:30,special:true},
+ {id:'likes10',ic:'💚',n:'Comentario querido',d:'Recibe 10 “me gusta” en tus comentarios.',cat:'Reconocimiento',m:'likesRecv',goal:10,u:['“me gusta”','“me gusta”'],tier:'silver',shape:'heart'},
+ {id:'star5',ic:'✨',n:'Comentario estrella',d:'Logra que uno solo de tus comentarios reciba 5 “me gusta”.',cat:'Reconocimiento',m:'bestComment',goal:5,u:['“me gusta” en un mismo comentario','“me gusta” en un mismo comentario'],tier:'gold',shape:'star'},
+ {id:'post1',ic:'📸',n:'Primera publicación',d:'Publica algo y que un moderador lo apruebe.',cat:'Reconocimiento',m:'posts',goal:1,u:['publicación aprobada','publicaciones aprobadas'],tier:'eco',shape:'circle'}
 ];
 const ECO_LEVELS=[{n:'Semilla',ic:'🌱',min:0},{n:'Brote',ic:'🌿',min:25},{n:'Arbusto',ic:'🍀',min:80},{n:'Árbol',ic:'🌳',min:200},{n:'Bosque',ic:'🌲',min:450}];
-let ECO_VC=null,ECO_VC_AT=0;
+const ECO_STREAK_MS=[3,7,14,30];
+
+/* ── Insignias SVG (medallas con degradados, brillo y candado cuando están bloqueadas) ── */
+const ECO_GRAD={
+ bronze:['#f9cf9c','#dd9048','#a9561f','#ffe0b8','#8a4a1c','#7a3b10'],
+ silver:['#ffffff','#cdd7e1','#8794a3','#ffffff','#6b7886','#4b5866'],
+ gold:['#fff3ad','#f6c231','#d18a05','#fff6c4','#a8760a','#8a5a00'],
+ diamond:['#e3f9ff','#6fd3f5','#6a7bff','#f0fcff','#2f5fc4','#1f3f99'],
+ eco:['#c3f3d6','#47b57d','#12664a','#dcf9e9','#0f4a35','#0b3b2a'],
+ lock:['#f4f6f5','#e0e6e2','#c9d3cd','#ffffff','#b9c4be','#aab5af']
+};
+function ecoDefs(){
+ if(document.getElementById('eco-badge-defs'))return;
+ let h='<svg id="eco-badge-defs" width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true"><defs>';
+ Object.entries(ECO_GRAD).forEach(([k,c])=>{
+  h+=`<linearGradient id="ebf-${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset=".5" stop-color="${c[1]}"/><stop offset="1" stop-color="${c[2]}"/></linearGradient>`;
+  h+=`<linearGradient id="ebr-${k}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c[3]}"/><stop offset="1" stop-color="${c[4]}"/></linearGradient>`;
+ });
+ h+='<linearGradient id="ebg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs></svg>';
+ document.body.insertAdjacentHTML('beforeend',h);
+}
+const ECO_SHAPES={
+ hex:'M48 5 L84 26 L84 70 L48 91 L12 70 L12 26 Z',
+ shield:'M48 4 C60 11 74 14 87 14 C87 50 79 76 48 92 C17 76 9 50 9 14 C22 14 36 11 48 4 Z',
+ flame:'M48 4 C51 20 74 30 74 55 C74 76 63 91 48 91 C33 91 22 76 22 55 C22 45 27 38 34 32 C34 41 39 46 45 46 C41 31 43 15 48 4 Z',
+ heart:'M48 86 C20 64 9 48 9 33 C9 20 19 11 31 11 C39 11 45 15 48 21 C51 15 57 11 65 11 C77 11 87 20 87 33 C87 48 76 64 48 86 Z',
+ star:'M48 5 L60 33 L90 36 L67 56 L74 86 L48 70 L22 86 L29 56 L6 36 L36 33 Z'
+};
+const ECO_CY={circle:49,hex:48,shield:44,flame:62,heart:46,star:52};
+function ecoShapeEl(sh,attr){return sh==='circle'?`<circle cx="48" cy="48" r="41" ${attr}/>`:`<path d="${ECO_SHAPES[sh]||ECO_SHAPES.hex}" ${attr}/>`;}
+/* a: logro · done: desbloqueado · size: ancho en px · o.num: número a mostrar (racha actual) · o.tier: forzar nivel */
+function ecoBadge(a,done,size,o){
+ o=o||{};ecoDefs();
+ const t=done?(o.tier||a.tier):'lock',c=ECO_GRAD[t],sh=a.shape||'circle',cy=ECO_CY[sh]||48;
+ const num=o.num!=null?o.num:a.num,hasNum=num!=null&&sh==='flame';
+ const ribbon=sh==='circle'&&done?`<path d="M31 78 L22 98 L35 92 L41 100 L46 82 Z" fill="url(#ebf-${t})" stroke="${c[4]}" stroke-width="1.2" stroke-linejoin="round"/><path d="M65 78 L74 98 L61 92 L55 100 L50 82 Z" fill="url(#ebf-${t})" stroke="${c[4]}" stroke-width="1.2" stroke-linejoin="round"/>`:'';
+ const inner=`<g transform="translate(48 48) scale(.82) translate(-48 -48)">${ecoShapeEl(sh,`fill="none" stroke="#fff" stroke-opacity="${done?.55:.8}" stroke-width="2.2" stroke-linejoin="round"`)}</g>`;
+ const gloss=ecoShapeEl(sh,'fill="url(#ebg)" opacity="'+(done?.9:.5)+'" clip-path="inset(0 0 52% 0)" stroke="none"');
+ let center;
+ if(hasNum){const fs=String(num).length>1?30:36;center=`<text x="48" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-weight="900" font-size="${fs}" fill="${done?'#fff':c[5]}" ${done?`stroke="${c[5]}" stroke-width="3.2" paint-order="stroke" stroke-linejoin="round"`:''}>${num}</text>`;}
+ else{center=`<text x="48" y="${cy}" text-anchor="middle" dominant-baseline="central" font-size="${sh==='star'?26:sh==='shield'?30:34}" ${done?'':'opacity=".32" style="filter:grayscale(1)"'}>${a.ic}</text>`;}
+ const sparks=done&&(a.special||t==='diamond')?`<path class="eb-sp" d="M82 12 l2.2 6.3 6.3 2.2 -6.3 2.2 -2.2 6.3 -2.2 -6.3 -6.3 -2.2 6.3 -2.2z" fill="#fff6a8" stroke="#e0a312" stroke-width=".7"/><path class="eb-sp s2" d="M12 40 l1.6 4.4 4.4 1.6 -4.4 1.6 -1.6 4.4 -1.6 -4.4 -4.4 -1.6 4.4 -1.6z" fill="#fff6a8" stroke="#e0a312" stroke-width=".6"/>`:'';
+ const lock=done?'':`<g transform="translate(70 76)"><circle r="14" fill="#fff" stroke="#cfd8d3" stroke-width="2"/><rect x="-6" y="-2" width="12" height="9" rx="2" fill="#8d9a93"/><path d="M-4 -2 V-5 a4 4 0 0 1 8 0 V-2" fill="none" stroke="#8d9a93" stroke-width="2.2" stroke-linecap="round"/></g>`;
+ return`<svg class="eb ${done?'ok':'lk'} t-${t}" viewBox="0 0 96 102" width="${size}" height="${Math.round(size*102/96)}" role="img" aria-label="${esc(a.n)}${done?' (desbloqueada)':' (bloqueada)'}">${ribbon}${ecoShapeEl(sh,`fill="url(#ebf-${t})" stroke="url(#ebr-${t})" stroke-width="3.5" stroke-linejoin="round"`)}${inner}${gloss}${center}${sparks}${lock}</svg>`;
+}
+const ECO_NAMES_ACH=()=>ECO_ACH;
+function ecoStreakAch(n){const g=n>=30?30:n>=14?14:n>=7?7:3;return ECO_ACH.find(a=>a.id==='streak'+g);}
+function ecoStreakTier(n){return n>=30?'diamond':n>=14?'gold':n>=7?'silver':n>=3?'bronze':null;}
+function ecoStreakNext(n){return ECO_STREAK_MS.find(x=>x>n)||null;}
+
+/* ── Datos ── */
+let ECO_VC=null,ECO_VC_AT=0,ECO_VC_SIG='';
 function ecoDayIdx(t){const d=new Date(t);return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5);}
+function ecoFmt(ms){const d=new Date(ms);return d.getDate()+' '+ECO_MES3[d.getMonth()];}
+function ecoFmtDay(i){const d=new Date(i*864e5);return d.getUTCDate()+' '+ECO_MES3[d.getUTCMonth()];}
 function ecoTxt(c){try{return String(ecoCmParts(c.body).text||'').trim();}catch(_){return String(c.body||'').trim();}}
 function ecoValidComments(){
- if(ECO_VC&&Date.now()-ECO_VC_AT<400)return ECO_VC;
+ let sig=DB.posts.length+':';DB.posts.forEach(p=>{const c=Array.isArray(p.comments)?p.comments:[];sig+=c.length;c.forEach(x=>{sig+=(Array.isArray(x.likes)?x.likes.length:0);});sig+=p.status[0];});
+ if(ECO_VC&&sig===ECO_VC_SIG&&Date.now()-ECO_VC_AT<400)return ECO_VC;
  const out=[],seen=new Set();
  DB.posts.forEach(p=>{
   if(['REJECTED','REMOVED'].includes(p.status))return;
@@ -3297,28 +3438,36 @@ function ecoValidComments(){
    out.push({p,c,par,len:t.length});
   });
  });
- ECO_VC=out;ECO_VC_AT=Date.now();return out;
+ ECO_VC=out;ECO_VC_AT=Date.now();ECO_VC_SIG=sig;return out;
 }
 function ecoStats(uid){
- const vc=ecoValidComments().filter(x=>x.c.userId===uid);
- const days=new Set(),posts=new Set();let replies=0,longs=0,likes=0,best=0,lastAt=0;
+ const vc=ecoValidComments().filter(x=>x.c.userId===uid).sort((a,b)=>(a.c.at||0)-(b.c.at||0));
+ const days=new Set(),pc=new Set(),W={comments:[],replies:[],longs:[],postsCommented:[]};
+ let replies=0,longs=0,likes=0,best=0,lastAt=0;
  vc.forEach(({p,c,par,len})=>{
-  days.add(ecoDayIdx(c.at));if(p.userId!==uid)posts.add(p.id);
-  if(par&&par.userId!==uid)replies++;if(len>=100)longs++;
+  const at=c.at||0;days.add(ecoDayIdx(at));W.comments.push(at);
+  if(p.userId!==uid&&!pc.has(p.id)){pc.add(p.id);W.postsCommented.push(at);}
+  if(par&&par.userId!==uid){replies++;W.replies.push(at);}
+  if(len>=100){longs++;W.longs.push(at);}
   const lk=(Array.isArray(c.likes)?c.likes:[]).filter(x=>x!==uid).length;likes+=lk;if(lk>best)best=lk;
-  if((c.at||0)>lastAt)lastAt=c.at||0;
+  if(at>lastAt)lastAt=at;
  });
- const arr=[...days].sort((a,b)=>a-b);let bestStreak=0,run=0,prev=null;
- arr.forEach(d=>{run=(prev!==null&&d===prev+1)?run+1:1;if(run>bestStreak)bestStreak=run;prev=d;});
+ const arr=[...days].sort((a,b)=>a-b),runs=[];let bestStreak=0,run=0,prev=null,rs=0;
+ arr.forEach(d=>{if(prev!==null&&d===prev+1)run++;else{run=1;rs=d;runs.push({s:d,len:1});}runs[runs.length-1].len=run;if(run>bestStreak)bestStreak=run;prev=d;});
  const today=ecoDayIdx(Date.now());let streak=0;
  if(arr.length&&arr[arr.length-1]>=today-1){streak=1;for(let i=arr.length-1;i>0&&arr[i]-arr[i-1]===1;i--)streak++;}
- const nPosts=DB.posts.filter(p=>p.userId===uid&&!p.sharedFrom&&p.status==='APPROVED').length;
- return{comments:vc.length,replies,postsCommented:posts.size,longs,likesRecv:likes,bestComment:best,bestStreak,streak,
-  doneToday:!!(arr.length&&arr[arr.length-1]===today),posts:nPosts,points:vc.length*2+replies+likes+nPosts*5,lastAt};
+ const myPosts=DB.posts.filter(p=>p.userId===uid&&!p.sharedFrom&&p.status==='APPROVED').sort((a,b)=>(a.at||0)-(b.at||0));
+ W.posts=myPosts.map(p=>p.at||0);
+ return{comments:vc.length,replies,postsCommented:pc.size,longs,likesRecv:likes,bestComment:best,bestStreak,streak,
+  doneToday:!!(arr.length&&arr[arr.length-1]===today),posts:myPosts.length,points:vc.length*2+replies+likes+myPosts.length*5,lastAt,days:arr,runs,W,today};
+}
+function ecoWhen(a,s){
+ if(a.m==='bestStreak'){const r=s.runs.find(r=>r.len>=a.goal);return r?(r.s+a.goal-1)*864e5+432e5:null;}
+ const w=s.W[a.m];return w&&w[a.goal-1]?w[a.goal-1]:null;
 }
 function ecoAchList(uid){
  const s=ecoStats(uid);
- return{s,list:ECO_ACH.map(a=>{const raw=s[a.m]||0,v=Math.min(raw,a.goal);return Object.assign({},a,{v,done:raw>=a.goal,pct:Math.round(v/a.goal*100)});})};
+ return{s,list:ECO_ACH.map(a=>{const raw=s[a.m]||0,v=Math.min(raw,a.goal),done=raw>=a.goal;return Object.assign({},a,{v,done,pct:Math.round(v/a.goal*100),when:done?ecoWhen(a,s):null});})};
 }
 function ecoLevel(pts){
  let i=0;ECO_LEVELS.forEach((l,k)=>{if(pts>=l.min)i=k;});
@@ -3342,23 +3491,23 @@ function ecoBoard(off){
 }
 function ecoFeaturedBadge(u){
  try{
-  const prev=ecoBoard(-1).rows.slice(0,3).findIndex(r=>r.u.id===u.id);
-  if(prev>=0)return`<span class="eco-fbadge" title="Perfil destacado del mes pasado">🌟 Destacado de ${ECO_MESES[ecoBoard(-1).m]}</span>`;
-  const cur=ecoBoard(0).rows.slice(0,3).findIndex(r=>r.u.id===u.id);
-  if(cur>=0)return`<span class="eco-fbadge soft" title="Está en el top 3 de este mes">⭐ Top del mes</span>`;
+  const pb=ecoBoard(-1);
+  if(pb.rows.slice(0,3).some(r=>r.u.id===u.id))return`<span class="eco-fbadge" title="Perfil destacado del mes pasado">🌟 Destacado de ${pb.mes}</span>`;
+  if(ecoBoard(0).rows.slice(0,3).some(r=>r.u.id===u.id))return`<span class="eco-fbadge soft" title="Está en el top 3 de este mes">⭐ Top del mes</span>`;
  }catch(_){}
  return'';
 }
 function ecoNextGoal(list){return list.filter(a=>!a.done).sort((a,b)=>b.pct-a.pct||a.goal-b.goal)[0]||null;}
 function ecoRemain(a){const r=a.goal-a.v;return`Te ${r===1?'falta 1':'faltan '+r} ${r===1?a.u[0]:a.u[1]}`;}
+const ecoPl=(n,a,b)=>n===1?a:b;
+
+/* ── Tarjeta compacta en el feed (la racha vive en el círculo flotante) ── */
 function ecoEngageCard(){
  const u=sess();if(!u)return'';
  try{
-  const{s,list}=ecoAchList(u.id),lv=ecoLevel(s.points),b=ecoBoard(0),next=ecoNextGoal(list),top=b.rows.slice(0,5);
-  const st=s.streak>0?`🔥 Racha de ${s.streak} día${s.streak>1?'s':''}${s.doneToday?' · ¡hoy ya comentaste!':' · comenta hoy para mantenerla'}`:'Comenta hoy y empieza tu racha 🔥';
+  const{s}=ecoAchList(u.id),lv=ecoLevel(s.points),b=ecoBoard(0),top=b.rows.slice(0,5);
   return`<section class="eco-eng">
-   <a class="eco-eng-top" href="#/logros"><span class="eco-eng-lv">${lv.cur.ic}</span><div class="eco-eng-info"><b>Nivel ${lv.cur.n} · ${s.points} pts</b><div class="eco-bar"><i style="width:${lv.pct}%"></i></div><small>${st}</small></div><span class="eco-eng-go">›</span></a>
-   ${next?`<a class="eco-eng-next" href="#/logros"><span class="e">${next.ic}</span><div><b>Siguiente logro: ${esc(next.n)}</b><small>${ecoRemain(next)}</small></div></a>`:''}
+   <a class="eco-eng-top" href="#/logros"><span class="eco-eng-lv">${lv.cur.ic}</span><div class="eco-eng-info"><b>Nivel ${lv.cur.n} · ${s.points} pts</b><div class="eco-bar"><i style="width:${lv.pct}%"></i></div></div><span class="eco-eng-go">›</span></a>
    ${top.length?`<div class="eco-eng-feat"><b>🏆 Destacados de ${b.mes}</b><div class="eco-eng-av">${top.map((r,i)=>`<a href="#/perfil/${r.u.id}" title="${esc(r.u.name)} · ${r.pts} pts">${avatar(r.u,34,12)}<em>${i+1}</em></a>`).join('')}<a class="eco-eng-more" href="#/logros">Ver todos</a></div></div>`:''}
   </section>`;
  }catch(e){return'';}
@@ -3369,11 +3518,38 @@ function ecoFeaturedCard(){
   return`<div class="card"><h4>🏆 Destacados de ${b.mes}</h4>${top.map((r,i)=>`<div class="sug-row">${avatar(r.u,34,12)}<div class="info"><b><a href="#/perfil/${r.u.id}">${esc(r.u.name)}</a></b><span>${['🥇','🥈','🥉'][i]} ${r.pts} pts</span></div></div>`).join('')||'<p class="sm mut">Sé el primero: comenta con ideas y suma puntos.</p>'}<a class="btn btn-ghost btn-block btn-sm mt1" href="#/logros">Ver logros</a></div>`;
  }catch(e){return'';}
 }
-function ecoProfileAch(u){
- const{s,list}=ecoAchList(u.id),lv=ecoLevel(s.points),got=list.filter(a=>a.done),me=sess()&&sess().id===u.id;
- return`<div class="eco-pa"><div class="eco-pa-hd"><span class="lv">${lv.cur.ic}</span><div><b>Nivel ${lv.cur.n}</b><small>${s.points} puntos · ${got.length}/${list.length} logros${s.streak>0?' · 🔥 '+s.streak+' día'+(s.streak>1?'s':'')+' de racha':''}</small></div>${me?'<a class="btn btn-ghost btn-sm" href="#/logros">Ver todos</a>':''}</div>
-  ${got.length?`<div class="eco-pa-grid">${got.map(a=>`<div class="eco-pa-it" title="${esc(a.d)}"><span>${a.ic}</span><b>${esc(a.n)}</b></div>`).join('')}</div>`:`<p class="sm mut" style="padding:14px 4px">${me?'Aún no tienes logros. Escribe tu primer comentario para desbloquear el primero 🌱':'Todavía no tiene logros.'}</p>`}</div>`;
+
+/* ── Historial: últimos 14 días, rachas pasadas y línea de tiempo de insignias ── */
+function ecoHistoryHTML(s,list){
+ const set=new Set(s.days),t=s.today,cells=[];
+ for(let i=13;i>=0;i--){const d=t-i,on=set.has(d),dt=new Date(d*864e5);cells.push(`<span class="hd ${on?'on':''} ${i===0?'now':''}" title="${ecoFmtDay(d)}"><i>${dt.getUTCDate()}</i></span>`);}
+ const runs=s.runs.filter(r=>r.len>=2).slice(-4).reverse();
+ const tl=list.filter(a=>a.done&&a.when).sort((a,b)=>b.when-a.when).slice(0,6);
+ return`<div class="eco-hist"><h4>Historial de avances</h4>
+  <div class="hd-wrap"><div class="hd-row">${cells.join('')}</div><small>Últimos 14 días · los días con color son días en que comentaste</small></div>
+  ${runs.length?`<div class="hd-runs">${runs.map(r=>`<div><span>🔥</span><b>${r.len} días seguidos</b><em>${ecoFmtDay(r.s)} – ${ecoFmtDay(r.s+r.len-1)}</em></div>`).join('')}</div>`:''}
+  ${tl.length?`<div class="hd-tl">${tl.map(a=>`<div>${ecoBadge(a,true,34)}<b>${esc(a.n)}</b><em>${ecoFmt(a.when)}</em></div>`).join('')}</div>`:'<p class="sm mut" style="margin:10px 2px 0">Cuando desbloquees insignias, aparecerán aquí con su fecha.</p>'}
+ </div>`;
 }
+
+/* ── Perfil: sistema completo de logros ── */
+function ecoProfileAch(u){
+ const{s,list}=ecoAchList(u.id),lv=ecoLevel(s.points),got=list.filter(a=>a.done),me=sess()&&sess().id===u.id,next=ecoNextGoal(list);
+ return`<div class="eco-pa">
+  <div class="eco-pa-hd"><span class="lv">${lv.cur.ic}</span><div><b>Nivel ${lv.cur.n}</b><small>${s.points} puntos</small></div>${me?'<a class="btn btn-ghost btn-sm" href="#/logros">Todos los logros</a>':''}</div>
+  <div class="eco-pa-stats">
+   <div><span>🔥</span><b>${s.streak}</b><small>Racha actual</small></div>
+   <div><span>🏅</span><b>${s.bestStreak}</b><small>Récord personal</small></div>
+   <div><span>🎖️</span><b>${got.length}/${list.length}</b><small>Insignias</small></div>
+  </div>
+  <h4 class="eco-sec">Insignias desbloqueadas</h4>
+  ${got.length?`<div class="eco-pa-grid">${got.map(a=>`<div class="eco-pa-it" title="${esc(a.d)}">${ecoBadge(a,true,58)}<b>${esc(a.n)}</b><small>${ECO_TIERS[a.tier]}</small></div>`).join('')}</div>`:`<p class="sm mut" style="padding:6px 2px">${me?'Aún no tienes insignias. Escribe tu primer comentario para desbloquear la primera 🌱':'Todavía no tiene insignias.'}</p>`}
+  ${me&&next?`<h4 class="eco-sec">Próxima insignia</h4><div class="eco-next">${ecoBadge(next,false,64)}<div><b>${esc(next.n)}</b><small>${esc(next.d)}</small><div class="eco-bar"><i style="width:${next.pct}%"></i></div><em>${next.v}/${next.goal} · ${ecoRemain(next)}</em></div></div>`:''}
+  ${ecoHistoryHTML(s,list)}
+ </div>`;
+}
+
+/* ── Página de logros (todas las insignias) ── */
 function viewLogros(){
  const u=sess();if(!u)return'';
  const{s,list}=ecoAchList(u.id),lv=ecoLevel(s.points),b=ecoBoard(0),prev=ecoBoard(-1),next=ecoNextGoal(list);
@@ -3381,43 +3557,120 @@ function viewLogros(){
  const done=list.filter(a=>a.done).length,rows=b.rows,meIdx=rows.findIndex(r=>r.u.id===u.id);
  const meTxt=meIdx>=0?(meIdx<3?`¡Estás en el top 3 de ${b.mes}! Sigue comentando para mantener tu lugar.`:`Vas en el lugar #${meIdx+1} con ${rows[meIdx].pts} pts. Te faltan ${rows[2].pts-rows[meIdx].pts+1} pts para entrar al top 3.`):`Aún no sumas puntos este mes. Un comentario con ideas te mete a la lista 🌱`;
  const cats=[...new Set(ECO_ACH.map(a=>a.cat))];
- const tile=a=>`<div class="eco-ach-it ${a.done?'ok':''}"><span class="ic">${a.ic}</span><b>${esc(a.n)}</b><small>${esc(a.d)}</small>${a.done?'<em class="ok">✓ Desbloqueado</em>':`<div class="eco-bar"><i style="width:${a.pct}%"></i></div><em>${a.v}/${a.goal} · ${ecoRemain(a)}</em>`}</div>`;
+ const tile=a=>`<div class="eco-ach-it ${a.done?'ok':''}">${ecoBadge(a,a.done,70)}<b>${esc(a.n)}</b><span class="tier t-${a.tier}">${ECO_TIERS[a.tier]}</span><small>${esc(a.d)}</small>${a.done?`<em class="ok">✓ Desbloqueada${a.when?' · '+ecoFmt(a.when):''}</em>`:`<div class="eco-bar"><i style="width:${a.pct}%"></i></div><em>${a.v}/${a.goal} · ${ecoRemain(a)}</em>`}</div>`;
  const podium=`<div class="eco-podium">${[1,0,2].map(i=>{const r=rows[i];if(!r)return'<div class="pd pd-empty"></div>';return`<a class="pd pd-${i+1}" href="#/perfil/${r.u.id}"><span class="medal">${['🥇','🥈','🥉'][i]}</span>${avatar(r.u,i===0?72:58,i===0?24:19)}<b>${esc(r.u.name)}</b><small>${r.pts} pts</small></a>`;}).join('')}</div>`;
  return`<div class="eco-ach">
   <div class="page-head" style="padding-top:6px"><span class="kicker">Tu progreso</span><h1>Logros</h1><p class="mut">Comenta con ideas, responde a otras personas y sube de nivel. Cada mes, los perfiles con más aportes se destacan en la comunidad.</p></div>
   <div class="card pad eco-sum">
-   <div class="eco-sum-top"><span class="eco-eng-lv big">${lv.cur.ic}</span><div class="eco-eng-info"><b>Nivel ${lv.cur.n}</b><small>${s.points} puntos · ${done}/${list.length} logros</small></div></div>
+   <div class="eco-sum-top"><span class="eco-eng-lv big">${lv.cur.ic}</span><div class="eco-eng-info"><b>Nivel ${lv.cur.n}</b><small>${s.points} puntos · ${done}/${list.length} insignias</small></div></div>
    <div class="eco-bar mt2"><i style="width:${lv.pct}%"></i></div>
    <small class="mut" style="display:block;margin-top:6px">${lv.nxt?`${lv.nxt.min-s.points} pts para ser ${lv.nxt.ic} ${lv.nxt.n}`:'¡Nivel máximo! Eres un Bosque 🌲'}</small>
-   <div class="eco-streak ${s.streak>0?'on':''}"><span>🔥</span><div><b>${s.streak>0?`Racha de ${s.streak} día${s.streak>1?'s':''}`:'Sin racha todavía'}</b><small>${s.doneToday?'Hoy ya sumaste. ¡Vuelve mañana para seguir!':s.streak>0?'Comenta hoy para no perder tu racha.':'Comenta hoy para empezarla.'}</small></div></div>
+   <div class="eco-streak ${s.streak>0?'on':''}"><span>🔥</span><div><b>${s.streak>0?`Racha de ${s.streak} ${ecoPl(s.streak,'día','días')}`:'Sin racha todavía'} · Récord ${s.bestStreak}</b><small>${s.doneToday?'Hoy ya sumaste. ¡Vuelve mañana para seguir!':s.streak>0?'Comenta hoy para no perder tu racha.':'Comenta hoy para empezarla.'}</small></div></div>
    ${next?`<div class="eco-eng-next"><span class="e">${next.ic}</span><div><b>Tu siguiente meta: ${esc(next.n)}</b><small>${ecoRemain(next)}</small></div></div>`:''}
   </div>
   <div class="card pad mt2 eco-feat">
    <h3>🏆 Perfiles destacados de ${b.mes}</h3>
-   <p class="xs mut">${left>0?`Faltan ${left} día${left>1?'s':''} para cerrar el mes. `:'Hoy cierra el mes. '}Los 3 primeros reciben la insignia 🌟 todo el mes siguiente.</p>
+   <p class="xs mut">${left>0?`Faltan ${left} ${ecoPl(left,'día','días')} para cerrar el mes. `:'Hoy cierra el mes. '}Los 3 primeros reciben la insignia 🌟 todo el mes siguiente.</p>
    ${rows.length?podium:'<p class="sm mut" style="padding:12px 0">Todavía nadie suma puntos este mes. ¡Puedes ser la primera persona en la lista!</p>'}
    ${rows.slice(3,10).map((r,i)=>`<a class="eco-rk" href="#/perfil/${r.u.id}"><span class="n">${i+4}</span>${avatar(r.u,32,11)}<b>${esc(r.u.name)}</b><em>${r.pts} pts</em></a>`).join('')}
    <div class="eco-me">${meTxt}</div>
    ${prev.rows.length?`<div class="eco-prev"><b>🌟 Destacados de ${prev.mes}</b><div>${prev.rows.slice(0,3).map(r=>`<a href="#/perfil/${r.u.id}">${avatar(r.u,26,10)}<span>${esc(r.u.name.split(' ')[0])}</span></a>`).join('')}</div></div>`:''}
   </div>
+  <div class="eco-tiers"><span class="t-bronze">Bronce</span><i>›</i><span class="t-silver">Plata</span><i>›</i><span class="t-gold">Oro</span><i>›</i><span class="t-diamond">Diamante</span></div>
   ${cats.map(c=>`<h3 class="eco-ach-cat">${c}</h3><div class="eco-ach-grid">${list.filter(a=>a.cat===c).map(tile).join('')}</div>`).join('')}
   <div class="card pad mt2 eco-how"><h3>¿Cómo se suman puntos?</h3>
    <div class="r"><span>💬 Comentario con ideas (6+ caracteres)</span><b>+2</b></div>
    <div class="r"><span>🤝 Responder a otra persona</span><b>+1 extra</b></div>
    <div class="r"><span>💚 “Me gusta” que recibe tu comentario</span><b>+1</b></div>
    <div class="r"><span>📸 Publicación aprobada</span><b>+5</b></div>
-   <p class="xs mut" style="margin-top:8px">No suman los comentarios repetidos, muy cortos ni las conversaciones contigo mismo. Máximo 10 comentarios puntuados por día.</p>
+   <p class="xs mut" style="margin-top:8px">No suman los comentarios repetidos, muy cortos ni las conversaciones contigo mismo. Máximo 10 comentarios puntuados por día en el ranking del mes.</p>
   </div>
  </div>`;
 }
+
+/* ── Círculo flotante de racha (solo en el feed) + pestaña inferior "Tu progreso" ── */
+let ECO_FAB_HIDE=false;
+function ecoFabHTML(s){
+ const n=s.streak,rec=s.bestStreak,tier=ecoStreakTier(n),nx=ecoStreakNext(n),R=25,C=2*Math.PI*R;
+ const pct=nx?Math.min(1,n/nx):1,dash=(pct*C).toFixed(1);
+ let mode,inner,label;
+ if(n>=3){mode='badge';inner=ecoBadge(ecoStreakAch(n),true,36,{num:n,tier});label=`Racha de ${n} días`;}
+ else if(n>=1){mode='days';inner=`<span class="f-fl">🔥</span><b>${n}</b>`;label=`Racha de ${n} ${ecoPl(n,'día','días')}`;}
+ else if(rec>0){mode='lost';inner=`<span class="f-fl">🏅</span><b>${rec}</b>`;label=`Tu récord es de ${rec} días`;}
+ else{mode='none';inner='<span class="f-fl">🌱</span>';label='Empieza tu racha';}
+ return`<button type="button" id="eco-streak-fab" class="m-${mode} ${tier?'tr-'+tier:''} ${s.doneToday?'done':''} ${ECO_FAB_HIDE?'hide':''}" aria-label="${label}. Ver mi progreso" title="${label}"><svg class="f-ring" viewBox="0 0 56 56" aria-hidden="true"><circle class="bg" cx="28" cy="28" r="${R}"/><circle class="pg" ${pct>0?'':'style="opacity:0" '}cx="28" cy="28" r="${R}" stroke-dasharray="${dash} ${C.toFixed(1)}" transform="rotate(-90 28 28)"/></svg><span class="f-in">${inner}</span>${n>0&&!s.doneToday?'<i class="f-dot"></i>':''}</button>`;
+}
+function ecoFabSync(pulse){
+ const u=sess(),h=location.hash||'#/',home=(h==='#/'||h==='#'||h==='');
+ let el=document.getElementById('eco-streak-fab');
+ if(!u||!home){if(el)el.remove();return;}
+ const html=ecoFabHTML(ecoStats(u.id));
+ if(el)el.outerHTML=html;else document.body.insertAdjacentHTML('beforeend',html);
+ if(pulse){el=document.getElementById('eco-streak-fab');if(el){el.classList.remove('hide');ECO_FAB_HIDE=false;el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');}}
+}
+function ecoStreakSheetHTML(u){
+ const{s,list}=ecoAchList(u.id),n=s.streak,rec=s.bestStreak,nx=ecoStreakNext(n),tier=ecoStreakTier(n);
+ const chip=n>0?'<span class="ss-chip on">En curso</span>':rec>0?'<span class="ss-chip">En pausa</span>':'<span class="ss-chip">Por empezar</span>';
+ const bd=n>=3?ecoBadge(ecoStreakAch(n),true,64,{num:n,tier}):`<span class="ss-seed">${n>0?'🔥':rec>0?'🏅':'🌱'}</span>`;
+ let track='';
+ if(nx&&nx<=7){track=`<div class="ss-dots">${[1,2,3,4,5,6,7].map(i=>`<span class="d ${i<=n?'on':''} ${i===3||i===7?'ms':''}">${i<=n?'✓':i}</span>`).join('')}</div><div class="ss-dl"><span style="grid-column:3">Bronce</span><span style="grid-column:7">Plata</span></div>`;}
+ else if(nx){track=`<div class="eco-bar"><i style="width:${Math.min(100,Math.round(n/nx*100))}%"></i></div>`;}
+ const pct=nx?Math.min(100,Math.round(n/nx*100)):100;
+ const nxA=nx?ECO_ACH.find(a=>a.id==='streak'+nx):null;
+ const was=nx&&rec>=nx;
+ let msg;
+ if(n===0&&rec>0)msg=`Tu récord es de ${rec} ${ecoPl(rec,'día','días')}. Cada día cuenta: comenta hoy y empieza una nueva racha. 💚`;
+ else if(n===0)msg='Escribe un comentario con ideas hoy y enciende tu primera racha.';
+ else if(!nx)msg='¡Racha legendaria! Eres de las personas más constantes de EcoNova. 🌲';
+ else if(s.doneToday)msg=`¡Hoy ya sumaste! Vuelve mañana para llegar a ${nx} días.`;
+ else msg='Continúa participando: comenta hoy para seguir tu racha.';
+ return`<div class="ss" role="dialog" aria-label="Tu progreso"><div class="ss-grab"></div>
+  <div class="ss-hd"><b>Tu progreso</b>${chip}<button type="button" class="ss-x" data-ss-close aria-label="Cerrar">✕</button></div>
+  <div class="ss-big">${bd}<div><b>${n} ${ecoPl(n,'día','días')}</b><small>Racha actual</small></div><div class="ss-rec"><b>${rec}</b><small>Récord</small></div></div>
+  ${track}
+  ${nx?`<div class="ss-next"><div><small>Siguiente logro</small><b>${nxA?esc(nxA.n):'Racha de '+nx+' días'}</b>${was?'<em>Ya la tienes desbloqueada ✓</em>':''}</div><div class="ss-pc"><b>${n} de ${nx} días</b><small>${pct}%</small></div></div>`:''}
+  <p class="ss-msg">${msg}</p>
+  <div class="ss-act"><a class="btn btn-green" href="#/perfil/${u.id}" onclick="profTab='logros';ecoStreakClose()">Ver mi perfil</a><a class="btn btn-ghost" href="#/logros" onclick="ecoStreakClose()">Todos los logros</a></div>
+ </div>`;
+}
+function ecoStreakOpen(){
+ const u=sess();if(!u)return;ecoStreakClose(true);
+ const e=document.createElement('div');e.id='eco-streak-sheet';e.innerHTML=ecoStreakSheetHTML(u);
+ document.body.appendChild(e);requestAnimationFrame(()=>e.classList.add('on'));
+ e.addEventListener('click',ev=>{if(ev.target===e)ecoStreakClose();});
+ const ss=e.querySelector('.ss');let y0=null;
+ ss.addEventListener('touchstart',ev=>{y0=ss.scrollTop<=0?ev.touches[0].clientY:null;},{passive:true});
+ ss.addEventListener('touchmove',ev=>{if(y0==null)return;const d=ev.touches[0].clientY-y0;if(d>0){ss.style.transition='none';ss.style.transform='translateY('+d+'px)';}},{passive:true});
+ ss.addEventListener('touchend',ev=>{if(y0==null)return;const d=ev.changedTouches[0].clientY-y0;y0=null;ss.style.transition='';ss.style.transform='';if(d>100)ecoStreakClose();},{passive:true});
+ try{ecoHaptic();}catch(_){}
+}
+function ecoStreakClose(now){
+ const e=document.getElementById('eco-streak-sheet');if(!e)return;
+ if(now){e.remove();return;}
+ e.classList.remove('on');setTimeout(()=>e.remove(),300);
+}
+document.addEventListener('click',e=>{
+ if(e.target.closest&&e.target.closest('#eco-streak-fab')){e.preventDefault();e.stopPropagation();ecoStreakOpen();return;}
+ if(e.target.closest&&e.target.closest('[data-ss-close]'))ecoStreakClose();
+},true);
+addEventListener('hashchange',()=>ecoStreakClose(true));
+(function(){let ly=0;addEventListener('scroll',()=>{const f=document.getElementById('eco-streak-fab');if(!f)return;const y=window.scrollY||0;
+ if(y>ly+10&&y>140){f.classList.add('hide');ECO_FAB_HIDE=true;}else if(y<ly-6||y<80){f.classList.remove('hide');ECO_FAB_HIDE=false;}ly=y;},{passive:true});})();
+/* al publicar un comentario desde la hoja de comentarios no se repinta el feed: refrescamos el círculo y revisamos logros */
+document.addEventListener('submit',e=>{
+ const f=e.target;if(f&&f.matches&&f.matches('[data-form="cmt"]'))setTimeout(()=>{try{ecoFabSync();ecoAchCheck();}catch(_){}},450);
+});
+
+/* ── Celebración al desbloquear ── */
 function ecoAchPop(a){
  const old=document.getElementById('eco-ach-pop');if(old)old.remove();
  const e=document.createElement('a');e.id='eco-ach-pop';e.href='#/logros';
- e.innerHTML=`<span class="ap-ic">${a.ic}</span><div><small>¡Logro desbloqueado!</small><b>${esc(a.n)}</b><span>${esc(a.d)}</span></div>`;
+ e.innerHTML=`<span class="ap-ic">${ecoBadge(a,true,56)}</span><div><small>¡Insignia ${ECO_TIERS[a.tier].toLowerCase()} desbloqueada!</small><b>${esc(a.n)}</b><span>${esc(a.d)}</span></div>`;
  document.body.appendChild(e);requestAnimationFrame(()=>e.classList.add('on'));
  try{ecoHaptic();}catch(_){}
  ['🎉','✨','💚','🌟','🎊','✨'].forEach((em,i)=>{const t=document.createElement('span');t.className='eco-burst';t.textContent=em;t.style.cssText='left:'+(innerWidth/2-10+(i-2.5)*34)+'px;top:80px;--dx:'+((i-2.5)*14)+'px;animation-delay:'+(i*60)+'ms;font-size:22px';document.body.appendChild(t);setTimeout(()=>t.remove(),1100);});
  try{if(window.EcoAV)EcoAV.mood('emocionado',2800);}catch(_){}
+ try{ecoFabSync(true);}catch(_){}
  setTimeout(()=>{e.classList.remove('on');setTimeout(()=>e.remove(),400);},4800);
 }
 function ecoAchCheck(){
@@ -4361,7 +4614,7 @@ var MapX=(()=>{
  // Pull-to-refresh para móvil/PWA: solo inicia cuando el feed está arriba del todo.
  window.addEventListener('touchstart',function(e){
   startY=0;pullActive=false;pullDistance=0;
-  if(e.target&&e.target.closest&&e.target.closest('#eav-chat,#eav-bub,#eco-sheet,#eco-viewer,#modal.open,#eco-ach-pop'))return; // deslizar dentro del chat de Eco / hojas no es "tirar para actualizar"
+  if(e.target&&e.target.closest&&e.target.closest('#eav-chat,#eav-bub,#eco-sheet,#eco-viewer,#modal.open,#eco-ach-pop,#eco-streak-sheet,#eco-streak-fab'))return; // deslizar dentro del chat de Eco / hojas no es "tirar para actualizar"
   if(!isHome()||window.scrollY>3||!e.touches||!e.touches.length)return;
   startY=e.touches[0].clientY;
  },{passive:true});
