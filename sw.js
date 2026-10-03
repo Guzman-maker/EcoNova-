@@ -1,17 +1,35 @@
-/* EcoNova · Service worker (notificaciones push)
-   IMPORTANTE: sube SIEMPRE sw.js junto con index.html (y los icon-*.png).
-   Si un despliegue deja sin sw.js al sitio, el navegador da de baja el service worker
-   y los usuarios dejan de recibir push con la app cerrada. */
+/* EcoNova · Service worker (notificaciones push + caché de imágenes)
+   IMPORTANTE: sube SIEMPRE sw.js junto con index.html, la carpeta assets/ y los icon-*.png. */
 const VAPID_PUBLIC = 'BCNvt9EYFTcxvXW7lWBLBhBsQHzXq787uBBNkqyuBajCUSudYqLAe6LUFy93_VdhzmxNIK5HONPHikSV4CIyv7c';
+const IMG_CACHE = 'eco-img-v1';
 
 self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(ks => Promise.all(ks.map(k => caches.delete(k))))
+      .then(ks => Promise.all(ks.filter(k => k !== IMG_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+/* Imágenes de la app (assets/) y de Supabase Storage: primero caché, así cargan al instante y sin trabarse. */
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const u = new URL(req.url);
+  const isImg = /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(u.pathname);
+  const ours = u.pathname.includes('/assets/') || u.pathname.includes('/storage/v1/object/public/');
+  if (!(isImg && ours)) return;
+  e.respondWith(caches.open(IMG_CACHE).then(async c => {
+    const hit = await c.match(req);
+    if (hit) return hit;
+    try {
+      const res = await fetch(req);
+      if (res && (res.ok || res.type === 'opaque')) c.put(req, res.clone()).catch(() => {});
+      return res;
+    } catch (err) { return hit || Response.error(); }
+  }));
 });
 
 function b64ToBytes(b64) {
@@ -34,8 +52,6 @@ self.addEventListener('push', e => {
   }));
 });
 
-/* El navegador puede rotar/expirar la suscripción (p. ej. tras actualizar la app o el sistema).
-   Se vuelve a crear aquí y se avisa a la app para que la guarde de nuevo en la base de datos. */
 self.addEventListener('pushsubscriptionchange', e => {
   e.waitUntil((async () => {
     try {
