@@ -1227,7 +1227,15 @@ body.auth-route .eav.morph::after{display:none!important}
 .eco-streak.on{background:linear-gradient(135deg,#fff3e0,#ffe8cc);filter:none;opacity:1}
 .eco-streak>span{font-size:26px}.eco-streak b{font-size:14px;display:block;color:var(--ink)}.eco-streak small{font-size:12px;color:var(--mut)}
 .eco-feat h3{font-size:18px;margin:0 0 4px}
-.eco-podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:8px;align-items:end;margin:14px 0 10px}
+.eco-podium{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:4px 2px 8px;margin:14px -2px 4px;align-items:stretch}
+.eco-podium::-webkit-scrollbar{display:none}
+.eco-podium .pd{flex:0 0 40%;min-width:128px;max-width:190px;justify-content:center;scroll-snap-align:start}
+.eco-podium .pd-empty{background:#f6f8f6;border:1.5px dashed var(--line2);color:var(--mut)}
+.eco-podium .pd-slot{font-weight:700;font-size:12.5px;margin-top:20px}
+.eco-hint{text-align:center;font-size:11.5px;color:var(--mut);margin:0 0 10px}
+.eco-me{border-radius:14px;padding:12px 14px;background:#f3f8f5;font-size:14px;line-height:1.5;margin-top:6px}
+.eco-me.out{background:#fff;border:1.5px dashed var(--line2)}
+.eco-me .row{display:flex;align-items:center;gap:10px;margin-bottom:8px}.eco-me .row b{font-size:15px}.eco-me .row em{margin-left:auto;font-style:normal;font-weight:800;color:var(--mut)}
 .eco-podium .pd{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;border-radius:16px;background:#f3f8f5;text-decoration:none;color:inherit;text-align:center;min-width:0}
 .eco-podium .pd-1{background:linear-gradient(180deg,#fff6d6,#ffeaa3);padding-top:16px;padding-bottom:16px}
 .eco-podium .pd-empty{background:none}
@@ -3558,10 +3566,21 @@ function viewLogros(){
  const{s,list}=ecoAchList(u.id),lv=ecoLevel(s.points),b=ecoBoard(0),prev=ecoBoard(-1),next=ecoNextGoal(list);
  const now=new Date(),left=new Date(b.y,b.m+1,0).getDate()-now.getDate();
  const done=list.filter(a=>a.done).length,rows=b.rows,meIdx=rows.findIndex(r=>r.u.id===u.id);
- const T=ECO_BOARD_TOP,meTxt=meIdx>=0?(meIdx<T?`¡Estás en el Top ${T} de ${b.mes}, lugar #${meIdx+1}! ${rows[meIdx+1]?`Tu perseguidor está a ${rows[meIdx].pts-rows[meIdx+1].pts} pts: sigue comentando para defender tu lugar.`:'Sigue sumando para mantenerte arriba.'}${meIdx>0?` Para subir al #${meIdx} te faltan ${rows[meIdx-1].pts-rows[meIdx].pts+1} pts.`:' ¡Vas liderando!'}`:`Vas en el lugar #${meIdx+1} con ${rows[meIdx].pts} pts. Te faltan ${rows[T-1].pts-rows[meIdx].pts+1} pts para entrar al Top ${T}.`):`Aún no sumas puntos este mes. Un comentario con ideas te mete a la lista 🌱`;
+ const T=ECO_BOARD_TOP,me1=meIdx>=0?rows[meIdx]:null;
+ let meBox;
+ if(meIdx>=0&&meIdx<T){
+  const up=meIdx>0?`Estás a ${rows[meIdx-1].pts-me1.pts+1} pts de subir al #${meIdx}.`:'¡Vas liderando el ranking!';
+  const dn=rows[meIdx+1]?` Quien va detrás está a ${me1.pts-rows[meIdx+1].pts} pts.`:'';
+  meBox=`<div class="eco-me"><b>¡Estás en el Top ${T}! Lugar #${meIdx+1}.</b><br>${up}${dn} Sigue comentando para mantener tu lugar.</div>`;
+ }else if(meIdx>=T){
+  const need=rows[T-1].pts-me1.pts+1,pct=Math.max(4,Math.min(100,Math.round(me1.pts/(rows[T-1].pts+1)*100)));
+  meBox=`<div class="eco-me out"><div class="row">${avatar(u,34,12)}<b>Tu posición: #${meIdx+1}</b><em>${me1.pts} pts</em></div><div class="eco-bar"><i style="width:${pct}%"></i></div><small class="mut" style="display:block;margin-top:6px">Te faltan <b>${need} pts</b> para entrar al Top ${T}.</small></div>`;
+ }else{
+  meBox=`<div class="eco-me out"><b>Aún no sumas puntos este mes.</b><br>${rows.length<T?`Hay ${T-rows.length} ${ecoPl(T-rows.length,'lugar libre','lugares libres')} en el Top ${T}: un comentario con ideas te mete a la lista 🌱`:`Necesitas más de ${rows[T-1].pts} pts para entrar al Top ${T}. ¡Empieza con un comentario con ideas! 🌱`}</div>`;
+ }
  const cats=[...new Set(ECO_ACH.map(a=>a.cat))];
  const tile=a=>`<div class="eco-ach-it ${a.done?'ok':''}">${ecoBadge(a,a.done,70)}<b>${esc(a.n)}</b><span class="tier t-${a.tier}">${ECO_TIERS[a.tier]}</span><small>${esc(a.d)}</small>${a.done?`<em class="ok">✓ Desbloqueada${a.when?' · '+ecoFmt(a.when):''}</em>`:`<div class="eco-bar"><i style="width:${a.pct}%"></i></div><em>${a.v}/${a.goal} · ${ecoRemain(a)}</em>`}</div>`;
- const podium=`<div class="eco-podium">${[1,0,2].map(i=>{const r=rows[i];if(!r)return'<div class="pd pd-empty"></div>';return`<a class="pd pd-${i+1}" href="#/perfil/${r.u.id}"><span class="medal">${['🥇','🥈','🥉'][i]}</span>${avatar(r.u,i===0?72:58,i===0?24:19)}<b>${esc(r.u.name)}</b><small>${r.pts} pts</small></a>`;}).join('')}</div>`;
+ const podium=`<div class="eco-podium">${[0,1,2,3,4].map(i=>{const r=rows[i];if(!r)return`<div class="pd pd-empty"><span class="medal">${ECO_RANK_ICONS[i]}</span><div class="pd-slot">Lugar libre</div><small>¡Puede ser tuyo!</small></div>`;return`<a class="pd pd-${i+1}" href="#/perfil/${r.u.id}"><span class="medal">${ECO_RANK_ICONS[i]}</span>${avatar(r.u,i===0?72:58,i===0?24:19)}<b>${esc(r.u.name)}</b><small>${r.pts} pts</small></a>`;}).join('')}</div>`;
  return`<div class="eco-ach">
   <div class="page-head" style="padding-top:6px"><span class="kicker">Tu progreso</span><h1>Logros</h1><p class="mut">Comenta con ideas, responde a otras personas y sube de nivel. Cada mes, los perfiles con más aportes se destacan en la comunidad.</p></div>
   <div class="card pad eco-sum">
@@ -3575,8 +3594,8 @@ function viewLogros(){
    <h3>🏆 Perfiles destacados de ${b.mes}</h3>
    <p class="xs mut">${left>0?`Faltan ${left} ${ecoPl(left,'día','días')} para cerrar el mes. `:'Hoy cierra el mes. '}Solo entran 5 y el ranking se reinicia cada mes: los 5 primeros reciben la insignia 🌟 todo el mes siguiente.</p>
    ${rows.length?podium:'<p class="sm mut" style="padding:12px 0">Todavía nadie suma puntos este mes. ¡Puedes ser la primera persona en la lista!</p>'}
-   ${rows.slice(3,ECO_BOARD_TOP).map((r,i)=>`<a class="eco-rk" href="#/perfil/${r.u.id}"><span class="n">${i+4}</span>${avatar(r.u,32,11)}<b>${esc(r.u.name)}</b><em>${r.pts} pts</em></a>`).join('')}
-   <div class="eco-me">${meTxt}</div>
+   <p class="eco-hint">Desliza para ver del #1 al #5 →</p>
+   ${meBox}
    ${prev.rows.length?`<div class="eco-prev"><b>🌟 Destacados de ${prev.mes}</b><div>${prev.rows.slice(0,ECO_BOARD_TOP).map(r=>`<a href="#/perfil/${r.u.id}">${avatar(r.u,26,10)}<span>${esc(r.u.name.split(' ')[0])}</span></a>`).join('')}</div></div>`:''}
   </div>
   <div class="eco-tiers"><span class="t-bronze">Bronce</span><i>›</i><span class="t-silver">Plata</span><i>›</i><span class="t-gold">Oro</span><i>›</i><span class="t-diamond">Diamante</span></div>
