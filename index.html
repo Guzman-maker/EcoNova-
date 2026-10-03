@@ -3474,6 +3474,9 @@ function ecoLevel(pts){
  const cur=ECO_LEVELS[i],nxt=ECO_LEVELS[i+1]||null;
  return{cur,nxt,pct:nxt?Math.round((pts-cur.min)/(nxt.min-cur.min)*100):100};
 }
+/* Top del mes: 5 lugares. Para dejar fuera una cuenta (p. ej. la oficial), añade su id a ECO_BOARD_EXCLUDE, ej. ['u1']. */
+const ECO_BOARD_TOP=5,ECO_BOARD_EXCLUDE=[];
+const ECO_RANK_ICONS=['🥇','🥈','🥉','4️⃣','5️⃣'];
 function ecoBoard(off){
  const now=new Date(),ref=new Date(now.getFullYear(),now.getMonth()+(off||0),1),y=ref.getFullYear(),m=ref.getMonth();
  const inM=t=>{const d=new Date(t);return d.getFullYear()===y&&d.getMonth()===m;};
@@ -3485,15 +3488,15 @@ function ecoBoard(off){
   add(c.userId,(Array.isArray(c.likes)?c.likes:[]).filter(x=>x!==c.userId).length);
  });
  DB.posts.forEach(p=>{if(!p.sharedFrom&&p.status==='APPROVED'&&inM(p.at))add(p.userId,5);});
- const rows=Object.entries(sc).map(([id,pts])=>({u:userById(id),pts})).filter(r=>r.u&&r.u.id!=='?'&&r.pts>0&&r.u.kind!=='ADMIN'&&!['DEV','ADMIN','MOD'].includes(r.u.role)&&r.u.id!=='u1'&&!r.u.suspended&&!r.u.banPermanent);
+ const rows=Object.entries(sc).map(([id,pts])=>({u:userById(id),pts})).filter(r=>r.u&&r.u.id!=='?'&&r.pts>0&&!ECO_BOARD_EXCLUDE.includes(r.u.id)&&!r.u.suspended&&!r.u.banPermanent);
  rows.sort((a,b)=>b.pts-a.pts||String(a.u.name).localeCompare(String(b.u.name)));
  return{rows,y,m,mes:ECO_MESES[m]};
 }
 function ecoFeaturedBadge(u){
  try{
   const pb=ecoBoard(-1);
-  if(pb.rows.slice(0,3).some(r=>r.u.id===u.id))return`<span class="eco-fbadge" title="Perfil destacado del mes pasado">🌟 Destacado de ${pb.mes}</span>`;
-  if(ecoBoard(0).rows.slice(0,3).some(r=>r.u.id===u.id))return`<span class="eco-fbadge soft" title="Está en el top 3 de este mes">⭐ Top del mes</span>`;
+  if(pb.rows.slice(0,ECO_BOARD_TOP).some(r=>r.u.id===u.id))return`<span class="eco-fbadge" title="Perfil destacado del mes pasado">🌟 Destacado de ${pb.mes}</span>`;
+  if(ecoBoard(0).rows.slice(0,ECO_BOARD_TOP).some(r=>r.u.id===u.id))return`<span class="eco-fbadge soft" title="Está en el Top 5 de este mes">⭐ Top del mes</span>`;
  }catch(_){}
  return'';
 }
@@ -3514,8 +3517,8 @@ function ecoEngageCard(){
 }
 function ecoFeaturedCard(){
  try{
-  const b=ecoBoard(0),top=b.rows.slice(0,3);
-  return`<div class="card"><h4>🏆 Destacados de ${b.mes}</h4>${top.map((r,i)=>`<div class="sug-row">${avatar(r.u,34,12)}<div class="info"><b><a href="#/perfil/${r.u.id}">${esc(r.u.name)}</a></b><span>${['🥇','🥈','🥉'][i]} ${r.pts} pts</span></div></div>`).join('')||'<p class="sm mut">Sé el primero: comenta con ideas y suma puntos.</p>'}<a class="btn btn-ghost btn-block btn-sm mt1" href="#/logros">Ver logros</a></div>`;
+  const b=ecoBoard(0),top=b.rows.slice(0,ECO_BOARD_TOP),me=sess(),mi=me?b.rows.findIndex(r=>r.u.id===me.id):-1;
+  return`<div class="card"><h4>🏆 Destacados de ${b.mes}</h4>${me?`<p class="xs mut" style="margin:-4px 0 8px">${mi>=0&&mi<ECO_BOARD_TOP?`Vas en el lugar #${mi+1}. ¡Defiéndelo!`:mi>=0?`Vas #${mi+1} · te faltan ${b.rows[ECO_BOARD_TOP-1].pts-b.rows[mi].pts+1} pts para el Top ${ECO_BOARD_TOP}`:`Comenta para entrar al Top ${ECO_BOARD_TOP}`}</p>`:''}${top.map((r,i)=>`<div class="sug-row">${avatar(r.u,34,12)}<div class="info"><b><a href="#/perfil/${r.u.id}">${esc(r.u.name)}</a></b><span>${ECO_RANK_ICONS[i]} ${r.pts} pts</span></div></div>`).join('')||'<p class="sm mut">Sé el primero: comenta con ideas y suma puntos.</p>'}<a class="btn btn-ghost btn-block btn-sm mt1" href="#/logros">Ver logros</a></div>`;
  }catch(e){return'';}
 }
 
@@ -3555,7 +3558,7 @@ function viewLogros(){
  const{s,list}=ecoAchList(u.id),lv=ecoLevel(s.points),b=ecoBoard(0),prev=ecoBoard(-1),next=ecoNextGoal(list);
  const now=new Date(),left=new Date(b.y,b.m+1,0).getDate()-now.getDate();
  const done=list.filter(a=>a.done).length,rows=b.rows,meIdx=rows.findIndex(r=>r.u.id===u.id);
- const meTxt=meIdx>=0?(meIdx<3?`¡Estás en el top 3 de ${b.mes}! Sigue comentando para mantener tu lugar.`:`Vas en el lugar #${meIdx+1} con ${rows[meIdx].pts} pts. Te faltan ${rows[2].pts-rows[meIdx].pts+1} pts para entrar al top 3.`):`Aún no sumas puntos este mes. Un comentario con ideas te mete a la lista 🌱`;
+ const T=ECO_BOARD_TOP,meTxt=meIdx>=0?(meIdx<T?`¡Estás en el Top ${T} de ${b.mes}, lugar #${meIdx+1}! ${rows[meIdx+1]?`Tu perseguidor está a ${rows[meIdx].pts-rows[meIdx+1].pts} pts: sigue comentando para defender tu lugar.`:'Sigue sumando para mantenerte arriba.'}${meIdx>0?` Para subir al #${meIdx} te faltan ${rows[meIdx-1].pts-rows[meIdx].pts+1} pts.`:' ¡Vas liderando!'}`:`Vas en el lugar #${meIdx+1} con ${rows[meIdx].pts} pts. Te faltan ${rows[T-1].pts-rows[meIdx].pts+1} pts para entrar al Top ${T}.`):`Aún no sumas puntos este mes. Un comentario con ideas te mete a la lista 🌱`;
  const cats=[...new Set(ECO_ACH.map(a=>a.cat))];
  const tile=a=>`<div class="eco-ach-it ${a.done?'ok':''}">${ecoBadge(a,a.done,70)}<b>${esc(a.n)}</b><span class="tier t-${a.tier}">${ECO_TIERS[a.tier]}</span><small>${esc(a.d)}</small>${a.done?`<em class="ok">✓ Desbloqueada${a.when?' · '+ecoFmt(a.when):''}</em>`:`<div class="eco-bar"><i style="width:${a.pct}%"></i></div><em>${a.v}/${a.goal} · ${ecoRemain(a)}</em>`}</div>`;
  const podium=`<div class="eco-podium">${[1,0,2].map(i=>{const r=rows[i];if(!r)return'<div class="pd pd-empty"></div>';return`<a class="pd pd-${i+1}" href="#/perfil/${r.u.id}"><span class="medal">${['🥇','🥈','🥉'][i]}</span>${avatar(r.u,i===0?72:58,i===0?24:19)}<b>${esc(r.u.name)}</b><small>${r.pts} pts</small></a>`;}).join('')}</div>`;
@@ -3570,11 +3573,11 @@ function viewLogros(){
   </div>
   <div class="card pad mt2 eco-feat">
    <h3>🏆 Perfiles destacados de ${b.mes}</h3>
-   <p class="xs mut">${left>0?`Faltan ${left} ${ecoPl(left,'día','días')} para cerrar el mes. `:'Hoy cierra el mes. '}Los 3 primeros reciben la insignia 🌟 todo el mes siguiente.</p>
+   <p class="xs mut">${left>0?`Faltan ${left} ${ecoPl(left,'día','días')} para cerrar el mes. `:'Hoy cierra el mes. '}Solo entran 5 y el ranking se reinicia cada mes: los 5 primeros reciben la insignia 🌟 todo el mes siguiente.</p>
    ${rows.length?podium:'<p class="sm mut" style="padding:12px 0">Todavía nadie suma puntos este mes. ¡Puedes ser la primera persona en la lista!</p>'}
-   ${rows.slice(3,10).map((r,i)=>`<a class="eco-rk" href="#/perfil/${r.u.id}"><span class="n">${i+4}</span>${avatar(r.u,32,11)}<b>${esc(r.u.name)}</b><em>${r.pts} pts</em></a>`).join('')}
+   ${rows.slice(3,ECO_BOARD_TOP).map((r,i)=>`<a class="eco-rk" href="#/perfil/${r.u.id}"><span class="n">${i+4}</span>${avatar(r.u,32,11)}<b>${esc(r.u.name)}</b><em>${r.pts} pts</em></a>`).join('')}
    <div class="eco-me">${meTxt}</div>
-   ${prev.rows.length?`<div class="eco-prev"><b>🌟 Destacados de ${prev.mes}</b><div>${prev.rows.slice(0,3).map(r=>`<a href="#/perfil/${r.u.id}">${avatar(r.u,26,10)}<span>${esc(r.u.name.split(' ')[0])}</span></a>`).join('')}</div></div>`:''}
+   ${prev.rows.length?`<div class="eco-prev"><b>🌟 Destacados de ${prev.mes}</b><div>${prev.rows.slice(0,ECO_BOARD_TOP).map(r=>`<a href="#/perfil/${r.u.id}">${avatar(r.u,26,10)}<span>${esc(r.u.name.split(' ')[0])}</span></a>`).join('')}</div></div>`:''}
   </div>
   <div class="eco-tiers"><span class="t-bronze">Bronce</span><i>›</i><span class="t-silver">Plata</span><i>›</i><span class="t-gold">Oro</span><i>›</i><span class="t-diamond">Diamante</span></div>
   ${cats.map(c=>`<h3 class="eco-ach-cat">${c}</h3><div class="eco-ach-grid">${list.filter(a=>a.cat===c).map(tile).join('')}</div>`).join('')}
