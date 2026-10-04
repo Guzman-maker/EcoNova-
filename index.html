@@ -1501,8 +1501,32 @@ const SUP_TYPES=['Contenido y publicidad en la red','Herramientas y materiales',
 const PST={PENDING:'Pendiente',APPROVED:'Aprobada',CHANGES:'Requiere cambios',REJECTED:'Rechazada',REMOVED:'Eliminada'};
 const RST={PENDIENTE:'Pendiente',EN_REVISION:'En revisión',VERIFICADO:'Verificado',RECHAZADO:'Rechazado',RESUELTO:'Resuelto'};
 const RSTC={PENDIENTE:'st-pending',EN_REVISION:'st-en_revision',VERIFICADO:'st-verificado',RECHAZADO:'st-rechazado',RESUELTO:'st-resuelto'};
-const CST={VOTING:'Votación abierta',SCHEDULED:'Fecha confirmada',IN_PROGRESS:'En curso',COMPLETED:'Completada',CANCELLED:'Cancelada'};
-const CSTC={VOTING:'st-voting',SCHEDULED:'st-scheduled',IN_PROGRESS:'st-scheduled',COMPLETED:'st-completed',CANCELLED:'st-rechazado'};
+const CAMP_TYPES={JORNADA:{n:'Jornada con voluntarios',e:'🌳',d:'La comunidad vota la fecha. Lleva lugar y cupo.'},RECAUDACION:{n:'Recaudación de fondos',e:'💚',d:'Meta de dinero para un animal, causa o proyecto. Sin horario, lugar ni grupo.'},ACOPIO:{n:'Acopio en especie',e:'📦',d:'Croquetas, cobijas, medicinas… Con punto de entrega y fecha límite.'},PETICION:{n:'Petición de firmas',e:'✍️',d:'Reúne firmas para una autoridad. Sin horario ni lugar.'},RETO:{n:'Reto ecológico',e:'🔥',d:'Reto de varios días con avance diario. Se hace desde casa.'},EVENTO:{n:'Taller o charla',e:'🎓',d:'Fecha fija, presencial o en línea, con cupo.'}};
+const ctype=c=>c.type&&CAMP_TYPES[c.type]?c.type:'JORNADA';
+const campRaised=c=>DB.donations.filter(d=>d.target===c.id).reduce((a,d)=>a+d.amount,0);
+const campOwn=c=>{const u=sess();return !!u&&c.orgId===u.id;};
+const campOk=c=>!c.mod||c.mod==='approved';
+const campVisible=c=>campOk(c)||campOwn(c)||isAdmin();
+const campCanDelete=c=>campOwn(c)||isDeveloper();
+const campPend=()=>DB.campaigns.filter(c=>c.mod==='pending').length;
+const campBadge=c=>c.mod==='pending'?'<span class="badge st-voting">En revisión</span>':c.mod==='rejected'?'<span class="badge st-rechazado">Rechazada</span>':`<span class="badge ${CSTC[c.status]}">${CST[c.status]}</span>`;
+async function campDelete(id){const c=campById(id);if(!c||!campCanDelete(c))return toast('No tienes permiso para eliminar esta campaña.','err');
+ const r=campRaised(c);
+ if(!confirm('¿Eliminar la campaña "'+c.name+'"? Se borran también sus participantes, votos, firmas y aportes. No se puede deshacer.'+(r>0?'\n\nOJO: ya recibió '+money(r)+' en donaciones; esas donaciones NO se devuelven solas.':'')))return;
+ if(Supabase.enabled()&&typeof CampX==='object'){const ok=await CampX.remove(id);if(!ok)return;}
+ DB.campaigns=DB.campaigns.filter(x=>x.id!==id);save();toast('Campaña eliminada.','ok');
+ if(location.hash.startsWith('#/campana/'))location.hash='#/campanas';render();}
+function campModBlock(c){let h='';
+ if(c.mod==='pending')h+=`<div class="notice mb2"><b>En revisión.</b> ${campOwn(c)?'Un administrador debe aprobar tu campaña antes de que sea pública.':'Aún no es pública.'}</div>`;
+ if(c.mod==='rejected')h+=`<div class="notice mb2"><b>Rechazada.</b>${c.modNote?' Motivo: '+esc(c.modNote):''}</div>`;
+ const b=[];
+ if(isAdmin()&&c.mod&&c.mod!=='approved')b.push(`<button class="btn btn-green btn-sm" data-action="camp-approve" data-c="${c.id}">Aprobar</button>`);
+ if(isAdmin()&&c.mod==='pending')b.push(`<button class="btn btn-ghost btn-sm" data-action="camp-reject" data-c="${c.id}">Rechazar</button>`);
+ if(campCanDelete(c))b.push(`<button class="btn btn-danger btn-sm" data-action="camp-del" data-c="${c.id}">Eliminar campaña</button>`);
+ return h+(b.length?`<div class="card pad mb2" style="display:flex;gap:8px;flex-wrap:wrap">${b.join('')}</div>`:'');}
+let donPre=null;
+const CST={ACTIVE:'Activa',VOTING:'Votación abierta',SCHEDULED:'Fecha confirmada',IN_PROGRESS:'En curso',COMPLETED:'Completada',CANCELLED:'Cancelada'};
+const CSTC={ACTIVE:'st-scheduled',VOTING:'st-voting',SCHEDULED:'st-scheduled',IN_PROGRESS:'st-scheduled',COMPLETED:'st-completed',CANCELLED:'st-rechazado'};
 const SST={PENDIENTE:'En revisión',APROBADA:'Aprobada',PAGADA:'Entregada',RECHAZADA:'Rechazada'};
 const SSTC={PENDIENTE:'st-pending',APROBADA:'st-aprobada',PAGADA:'st-pagada',RECHAZADA:'st-rechazada'};
 
@@ -1734,12 +1758,20 @@ const API={
   this.notify('u1','Nuevo reporte ambiental',`"${d.title}" espera revisión.`);save();},
  setReport(id,st,note){const r=DB.reports.find(x=>x.id===id);r.status=st;r.adminNote=note||r.adminNote;
   this.notify(r.userId,`Tu reporte está ${RST[st].toLowerCase()}`,note||r.title);this.audit(`Marcó el reporte "${r.title}" como ${RST[st]}`);save();},
- createCampaign(d){const u=sess();if(!u)throw'Inicia sesión.';
-  const opts=d.opts.filter(o=>o.dt).map(o=>({id:uid(),label:o.label,dt:new Date(o.dt+'T'+(o.time||'10:00')).getTime(),votes:[]}));
-  if(!opts.length)throw'Agrega al menos una opción de fecha y hora.';
-  const c={id:uid(),orgId:u.id,name:d.name,desc:d.desc,kind:d.kind,cat:+d.cat,place:d.place,lat:d.lat??19.435,lng:d.lng??-99.135,max:+d.max||20,status:'VOTING',img:d.img||img('campana-'+uid(),600,450),selected:null,participants:[],result:null,opts,at:Date.now()};
-  DB.campaigns.unshift(c);this.notify('u1','Nueva campaña creada',`"${c.name}" abrió votación de fechas.`);save();return c;},
- vote(cid,oid){const u=sess();if(!u)throw'Inicia sesión para votar.';const c=campById(cid);
+ buildCampaign(d){const u=sess();if(!u)throw'Inicia sesión.';const t=CAMP_TYPES[d.type]?d.type:'JORNADA';
+  const ts=(x,tm)=>x?new Date(x+'T'+(tm||'12:00')).getTime():0;
+  const c={id:uid(),orgId:u.id,type:t,name:d.name,desc:d.desc,kind:d.kind,cat:+d.cat,place:'',lat:d.lat??19.435,lng:d.lng??-99.135,max:0,status:'ACTIVE',img:d.img||img('campana-'+uid(),600,450),selected:null,participants:[],result:null,opts:[],at:Date.now()};
+  if(['JORNADA','ACOPIO','EVENTO'].includes(t)){if(!d.place)throw'Indica el lugar.';c.place=d.place;}
+  if(['JORNADA','EVENTO'].includes(t))c.max=+d.max||20;
+  if(t==='JORNADA'){c.opts=d.opts.filter(o=>o.dt).map(o=>({id:uid(),label:o.label,dt:new Date(o.dt+'T'+(o.time||'10:00')).getTime(),votes:[]}));if(!c.opts.length)throw'Agrega al menos una opción de fecha y hora.';c.status='VOTING';}
+  if(t==='RECAUDACION'){c.goal=+d.goal;if(!(c.goal>=100))throw'La meta debe ser de al menos $100.';if(!d.ben)throw'Indica para quién o para qué es la recaudación.';c.ben=d.ben;c.until=ts(d.end,'23:59');}
+  if(t==='ACOPIO'){c.items=(d.items||'').split('\n').map(l=>l.split('|')).map(a=>({n:(a[0]||'').trim(),goal:+(a[1]||0)||0,got:0})).filter(i=>i.n);if(!c.items.length)throw'Agrega al menos un artículo (uno por línea: nombre | cantidad).';c.until=ts(d.end,'23:59');c.pledges=[];}
+  if(t==='PETICION'){c.goal=+d.sigs;if(!(c.goal>=10))throw'La meta de firmas debe ser de al menos 10.';if(!d.addr)throw'Indica a quién va dirigida.';c.addr=d.addr;}
+  if(t==='RETO'){c.days=+d.days;if(!(c.days>=2&&c.days<=90))throw'El reto debe durar de 2 a 90 días.';if(!d.start)throw'Elige la fecha de inicio.';c.when=ts(d.start,'00:00');c.until=c.when+c.days*864e5-1;c.checks={};}
+  if(t==='EVENTO'){if(!d.when)throw'Elige fecha y hora.';c.when=ts(d.when,d.whent||'10:00');c.link=/^https?:\/\//i.test(d.link||'')?d.link:'';}
+  return c;},
+ createCampaign(d){const c=this.buildCampaign(d);DB.campaigns.unshift(c);this.notify('u1','Nueva campaña creada',`"${c.name}" (${CAMP_TYPES[c.type].n}) está activa.`);save();return c;},
+ vote(cid,oid){const u=sess();if(!u)throw'Inicia sesión para votar.';const c=campById(cid);if(!campOk(c))throw'Esta campaña aún no está aprobada.';
   c.opts.forEach(o=>o.votes=o.votes.filter(v=>v!==u.id));
   c.opts.find(x=>x.id===oid).votes.push(u.id);save();},
  closeVoting(cid){const c=campById(cid);const best=c.opts.slice().sort((a,b)=>b.votes.length-a.votes.length)[0];
@@ -1747,11 +1779,14 @@ const API={
   const when=`${dLong(best.dt)} · ${new Date(best.dt).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
   [...new Set(c.opts.flatMap(o=>o.votes))].forEach(v=>this.notify(v,'Fecha confirmada',`La comunidad eligió: ${when} para "${c.name}".`));
   this.audit(`Confirmó la fecha de la campaña "${c.name}"`);save();},
- join(cid){const u=sess();if(!u)throw'Inicia sesión.';const c=campById(cid);
-  if(c.status!=='SCHEDULED')throw'La fecha aún no está confirmada.';
+ join(cid){const u=sess();if(!u)throw'Inicia sesión.';const c=campById(cid);if(!campOk(c))throw'Esta campaña aún no está aprobada.';
+  const ty=ctype(c);if(ty==='JORNADA'&&c.status!=='SCHEDULED')throw'La fecha aún no está confirmada.';
+  if(ty!=='JORNADA'&&(c.status!=='ACTIVE'||(ty!=='RETO'&&c.until&&Date.now()>c.until)))throw'Esta campaña ya no recibe participantes.';
   if(c.participants.some(p=>p.userId===u.id))throw'Ya estás registrado.';
-  if(c.participants.length>=c.max)throw'La campaña está llena.';
+  if(c.max&&c.participants.length>=c.max)throw'La campaña está llena.';
   c.participants.push({userId:u.id,at:Date.now()});this.notify(c.orgId,'Nuevo participante',`${u.name} se sumó a "${c.name}".`);save();},
+ checkin(cid){const u=sess();if(!u)throw'Inicia sesión.';const c=campById(cid);if(!campOk(c))throw'Esta campaña aún no está aprobada.';if(!c.participants.some(p=>p.userId===u.id))throw'Primero únete al reto.';const now=Date.now();if(now<c.when)throw'El reto aún no empieza.';if(now>c.until)throw'El reto ya terminó.';const k=new Date(now-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);c.checks=c.checks||{};const a=c.checks[u.id]=c.checks[u.id]||[];if(a.includes(k))throw'Hoy ya marcaste tu avance.';a.push(k);save();},
+ pledge(cid,idx,qty){const u=sess();if(!u)throw'Inicia sesión.';const c=campById(cid);if(!campOk(c))throw'Esta campaña aún no está aprobada.';if(c.status!=='ACTIVE'||(c.until&&Date.now()>c.until))throw'Esta campaña ya no recibe aportes.';qty=+qty;if(!(qty>0))throw'Indica una cantidad válida.';const it=c.items[idx];it.got+=qty;c.pledges=c.pledges||[];c.pledges.push({userId:u.id,i:idx,qty,at:Date.now()});this.notify(c.orgId,'Nuevo compromiso de acopio',`${u.name} aportará ${qty} de ${it.n} a "${c.name}".`);save();},
  donate(target,tlabel,amount,name){
   if(!amount||amount<20)throw'El monto mínimo de donación es $20.';
   DB.donations.push({id:uid(),userId:sess()?.id||null,name:name||(sess()?.name)||'Anónimo',target,tlabel,amount:+amount,at:Date.now()});
@@ -1843,28 +1878,52 @@ function postCard(p,opts){opts=opts||{};
   </div>
  </article>`;
 }
+function campProg(c){const t=ctype(c),n=c.participants.length;
+ if(t==='RECAUDACION'){const r=campRaised(c);return{pct:c.goal?r/c.goal*100:0,txt:`<b>${money(r)}</b> de ${money(c.goal)}`};}
+ if(t==='ACOPIO'){const g=c.items.reduce((a,i)=>a+i.goal,0),h=c.items.reduce((a,i)=>a+Math.min(i.got,i.goal||i.got),0);return{pct:g?h/g*100:0,txt:`<b>${c.items.length}</b> artículos · ${(c.pledges||[]).length} aportes`};}
+ if(t==='PETICION')return{pct:n/c.goal*100,txt:`<b>${n}</b> de ${c.goal} firmas`};
+ return{pct:c.max?n/c.max*100:null,txt:`<b>${n}</b>${c.max?'/'+c.max:''} participantes`};
+}
+function campMeta(c){const t=ctype(c),o=[],hr=x=>new Date(x).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+ if(c.place)o.push(esc(c.place));
+ if(t==='RECAUDACION')o.push('Para: <b>'+esc(c.ben)+'</b>');
+ if(t==='PETICION')o.push('Dirigida a: <b>'+esc(c.addr)+'</b>');
+ if(c.until&&(t==='RECAUDACION'||t==='ACOPIO'))o.push('Hasta el <b>'+dShort(c.until)+'</b>');
+ if(t==='RETO')o.push('<b>'+c.days+' días</b> · inicia '+dShort(c.when));
+ if(t==='EVENTO')o.push('<b>'+dShort(c.when)+'</b> · '+hr(c.when)+(c.link?' · En línea':''));
+ return o;}
 function campaignCard(c){
- const org=userById(c.orgId);const sel=c.opts.find(o=>o.id===c.selected);
+ const org=userById(c.orgId);const sel=c.opts.find(o=>o.id===c.selected),T=CAMP_TYPES[ctype(c)],pg=campProg(c);
  const totalVotes=c.opts.reduce((a,o)=>a+o.votes.length,0);
  return`<article class="camp card">
   <div class="cv"><img loading="lazy" src="${c.img}" alt=""></div>
   <div class="bd">
-   <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center"><span class="badge ${CSTC[c.status]}">${CST[c.status]}</span><span class="chip">${esc(c.kind)}</span></div>
+   <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">${campBadge(c)}<span class="chip">${T.e} ${T.n}</span><span class="chip">${esc(c.kind)}</span></div>
    <h3><a href="#/campana/${c.id}">${esc(c.name)}</a></h3>
    <p class="sm mut">${esc(c.desc.slice(0,110))}${c.desc.length>110?'…':''}</p>
    <div class="mt1 xs mut" style="display:flex;gap:14px;flex-wrap:wrap">
-    <span>${esc(c.place)}</span><span>Organiza: <b>${esc(org.name)}</b></span>
+    ${campMeta(c).map(x=>'<span>'+x+'</span>').join('')}<span>Organiza: <b>${esc(org.name)}</b></span>
     ${c.status==='VOTING'?`<span><b>${totalVotes}</b> votos</span>`:''}
     ${sel?`<span><b>${dShort(sel.dt)}</b> · ${new Date(sel.dt).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</span>`:''}
    </div>
    <div class="mt2" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <div class="pbar" style="flex:1;min-width:120px"><div class="fill" style="width:${Math.min(100,c.participants.length/c.max*100)}%"></div></div>
-    <span class="xs mut"><b>${c.participants.length}</b>/${c.max} participantes</span>
+    ${pg.pct==null?'':`<div class="pbar" style="flex:1;min-width:120px"><div class="fill" style="width:${Math.min(100,pg.pct)}%"></div></div>`}
+    <span class="xs mut" style="flex:${pg.pct==null?1:'none'}">${pg.txt}</span>
     <a class="btn btn-ghost btn-sm" href="#/campana/${c.id}">Ver campaña</a>
    </div>
   </div>
  </article>`;
 }
+function campTypeBlock(c){const t=ctype(c),me=sess(),exp=c.until&&Date.now()>c.until&&t!=='RETO',act=c.status==='ACTIVE'&&!exp,joined=me&&c.participants.some(p=>p.userId===me.id);
+ const hr=x=>new Date(x).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+ const old=c.status==='ACTIVE'&&exp?'<div class="notice mt2">La fecha límite ya pasó. La organización puede cerrar la campaña y publicar los resultados.</div>':'';
+ if(t==='RECAUDACION'){const r=campRaised(c),n=DB.donations.filter(d=>d.target===c.id),pct=Math.min(100,Math.round(r/c.goal*100));
+  return`<div class="card pad mb2"><span class="kicker">Recaudación</span><div class="goal-big mt1">${money(r)} <span>/ ${money(c.goal)}</span></div><div class="pbar mt1" style="height:12px"><div class="fill" style="width:${pct}%"></div></div><p class="xs mut mt1"><b>${pct}%</b> · ${n.length} aportaciones${c.until?` · cierra el ${dLong(c.until)}`:''}</p><p class="sm mt1">Para: <b>${esc(c.ben)}</b></p>${act?`<button class="btn btn-green btn-block mt2" data-action="don-camp" data-c="${c.id}">${ic('heart')} Donar a esta campaña</button>`:old}${n.length?`<div class="part-row mt2">${n.slice(-8).reverse().map(d=>`<span class="chip">${esc(d.name||'Anónimo')} · ${money(d.amount)}</span>`).join('')}</div>`:''}</div>`;}
+ if(t==='ACOPIO')return`<div class="card pad mb2"><span class="kicker">Qué se necesita</span>${c.items.map((it,i)=>{const p=it.goal?Math.min(100,it.got/it.goal*100):0;return`<div class="vote-row"><span class="dt">${esc(it.n)}</span><div class="vb"><i style="width:${p}%"></i></div><span class="cnt">${it.got}${it.goal?'/'+it.goal:''}</span>${act?`<button class="btn btn-sm btn-ghost" data-action="pledge" data-c="${c.id}" data-i="${i}">Aportar</button>`:''}</div>`;}).join('')}<p class="xs mut mt1">Entrega en <b>${esc(c.place)}</b>${c.until?` · hasta el ${dLong(c.until)}`:''}</p>${act?'':old}</div>`;
+ if(t==='PETICION'){const pct=Math.min(100,Math.round(c.participants.length/c.goal*100));return`<div class="card pad mb2"><span class="kicker">Petición</span><div class="goal-big mt1">${c.participants.length} <span>/ ${c.goal} firmas</span></div><div class="pbar mt1" style="height:12px"><div class="fill" style="width:${pct}%"></div></div><p class="sm mt1">Dirigida a: <b>${esc(c.addr)}</b></p>${act&&!joined?`<button class="btn btn-green btn-block mt2" data-action="join" data-c="${c.id}">${ic('check')} Firmar esta petición</button>`:''}</div>`;}
+ if(t==='RETO'){const mine=((c.checks||{})[me?.id]||[]).length;return`<div class="card pad mb2"><span class="kicker">Reto de ${c.days} días</span><p class="sm mt1">Del <b>${dLong(c.when)}</b> al <b>${dLong(c.until)}</b></p>${joined?`<div class="goal-big mt1">${mine} <span>/ ${c.days} días</span></div><div class="pbar mt1"><div class="fill" style="width:${Math.min(100,mine/c.days*100)}%"></div></div>${act?`<button class="btn btn-green btn-block mt2" data-action="checkin" data-c="${c.id}">${ic('check')} Marcar mi avance de hoy</button>`:''}`:(act?`<button class="btn btn-green btn-block mt2" data-action="join" data-c="${c.id}">${ic('users')} Unirme al reto</button>`:'')}</div>`;}
+ if(t==='EVENTO')return`<div class="card pad mb2"><span class="kicker">Fecha y lugar</span><p class="mt1"><b>${dLong(c.when)}</b> · ${hr(c.when)}</p>${c.link?`<p class="sm mt1">En línea: <a class="link" href="${esc(c.link)}" target="_blank" rel="noopener">${esc(c.link)}</a></p>`:''}${act&&!joined?`<button class="btn btn-green btn-block mt2" data-action="join" data-c="${c.id}">${ic('users')} Reservar mi lugar</button>`:old}</div>`;
+ return'';}
 function supportRow(s,showUser=true){
  const u=userById(s.userId);
  return`<div class="cat-row">
@@ -1967,9 +2026,9 @@ function initMap(){
   if(mapCat&&r.cat!==+mapCat)return;
   const cls=r.status==='PENDIENTE'?'mk-rep':(r.status==='VERIFICADO'||r.status==='RESUELTO')?'mk-rep-ok':'mk-rep-v';
   L.marker([r.lat,r.lng],{icon:mk(cls)}).addTo(m).bindPopup(`<div class="pop">${r.imgs.length?`<img src="${r.imgs[0]}">`:''}<h4>${esc(r.title)}</h4><div class="row"><span>${esc(catById(r.cat).name)}</span><b>${RST[r.status]}</b></div><a class="btn btn-ink" href="#/reportes">Ver reportes</a></div>`);});
- if(mapLayers.camps)DB.campaigns.forEach(c=>{
+ if(mapLayers.camps)DB.campaigns.forEach(c=>{if(!c.place||!campOk(c))return;
   if(mapCat&&c.cat!==+mapCat)return;
-  L.marker([c.lat,c.lng],{icon:mk('mk-camp')}).addTo(m).bindPopup(`<div class="pop"><img src="${c.img}"><h4>${esc(c.name)}</h4><div class="row"><span>${esc(c.kind)}</span><b>${CST[c.status]}</b></div><div class="row"><span>Cupos</span><span>${c.participants.length}/${c.max}</span></div><a class="btn btn-ink" href="#/campana/${c.id}">Ver campaña</a></div>`);});
+  L.marker([c.lat,c.lng],{icon:mk('mk-camp')}).addTo(m).bindPopup(`<div class="pop"><img src="${c.img}"><h4>${esc(c.name)}</h4><div class="row"><span>${esc(c.kind)}</span><b>${CST[c.status]}</b></div>${c.max?`<div class="row"><span>Cupos</span><span>${c.participants.length}/${c.max}</span></div>`:''}<a class="btn btn-ink" href="#/campana/${c.id}">Ver campaña</a></div>`);});
  if(mapLayers.orgs)DB.users.filter(u=>['ORG','EMPRESA'].includes(u.kind)).forEach((o,i)=>{
   L.marker([19.432+Math.sin(i*2.3)*.03,-99.13+Math.cos(i*1.7)*.035],{icon:mk('mk-org')}).addTo(m)
    .bindPopup(`<div class="pop"><h4>${esc(o.name)}</h4><div class="row"><span>${KINDS[o.kind].l}${o.verified?' · verificada':''}</span></div><a class="btn btn-ink" href="#/perfil/${o.id}">Ver perfil</a></div>`);});
@@ -2036,30 +2095,54 @@ function initPickMap(){
  MAPS.push(m);window._pickMap=m;
 }
 let campImgs=[];
+function campFormSync(){const s=$('#c-type');if(!s)return;const t=s.value,d=$('#c-tdesc');if(d)d.textContent=CAMP_TYPES[t].d;document.querySelectorAll('#f-camp [data-for]').forEach(x=>{x.style.display=x.dataset.for.split(',').includes(t)?'':'none';});}
 function viewNewCampaign(){
  if(!sess()){location.hash='#/entrar';return'';}
+ const g=(f,st='')=>`data-for="${f}" style="${st}${f.split(',').includes('JORNADA')?'':'display:none'}"`;
  return`<div style="max-width:680px">
-  <div class="page-head" style="padding-top:6px"><span class="kicker">Organiza a tu comunidad</span><h1>Crear campaña ambiental</h1></div>
+  <div class="page-head" style="padding-top:6px"><span class="kicker">Organiza a tu comunidad</span><h1>Crear campaña</h1></div>
   <form id="f-camp" class="card pad mt2">
-   <div class="field"><label>Nombre</label><input type="text" id="c-name" placeholder="Ej. Limpieza de la barranca norte" required maxlength="120"></div>
+   <div class="field"><label>Tipo de campaña</label><select id="c-type">${Object.entries(CAMP_TYPES).map(([k,v])=>`<option value="${k}">${v.e} ${v.n}</option>`).join('')}</select><p class="hint" id="c-tdesc">${CAMP_TYPES.JORNADA.d}</p></div>
+   <div class="field"><label>Nombre</label><input type="text" id="c-name" placeholder="Ej. Ayuda para operar a Canelo" required maxlength="120"></div>
    <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <div class="field" style="flex:1;min-width:180px"><label>Tipo de acción</label><select id="c-kind">${CAMP_KINDS.map(k=>`<option>${k}</option>`).join('')}</select></div>
+    <div class="field" style="flex:1;min-width:180px"><label>Causa o tema</label><select id="c-kind">${CAMP_KINDS.map(k=>`<option>${k}</option>`).join('')}</select></div>
     <div class="field" style="flex:1;min-width:180px"><label>Categoría</label><select id="c-cat">${catOptions()}</select></div>
    </div>
-   <div class="field"><label>Descripción</label><textarea id="c-desc" required maxlength="1500" placeholder="Qué harán, qué deben llevar, qué incluye la organización…"></textarea></div>
-   <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <div class="field" style="flex:2;min-width:200px"><label>Lugar</label><input type="text" id="c-place" placeholder="Ej. Entrada norte del Cerro Verde" required></div>
-    <div class="field" style="flex:1;min-width:130px"><label>Cupo máximo</label><input type="number" id="c-max" value="25" min="2" max="500" required></div>
+   <div class="field"><label>Descripción</label><textarea id="c-desc" required maxlength="1500" placeholder="Cuenta la historia, qué se necesita y cómo se usará la ayuda…"></textarea></div>
+   <div ${g('JORNADA,ACOPIO,EVENTO','display:flex;gap:10px;flex-wrap:wrap;')}>
+    <div class="field" style="flex:2;min-width:200px"><label>Lugar o punto de entrega</label><input type="text" id="c-place" placeholder="Ej. Entrada norte del Cerro Verde"></div>
+    <div ${g('JORNADA,EVENTO','flex:1;min-width:130px;')} class="field"><label>Cupo máximo</label><input type="number" id="c-max" value="25" min="2" max="500"></div>
+   </div>
+   <div ${g('RECAUDACION','display:flex;gap:10px;flex-wrap:wrap;')}>
+    <div class="field" style="flex:2;min-width:200px"><label>¿Para quién o para qué? (animal, causa)</label><input type="text" id="c-ben" maxlength="100" placeholder="Ej. Canelo, perrito rescatado"></div>
+    <div class="field" style="flex:1;min-width:130px"><label>Meta (MXN)</label><input type="number" id="c-goal" min="100" placeholder="5000"></div>
+   </div>
+   <div ${g('ACOPIO')} class="field"><label>Artículos que se necesitan (uno por línea: nombre | cantidad)</label><textarea id="c-items" placeholder="Croquetas (kg) | 50&#10;Cobijas | 20"></textarea></div>
+   <div ${g('RECAUDACION,ACOPIO')} class="field"><label>Fecha límite (opcional)</label><input type="date" id="c-end"></div>
+   <div ${g('PETICION','display:flex;gap:10px;flex-wrap:wrap;')}>
+    <div class="field" style="flex:2;min-width:200px"><label>Dirigida a (autoridad o empresa)</label><input type="text" id="c-addr" maxlength="100" placeholder="Ej. Ayuntamiento de Lázaro Cárdenas"></div>
+    <div class="field" style="flex:1;min-width:130px"><label>Meta de firmas</label><input type="number" id="c-sigs" min="10" placeholder="500"></div>
+   </div>
+   <div ${g('RETO','display:flex;gap:10px;flex-wrap:wrap;')}>
+    <div class="field" style="flex:1;min-width:130px"><label>Duración (días)</label><input type="number" id="c-days" min="2" max="90" value="7"></div>
+    <div class="field" style="flex:1;min-width:160px"><label>Fecha de inicio</label><input type="date" id="c-start"></div>
+   </div>
+   <div ${g('EVENTO','display:flex;gap:10px;flex-wrap:wrap;')}>
+    <div class="field" style="flex:1;min-width:160px"><label>Fecha</label><input type="date" id="c-when"></div>
+    <div class="field" style="flex:1;min-width:110px"><label>Hora</label><input type="time" id="c-whent" value="10:00"></div>
+    <div class="field" style="flex:2;min-width:200px"><label>Enlace en línea (opcional)</label><input type="url" id="c-link" placeholder="https://"></div>
    </div>
    <div class="field"><label>Fotografía</label><input type="file" accept="image/*" data-photos="camp"><div class="previews" id="camp-previews"></div></div>
+   <div ${g('JORNADA')}>
    <label class="field" style="margin-bottom:6px">Opciones de fecha y hora (la comunidad votará)</label>
    ${[1,2,3].map(i=>`<div style="display:flex;gap:8px;margin-bottom:8px"><select id="c-dow${i}" style="flex:1;padding:10px;border:1.5px solid var(--line2);border-radius:8px"><option value="">Opción ${i}…</option><option>Sábado</option><option>Domingo</option></select><input type="date" id="c-date${i}" style="flex:1.3;padding:10px;border:1.5px solid var(--line2);border-radius:8px"><input type="time" id="c-time${i}" value="10:00" style="padding:10px;border:1.5px solid var(--line2);border-radius:8px"></div>`).join('')}
-   <button class="btn btn-green btn-block mt1" type="submit">${ic('cal')} Crear campaña y abrir votación</button>
+   </div>
+   <button class="btn btn-green btn-block mt1" type="submit">${ic('cal')} Publicar campaña</button>
   </form></div>`;
 }
 function viewCampaigns(){
- const act=DB.campaigns.filter(c=>['VOTING','SCHEDULED','IN_PROGRESS'].includes(c.status));
- const done=DB.campaigns.filter(c=>c.status==='COMPLETED');
+ const act=DB.campaigns.filter(c=>campVisible(c)&&['ACTIVE','VOTING','SCHEDULED','IN_PROGRESS'].includes(c.status));
+ const done=DB.campaigns.filter(c=>campVisible(c)&&c.status==='COMPLETED');
  return`<div>
   <div class="page-head" style="padding-top:6px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px">
    <div><span class="kicker">Acción comunitaria</span><h1>Campañas y jornadas</h1></div>
@@ -2072,7 +2155,7 @@ function viewCampaigns(){
  </div>`;
 }
 function viewCampaign(id){
- const c=campById(id);if(!c)return'<div class="card pad">Campaña no encontrada.</div>';
+ const c=campById(id);if(!c||!campVisible(c))return'<div class="card pad">Campaña no encontrada.</div>';
  const org=userById(c.orgId),me=sess();
  const sel=c.opts.find(o=>o.id===c.selected);
  const totalVotes=c.opts.reduce((a,o)=>a+o.votes.length,0)||1;
@@ -2082,24 +2165,26 @@ function viewCampaign(id){
   <div class="card" style="overflow:hidden">
    <img src="${c.img}" alt="" style="width:100%;height:230px;object-fit:cover">
    <div class="pad">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="badge ${CSTC[c.status]}">${CST[c.status]}</span><span class="chip">${esc(c.kind)}</span><span class="chip">${esc(catById(c.cat).name)}</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${campBadge(c)}<span class="chip">${CAMP_TYPES[ctype(c)].e} ${CAMP_TYPES[ctype(c)].n}</span><span class="chip">${esc(c.kind)}</span><span class="chip">${esc(catById(c.cat).name)}</span></div>
     <h1 style="font-size:clamp(24px,3.6vw,34px);margin:10px 0 6px">${esc(c.name)}</h1>
     <div class="xs mut" style="display:flex;gap:16px;flex-wrap:wrap">
-     <span>${esc(c.place)}</span>
+     ${campMeta(c).map(x=>'<span>'+x+'</span>').join('')}
      <span>Organiza: <a class="link" href="#/perfil/${org.id}">${esc(org.name)}</a></span>
      ${sel?`<span><b>${dLong(sel.dt)}</b></span>`:''}</div>
     <p class="mt2">${esc(c.desc)}</p>
     <div class="mt2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
      <div class="pstat"><div class="n">${c.participants.length}</div><div class="l">Inscritos</div></div>
-     <div class="pstat"><div class="n">${c.max}</div><div class="l">Cupos</div></div>
-     <div class="pstat"><div class="n">${c.opts.reduce((a,o)=>a+o.votes.length,0)}</div><div class="l">Votos</div></div>
-     ${c.result?`<div class="pstat"><div class="n">${c.result.kg}</div><div class="l">Kg retirados</div></div>`:''}
+     ${c.max?`<div class="pstat"><div class="n">${c.max}</div><div class="l">Cupos</div></div>`:''}
+     ${c.opts.length?`<div class="pstat"><div class="n">${c.opts.reduce((a,o)=>a+o.votes.length,0)}</div><div class="l">Votos</div></div>`:''}
+     ${c.result&&ctype(c)==='JORNADA'?`<div class="pstat"><div class="n">${c.result.kg}</div><div class="l">Kg retirados</div></div>`:''}
      ${c.result?.trees?`<div class="pstat"><div class="n">${c.result.trees}</div><div class="l">Árboles</div></div>`:''}
     </div>
    </div>
   </div>
   <div class="cols-2">
    <div>
+    ${campModBlock(c)}
+    ${campTypeBlock(c)}
     ${c.status==='VOTING'?`<div class="card pad"><h3 style="font-size:17px">¿Cuándo puedes participar?</h3>
      <p class="sm mut mb2 mt1">Vota por la opción que prefieras. La más votada será la fecha oficial.</p>
      ${c.opts.map(o=>{const mine=me&&o.votes.includes(me.id);return`<div class="vote-row"><span class="dt">${esc(o.label)}</span><div class="vb"><i style="width:${o.votes.length/totalVotes*100}%"></i></div><span class="cnt">${o.votes.length} votos</span>
@@ -2109,20 +2194,20 @@ function viewCampaign(id){
      <button class="btn btn-green btn-block mt2" data-action="join" data-c="${c.id}">${ic('users')} Participar</button></div>`:''}
     ${joined&&c.status!=='COMPLETED'?`<div class="notice ok">Estás registrado en esta campaña${sel?`. Nos vemos el ${dLong(sel.dt)}`:''}.</div>`:''}
     ${c.status==='COMPLETED'&&c.result?`<div class="card pad"><span class="kicker">Resultados</span><h3 style="font-size:17px;margin:6px 0">Lo que logramos juntos</h3>
-     <p><b>${c.result.kg} kg</b> recolectados${c.result.trees?` · <b>${c.result.trees}</b> árboles plantados`:''} · <b>${c.participants.length}</b> participantes.</p>
+     <p>${ctype(c)==='JORNADA'?`<b>${c.result.kg} kg</b> recolectados${c.result.trees?` · <b>${c.result.trees}</b> árboles plantados`:''} · `:''}${ctype(c)==='RECAUDACION'?`<b>${money(campRaised(c))}</b> recaudados · `:''}<b>${c.participants.length}</b> ${ctype(c)==='PETICION'?'firmas':'participantes'}.</p>
      ${c.result.notes?`<p class="sm mut mt1">${esc(c.result.notes)}</p>`:''}</div>`:''}
-    ${c.participants.length?`<div class="card pad mt2"><h3 style="font-size:16px;margin-bottom:12px">Participantes (${c.participants.length}/${c.max})</h3>
-     <div class="pbar mb2"><div class="fill" style="width:${Math.min(100,c.participants.length/c.max*100)}%"></div></div>
+    ${c.participants.length?`<div class="card pad mt2"><h3 style="font-size:16px;margin-bottom:12px">${ctype(c)==='PETICION'?'Firmas':'Participantes'} (${c.participants.length}${c.max?'/'+c.max:''})</h3>
+     ${c.max?`<div class="pbar mb2"><div class="fill" style="width:${Math.min(100,c.participants.length/c.max*100)}%"></div></div>`:''}
      <div class="part-row">${c.participants.map(p=>{const pu=userById(p.userId);return pu.id==='?'?'':`<span class="chip">${avatar(pu,22,9)} ${esc(pu.name.split(' ')[0])}</span>`;}).join('')}</div></div>`:''}
    </div>
    <div>
-    <div class="card pad"><h3 style="font-size:15px;margin-bottom:8px">Seguridad</h3>
+    ${['JORNADA','ACOPIO','EVENTO'].includes(ctype(c))?`<div class="card pad"><h3 style="font-size:15px;margin-bottom:8px">Seguridad</h3>
      <ul style="font-size:13px;color:var(--mut);padding-left:16px;display:flex;flex-direction:column;gap:5px">
       <li>Guantes y calzado cerrado siempre.</li><li>No manipular residuos peligrosos ni fauna.</li>
       <li>Hidratación y pausas al sol.</li><li>Menores siempre acompañados.</li></ul>
-     <a class="link" href="#/aprender" style="display:block;margin-top:10px">Guía completa →</a></div>
+     <a class="link" href="#/aprender" style="display:block;margin-top:10px">Guía completa →</a></div>`:''}
     ${isOrg?`<div class="card pad mt2"><h3 style="font-size:15px;margin-bottom:10px">Organización</h3>
-     ${c.status==='SCHEDULED'&&isAdmin()?`<button class="btn btn-green btn-sm btn-block" data-action="complete-camp" data-c="${c.id}">Registrar resultados</button>`:'<p class="xs mut">Solo administración registra resultados finales.</p>'}</div>`:''}
+     ${(c.status==='SCHEDULED'&&isAdmin())||c.status==='ACTIVE'?`<button class="btn btn-green btn-sm btn-block" data-action="complete-camp" data-c="${c.id}">Registrar resultados</button>`:'<p class="xs mut">Solo administración registra resultados finales.</p>'}</div>`:''}
    </div>
   </div>
  </div>`;
@@ -2154,7 +2239,7 @@ function viewDonate(){
  const publicSup=DB.supports.filter(s=>['APROBADA','PAGADA'].includes(s.status));
  const dist=[['Herramientas y materiales para jornadas',40],['Apoyos a la comunidad: personas y proyectos que difunden causas en la red',25],['Transporte, agua y suministros',20],['Apoyo veterinario y rescate animal',10],['Operación, moderación y transparencia',5]];
  const targets=[{id:'FONDO',label:'Fondo Comunitario EcoNova (recomendado)'},
-  ...DB.campaigns.filter(c=>['VOTING','SCHEDULED'].includes(c.status)).map(c=>({id:c.id,label:'Campaña · '+c.name})),
+  ...DB.campaigns.filter(c=>campOk(c)&&(['VOTING','SCHEDULED'].includes(c.status)||(c.status==='ACTIVE'&&ctype(c)==='RECAUDACION'))).map(c=>({id:c.id,label:'Campaña · '+c.name})),
   ...DB.users.filter(x=>x.kind==='ORG'&&x.verified).map(o=>({id:o.id,label:'Organización · '+o.name}))];
  return`<div>
   <div class="page-head" style="padding-top:6px">
@@ -2193,7 +2278,7 @@ function viewDonate(){
       </div>
       <input type="number" id="d-amt" min="20" value="100" placeholder="Otra cantidad (MXN)" required></div>
      <div class="field"><label>Destino</label>
-      <select id="d-target">${targets.map(t=>`<option value="${t.id}" data-l="${esc(t.label)}">${esc(t.label)}</option>`).join('')}</select>
+      <select id="d-target">${targets.map(t=>`<option value="${t.id}" data-l="${esc(t.label)}" ${t.id===donPre?'selected':''}>${esc(t.label)}</option>`).join('')}</select>
       <p class="hint">El <b>Fondo Comunitario</b> financia herramientas, logística, rescate animal y los apoyos a quienes difunden causas en la red.</p></div>
      <div class="field"><label>Nombre (opcional)</label><input type="text" id="d-name" placeholder="${u?esc(u.name):'Anónimo'}"></div>
      <label class="sm" style="display:flex;align-items:center;gap:8px;margin:2px 0 14px"><input type="checkbox" id="d-anon">Hacer mi donación anónima</label>
@@ -2258,7 +2343,7 @@ function viewOrgs(){
  return`<div><div class="page-head" style="padding-top:6px"><span class="kicker">Quienes hacen que pase</span><h1>Organizaciones y empresas</h1><p class="mut">Los reconocimientos de aliado y donador requieren una solicitud y aprobación administrativa.</p></div>
  ${me&&['ORG','EMPRESA'].includes(me.kind)?`<div class="card pad mt2"><h3>Solicitar reconocimiento</h3><p class="sm mut">Elige el reconocimiento que deseas solicitar. No se asignará automáticamente.</p><div class="org-admin-actions mt2"><button class="btn btn-green btn-sm" data-action="request-community" data-t="ally">Solicitar ser aliado</button><button class="btn btn-ink btn-sm" data-action="request-community" data-t="donor">Solicitar reconocimiento de donador</button></div></div>`:''}
  ${isDeveloper()&&pending.length?`<div class="card pad mt2"><h3>Solicitudes pendientes</h3>${pending.map(r=>{const u=userById(r.userId);return`<div class="activity-row"><div><b>${esc(u.name)}</b><div class="sm mut">${r.type==='ally'?'Solicita ser aliado':'Solicita reconocimiento de donador'}</div></div><div class="org-admin-actions"><button class="btn btn-green btn-sm" data-action="review-community" data-r="${r.id}" data-ok="1">Aceptar</button><button class="btn btn-danger btn-sm" data-action="review-community" data-r="${r.id}" data-ok="0">Rechazar</button></div></div>`}).join('')}</div>`:''}
- <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-top:20px">${orgs.map(o=>`<div class="card pad"><div style="display:flex;gap:12px;align-items:center">${avatar(o,52,19)}<div><b style="font-size:16px;font-family:var(--disp)"><a href="#/perfil/${o.id}">${esc(o.name)}</a> ${o.verified?verifyBadge():''}</b><div class="mt1" style="display:flex;gap:6px;flex-wrap:wrap">${kindBadge(o)}${communityBadges(o)}</div></div></div><p class="sm mut mt2">${esc(o.bio)}</p><div class="mt2 xs mut" style="display:flex;gap:12px;flex-wrap:wrap"><span>${esc(o.loc||'—')}</span><span>${DB.posts.filter(p=>p.userId===o.id&&p.status==='APPROVED').length} publicaciones</span><span>${DB.campaigns.filter(c=>c.orgId===o.id).length} campañas</span></div>${isAdmin()?`<div class="org-admin-actions mt2"><button class="btn ${o.allyAccepted?'btn-ghost':'btn-green'} btn-sm" data-action="community-status" data-u="${o.id}" data-t="ally">${o.allyAccepted?'Quitar aliado':'Asignar aliado manualmente'}</button><button class="btn ${o.donorAccepted?'btn-ghost':'btn-ink'} btn-sm" data-action="community-status" data-u="${o.id}" data-t="donor">${o.donorAccepted?'Quitar donador':'Reconocer donador manualmente'}</button></div>`:''}<a class="btn btn-ghost btn-block mt2" href="#/perfil/${o.id}">Ver perfil</a></div>`).join('')}</div></div>`;
+ <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-top:20px">${orgs.map(o=>`<div class="card pad"><div style="display:flex;gap:12px;align-items:center">${avatar(o,52,19)}<div><b style="font-size:16px;font-family:var(--disp)"><a href="#/perfil/${o.id}">${esc(o.name)}</a> ${o.verified?verifyBadge():''}</b><div class="mt1" style="display:flex;gap:6px;flex-wrap:wrap">${kindBadge(o)}${communityBadges(o)}</div></div></div><p class="sm mut mt2">${esc(o.bio)}</p><div class="mt2 xs mut" style="display:flex;gap:12px;flex-wrap:wrap"><span>${esc(o.loc||'—')}</span><span>${DB.posts.filter(p=>p.userId===o.id&&p.status==='APPROVED').length} publicaciones</span><span>${DB.campaigns.filter(c=>c.orgId===o.id&&campOk(c)).length} campañas</span></div>${isAdmin()?`<div class="org-admin-actions mt2"><button class="btn ${o.allyAccepted?'btn-ghost':'btn-green'} btn-sm" data-action="community-status" data-u="${o.id}" data-t="ally">${o.allyAccepted?'Quitar aliado':'Asignar aliado manualmente'}</button><button class="btn ${o.donorAccepted?'btn-ghost':'btn-ink'} btn-sm" data-action="community-status" data-u="${o.id}" data-t="donor">${o.donorAccepted?'Quitar donador':'Reconocer donador manualmente'}</button></div>`:''}<a class="btn btn-ghost btn-block mt2" href="#/perfil/${o.id}">Ver perfil</a></div>`).join('')}</div></div>`;
 }
 
 let profTab='posts';
@@ -2288,7 +2373,7 @@ function viewProfile(id){
  const posts=canSeePosts?DB.posts.filter(p=>p.userId===u.id&&!p.sharedFrom&&(p.status==='APPROVED'||mine)).sort((a,b)=>b.at-a.at):[];
  const shared=canSeePosts?DB.posts.filter(p=>p.userId===u.id&&p.sharedFrom&&p.status==='APPROVED').sort((a,b)=>b.at-a.at):[];
  const liked=(mine&&canSeePosts)?DB.posts.filter(p=>p.likes.includes(u.id)&&p.status==='APPROVED').sort((a,b)=>b.at-a.at):[];
- const camps=DB.campaigns.filter(c=>c.orgId===u.id);
+ const camps=DB.campaigns.filter(c=>c.orgId===u.id&&campVisible(c));
  const cover=u.cover||'';
  const tab=((profTab==='liked'&&!mine)||(profTab==='camps'&&!camps.length))?'posts':profTab;
  return `<div class="econova-profile-modern">
@@ -2408,7 +2493,7 @@ function viewAdmin(){
  return`<div>
   <div class="page-head" style="padding-top:6px"><span class="kicker">Panel privado</span><h1>Administración</h1></div>
   <div class="adm-tabs mt2">
-   ${[['resumen','Resumen'],['moderacion',`Moderación (${pend})`],['apoyos',`Apoyos (${pendSup})`],['reportes','Reportes'],...(Supabase.enabled()&&typeof MapX==='object'?[['mapa',`Mapa (${MapX.pendingCount()})`]]:[]),['campanas','Campañas'],['categorias','Categorías'],['usuarios','Usuarios'],['organizaciones','Organizaciones'],['publicidad','Publicidad'],...(isDeveloper()?[['donaciones','Finanzas y transparencia']]:[]),['registro','Registro']].map(t=>`<button class="${admTab===t[0]?'on':''}" data-action="adm-tab" data-t="${t[0]}">${t[1]}</button>`).join('')}
+   ${[['resumen','Resumen'],['moderacion',`Moderación (${pend})`],['apoyos',`Apoyos (${pendSup})`],['reportes','Reportes'],...(Supabase.enabled()&&typeof MapX==='object'?[['mapa',`Mapa (${MapX.pendingCount()})`]]:[]),['campanas','Campañas'+(campPend()?' ('+campPend()+')':'')],['categorias','Categorías'],['usuarios','Usuarios'],['organizaciones','Organizaciones'],['publicidad','Publicidad'],...(isDeveloper()?[['donaciones','Finanzas y transparencia']]:[]),['registro','Registro']].map(t=>`<button class="${admTab===t[0]?'on':''}" data-action="adm-tab" data-t="${t[0]}">${t[1]}</button>`).join('')}
   </div>
   ${admTab==='resumen'?admResumen():''}
   ${admTab==='moderacion'?admModeracion():''}
@@ -2504,11 +2589,15 @@ function admReports(){
  </div></td></tr>`).join('')}</tbody></table></div>`;
 }
 function admCamps(){
- return`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Campaña</th><th>Organiza</th><th>Estado</th><th>Cupos</th><th>Acciones</th></tr></thead><tbody>
- ${DB.campaigns.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(userById(c.orgId).name)}</td><td><span class="badge ${CSTC[c.status]}">${CST[c.status]}</span></td><td>${c.participants.length}/${c.max}</td>
+ const pend=DB.campaigns.filter(c=>c.mod==='pending');
+ const top=pend.length?`<h3 style="margin:0 0 10px">Pendientes de aprobación (${pend.length})</h3>${pend.map(c=>`<div class="card pad mb2"><div style="display:flex;gap:7px;flex-wrap:wrap"><span class="chip">${CAMP_TYPES[ctype(c)].e} ${CAMP_TYPES[ctype(c)].n}</span><span class="chip">${esc(c.kind)}</span></div><h4 style="margin:8px 0 2px">${esc(c.name)}</h4><div class="xs mut">Por ${esc(userById(c.orgId).name)}</div><p class="sm" style="margin:6px 0">${esc(c.desc.slice(0,220))}${c.desc.length>220?'…':''}</p><div style="display:flex;gap:6px;flex-wrap:wrap"><a class="btn btn-ghost btn-sm" href="#/campana/${c.id}">Ver detalle</a><button class="btn btn-green btn-sm" data-action="camp-approve" data-c="${c.id}">Aprobar</button><button class="btn btn-ghost btn-sm" data-action="camp-reject" data-c="${c.id}">Rechazar</button></div></div>`).join('')}`:'<p class="mut mb2">No hay campañas pendientes de aprobación.</p>';
+ return top+`<h3 style="margin:18px 0 10px">Todas las campañas</h3><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Campaña</th><th>Organiza</th><th>Estado</th><th>Cupos</th><th>Acciones</th></tr></thead><tbody>
+ ${DB.campaigns.map(c=>`<tr><td><b>${esc(c.name)}</b><br><span class="xs mut">${CAMP_TYPES[ctype(c)].n}</span></td><td>${esc(userById(c.orgId).name)}</td><td>${campBadge(c)}</td><td>${c.participants.length}${c.max?'/'+c.max:''}</td>
  <td><div style="display:flex;gap:5px;flex-wrap:wrap"><a class="btn btn-ghost btn-sm" href="#/campana/${c.id}">Abrir</a>
- ${c.status==='VOTING'?`<button class="btn btn-ink btn-sm" data-action="close-vote" data-c="${c.id}">Confirmar fecha</button>`:''}
- ${c.status==='SCHEDULED'?`<button class="btn btn-sm" style="background:var(--green);color:#fff" data-action="complete-camp" data-c="${c.id}">Resultados</button>`:''}</div></td></tr>`).join('')}</tbody></table></div>`;
+ ${c.mod&&c.mod!=='approved'?`<button class="btn btn-green btn-sm" data-action="camp-approve" data-c="${c.id}">Aprobar</button>`:''}
+ ${c.status==='VOTING'&&campOk(c)?`<button class="btn btn-ink btn-sm" data-action="close-vote" data-c="${c.id}">Confirmar fecha</button>`:''}
+ ${['SCHEDULED','ACTIVE'].includes(c.status)&&campOk(c)?`<button class="btn btn-sm" style="background:var(--green);color:#fff" data-action="complete-camp" data-c="${c.id}">Resultados</button>`:''}
+ ${campCanDelete(c)?`<button class="btn btn-danger btn-sm" data-action="camp-del" data-c="${c.id}">Eliminar</button>`:''}</div></td></tr>`).join('')}</tbody></table></div>`;
 }
 function admCats(){
  return`<form class="card pad mb2" data-form="newcat" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
@@ -3218,12 +3307,18 @@ document.addEventListener('click',e=>{
   case 'vote':run(()=>{if(!sess())return guard();API.vote(el.dataset.c,el.dataset.o);toast('Voto registrado.','ok');});break;
   case 'close-vote':run(()=>{API.closeVoting(el.dataset.c);toast('Fecha confirmada. Se notificó a la comunidad.','ok');});break;
   case 'join':run(()=>{API.join(el.dataset.c);toast('¡Listo! Tu lugar quedó reservado.','ok');});break;
+  case 'camp-approve':CampX.review(el.dataset.c,'approved');break;
+  case 'camp-reject':{const n=prompt('Motivo del rechazo (opcional):');if(n===null)break;CampX.review(el.dataset.c,'rejected',n);break;}
+  case 'camp-del':campDelete(el.dataset.c);break;
+  case 'don-camp':donPre=el.dataset.c;location.hash='#/donar';render();break;
+  case 'pledge':{const q=prompt('¿Qué cantidad aportarás? (número)');if(q===null)break;run(()=>{API.pledge(el.dataset.c,+el.dataset.i,q);toast('¡Gracias! Se avisó a la organización.','ok');});break;}
+  case 'checkin':run(()=>{API.checkin(el.dataset.c);toast('¡Avance del día registrado! 🔥','ok');});break;
   case 'complete-camp':{const c=campById(el.dataset.c);
    modal(`<h3>Registrar resultados</h3><p class="sm mut mb2">${esc(c.name)}</p>
    <form data-form="campres" data-c="${c.id}">
-    <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Kg recolectados</label><input type="number" id="cr-kg" min="0" value="0" required></div>
+    <div style="display:${ctype(c)==='JORNADA'?'flex':'none'};gap:10px"><div class="field" style="flex:1"><label>Kg recolectados</label><input type="number" id="cr-kg" min="0" value="0" required></div>
     <div class="field" style="flex:1"><label>Árboles plantados</label><input type="number" id="cr-tr" min="0" value="0"></div></div>
-    <div class="field"><label>Notas</label><textarea id="cr-n" placeholder="¿Qué más lograron?"></textarea></div>
+    <div class="field"><label>Notas</label><textarea id="cr-n" placeholder="${ctype(c)==='RECAUDACION'?'¿Cómo se usó el dinero? Cuéntalo a quienes donaron.':'¿Qué más lograron?'}"></textarea></div>
     <button class="btn btn-green btn-block" type="submit">Marcar como completada</button></form>`);break;}
   case 'ml':mapLayers[el.dataset.l]=!mapLayers[el.dataset.l];render();break;
   case 'm-approve':run(()=>{API.moderate(el.dataset.p,'APPROVED');toast('Publicación aprobada.','ok');});break;
@@ -3312,12 +3407,15 @@ document.addEventListener('submit',e=>{
   }
   if(f.id==='f-camp'){
    const opts=[1,2,3].map(i=>{const dt=$('#c-date'+i).value;if(!dt)return null;const dow=$('#c-dow'+i).value;const tm=$('#c-time'+i).value||'10:00';return{label:(dow?dow+' · ':'')+new Date(dt+'T12:00').toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+tm,dt,time:tm};}).filter(Boolean);
-   const c=API.createCampaign({name:$('#c-name').value,desc:$('#c-desc').value,kind:$('#c-kind').value,cat:$('#c-cat').value,place:$('#c-place').value,max:$('#c-max').value,img:campImgs[0],opts});
-   toast('Campaña creada. La votación de fechas está abierta.','ok');location.hash='#/campana/'+c.id;render();
+   const dd={type:$('#c-type').value,name:$('#c-name').value,desc:$('#c-desc').value,kind:$('#c-kind').value,cat:$('#c-cat').value,place:$('#c-place').value.trim(),max:$('#c-max').value,img:campImgs[0],opts,goal:$('#c-goal').value,ben:$('#c-ben').value.trim(),end:$('#c-end').value,items:$('#c-items').value,sigs:$('#c-sigs').value,addr:$('#c-addr').value.trim(),days:$('#c-days').value,start:$('#c-start').value,when:$('#c-when').value,whent:$('#c-whent').value,link:$('#c-link').value.trim()};
+   if(Supabase.enabled()&&typeof CampX==='object'){const bt=document.querySelector('#f-camp button[type=submit]');if(bt)bt.disabled=true;
+    CampX.create(dd).then(c=>{toast(c.mod==='approved'?'Campaña publicada.':'Campaña enviada. Un administrador la revisará antes de publicarla.','ok');location.hash='#/campana/'+c.id;render();}).catch(e=>{toast(CampX.err(e),'err');if(bt)bt.disabled=false;});
+   }else{const c=API.createCampaign(dd);
+   toast(c.type==='JORNADA'?'Campaña creada. La votación de fechas está abierta.':'Campaña creada y activa.','ok');location.hash='#/campana/'+c.id;render();}
   }
-  if(d==='campres'){const c=campById(f.dataset.c);c.result={kg:+$('#cr-kg').value,trees:+$('#cr-tr').value,notes:$('#cr-n').value};c.status='COMPLETED';API.audit(`Registró resultados de la campaña "${c.name}"`);save();closeModal();toast('Campaña completada. Impacto sumado a las estadísticas.','ok');render();}
+  if(d==='campres'){const c=campById(f.dataset.c);c.result={kg:+$('#cr-kg').value,trees:+$('#cr-tr').value,notes:$('#cr-n').value};c.status='COMPLETED';if(typeof CampX==='object')CampX.persistResult(c);API.audit(`Registró resultados de la campaña "${c.name}"`);save();closeModal();toast('Campaña completada. Impacto sumado a las estadísticas.','ok');render();}
   if(f.id==='f-don'){
-   const sel=$('#d-target');const t=sel.selectedOptions[0];
+   const sel=$('#d-target');donPre=null;const t=sel.selectedOptions[0];
    const amount=+$('#d-amt').value,name=$('#d-name').value.trim(),anon=$('#d-anon')?.checked;
    if(!amount||amount<20){toast('El monto mínimo de donación es $20.','err');return;}
    if(Supabase.enabled()){
@@ -3350,6 +3448,7 @@ document.addEventListener('change',e=>{
   /* Se comprimen en paralelo pero se guardan en el MISMO orden en que se eligieron. */
   Promise.all(okFiles.map(fl=>compress(fl).catch(()=>null))).then(ds=>{let bad=false;ds.forEach(d=>{if(d)arr.push(d);else bad=true;});if(bad)toast('No se pudo leer una de las imágenes.','err');renderPreviews(target);});
  }
+ if(inp.id==='c-type')campFormSync();
  if(inp.id==='mapcat'){mapCat=inp.value;render();}
 });
 document.addEventListener('keydown',e=>{if(e.target.id==='global-search'&&e.key==='Enter'){e.preventDefault();GQ=e.target.value.trim();e.target.value='';e.target.blur();location.hash='#/explorar';render();}});
@@ -3881,6 +3980,7 @@ const Cloud=(()=>{
     {const gone=ecoDeletedNotifs();DB.notifs=nr.filter(n=>!gone.has(n.id)).map(n=>api.notifView(n));}api.startNotifs(s.user.id);}
    const dons=await q(c().from('donations_public').select('*').order('created_at',{ascending:false}).limit(500));
    DB.donations=dons.map(d=>({id:d.id,userId:null,name:d.donor_name,target:d.target,tlabel:d.target_label,amount:+d.amount,at:Date.parse(d.created_at)||Date.now()}));
+   if(typeof CampX==='object')await CampX.load();
    if(s)store.set('econova_session',s.user.id);else store.del('econova_session');
    save();
   },
@@ -4123,7 +4223,7 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
   (liked?c().from('comment_likes').insert({comment_id:cid,user_id:u.id}):c().from('comment_likes').delete().eq('comment_id',cid).eq('user_id',u.id)).then(({error})=>{if(error&&error.code!=='23505')fail(error,true,'No se pudo guardar tu like al comentario');});};
  API.logout=function(){A.logout();if(on())c().auth.signOut();};
  if(on()){
-  DB.users=DB.users.filter(u=>UUID.test(u.id));DB.posts=DB.posts.filter(x=>UUID.test(x.id));DB.follows=[];DB.notifs=[];DB.flags=[];DB.promos=[];DB.audit=[];
+  DB.users=DB.users.filter(u=>UUID.test(u.id));DB.posts=DB.posts.filter(x=>UUID.test(x.id));DB.campaigns=(DB.campaigns||[]).filter(x=>UUID.test(x.id));DB.follows=[];DB.notifs=[];DB.flags=[];DB.promos=[];DB.audit=[];
   DB.reports=(DB.reports||[]).filter(r=>UUID.test(r.userId||''));
   if(!UUID.test(store.get('econova_session')||''))store.del('econova_session');
   (async()=>{let rec=false,oauth=false;
@@ -4137,6 +4237,78 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
    if(rec)api.resetModal();else if(oauth&&sess())toast('Bienvenido a EcoNova.','ok');})();
  }
  return api;
+})();
+
+/* ═════════ EcoNova · Campañas en Supabase (aprobación + eliminar) ═════════
+   Tablas: campaigns_v2 y campaign_actions (ver econova_campanas.sql). Las acciones de la gente
+   (votar, unirse/firmar, aportar, avance diario) se aplican al instante y se guardan en segundo plano. */
+var CampX=(()=>{
+ const sb=()=>supabaseClient,enabled=()=>Supabase.enabled(),UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-/i;
+ const T='campaigns_v2',A='campaign_actions';
+ const me=()=>{const u=sess();return u&&UUID.test(u.id)?u.id:null;};
+ const ms=x=>x?Date.parse(x):0,iso=x=>x?new Date(x).toISOString():null;
+ const PH={voting:'VOTING',scheduled:'SCHEDULED',active:'ACTIVE',completed:'COMPLETED',cancelled:'CANCELLED'};
+ let warned=false;
+ const err=e=>e&&(e.code==='42P01'||/campaigns_v2|campaign_actions/.test(e.message||''))?'Faltan las tablas de campañas en Supabase (corre econova_campanas.sql).':((e&&e.message)||String(e));
+ function toLocal(r,acts){
+  const mem=acts.filter(a=>a.kind==='member'),vt=acts.filter(a=>a.kind==='vote'),pl=acts.filter(a=>a.kind==='pledge'),ck=acts.filter(a=>a.kind==='checkin');
+  const cat=DB.cats.find(x=>x.name===r.category)||DB.cats[0];
+  const c={id:r.id,orgId:r.owner_id,type:r.type,name:r.name,desc:r.description||'',kind:r.kind||'Otra',cat:cat?cat.id:0,place:r.place||'',lat:r.latitude??19.435,lng:r.longitude??-99.135,max:r.max_participants||0,status:PH[r.phase]||'ACTIVE',img:r.image_url||img('campana-'+r.id,600,450),selected:r.selected_option||null,participants:mem.map(a=>({userId:a.user_id,at:ms(a.created_at)})),result:r.result||null,at:ms(r.created_at),mod:r.moderation_status,modNote:r.moderator_note||'',
+   opts:(Array.isArray(r.date_options)?r.date_options:[]).map(o=>({id:o.id,label:o.label,dt:+o.dt,votes:vt.filter(v=>v.option_id===o.id).map(v=>v.user_id)}))};
+  if(r.goal!=null)c.goal=+r.goal;if(r.beneficiary)c.ben=r.beneficiary;if(r.address_to)c.addr=r.address_to;
+  if(Array.isArray(r.items)){c.items=r.items.map((it,i)=>({n:it.n,goal:+it.goal||0,got:pl.filter(p=>p.item_idx===i).reduce((a,p)=>a+(+p.qty||0),0)}));c.pledges=pl.map(p=>({userId:p.user_id,i:p.item_idx,qty:+p.qty,at:ms(p.created_at)}));}
+  if(r.days)c.days=r.days;if(r.starts_at)c.when=ms(r.starts_at);if(r.ends_at)c.until=ms(r.ends_at);if(r.link)c.link=r.link;
+  if(r.type==='RETO'){c.checks={};ck.forEach(a=>{(c.checks[a.user_id]=c.checks[a.user_id]||[]).push(String(a.day).slice(0,10));});}
+  return c;}
+ async function load(){
+  if(!enabled())return;
+  const {data,error}=await sb().from(T).select('*').order('created_at',{ascending:false}).limit(300);
+  if(error){console.error('[EcoNova] campañas',error);if(!warned){warned=true;toast('No se pudieron cargar las campañas: '+err(error),'err');}DB.campaigns=[];return;}
+  let acts=[];
+  if((data||[]).length){const q=await sb().from(A).select('*').order('created_at').limit(5000);if(q.error)console.error('[EcoNova] acciones de campañas',q.error);else acts=q.data||[];}
+  const by={};acts.forEach(a=>{(by[a.campaign_id]=by[a.campaign_id]||[]).push(a);});
+  DB.campaigns=(data||[]).map(r=>toLocal(r,by[r.id]||[]));
+ }
+ async function create(d){
+  const u=me();if(!u)throw'Inicia sesión para crear una campaña.';
+  const c=API.buildCampaign(d);
+  let image_url=null;try{image_url=await Cloud.up(c.img,'camp')||null;}catch(e){console.warn(e);}
+  const row={owner_id:u,type:c.type,name:c.name.trim(),description:c.desc,kind:c.kind,category:(catById(c.cat)||{}).name||null,place:c.place||null,latitude:c.place?c.lat:null,longitude:c.place?c.lng:null,max_participants:c.max||null,goal:c.goal||null,beneficiary:c.ben||null,address_to:c.addr||null,items:c.items?c.items.map(i=>({n:i.n,goal:i.goal})):null,date_options:c.opts.length?c.opts.map(o=>({id:o.id,label:o.label,dt:o.dt})):null,starts_at:iso(c.when),ends_at:iso(c.until),days:c.days||null,link:c.link||null,image_url,phase:c.status.toLowerCase(),moderation_status:isAdmin()?'approved':'pending'};
+  const {data,error}=await sb().from(T).insert(row).select().single();
+  if(error)throw error;
+  const n=toLocal(data,[]);DB.campaigns.unshift(n);save();return n;
+ }
+ async function review(id,status,note){
+  if(!isAdmin())return toast('Solo el equipo de administración puede revisar campañas.','err');
+  const {error}=await sb().rpc('econova_review_campaign',{p_id:id,p_status:status,p_note:note||null});
+  if(error)return toast(err(error),'err');
+  const c=campById(id);if(c){c.mod=status;c.modNote=note||'';save();}
+  toast(status==='approved'?'Campaña aprobada: ya es pública.':'Campaña rechazada.','ok');render();
+ }
+ async function remove(id){
+  const {data,error}=await sb().from(T).delete().eq('id',id).select('id');
+  if(error){toast(err(error),'err');return false;}
+  if(!data||!data.length){toast('No se pudo eliminar: no tienes permiso o ya no existe.','err');return false;}
+  return true;
+ }
+ async function persistResult(c){
+  if(!enabled()||!UUID.test(c.id))return;
+  const {error}=await sb().from(T).update({phase:'completed',result:c.result,updated_at:new Date().toISOString()}).eq('id',c.id);
+  if(error)fail(error,'No se guardaron los resultados');
+ }
+ function fail(e,m){console.error('[EcoNova] campañas',e);toast(m+': '+err(e),'err');load().then(()=>render());}
+ const orig={};['vote','closeVoting','join','checkin','pledge'].forEach(k=>{orig[k]=API[k];});
+ const ok=cid=>enabled()&&me()&&UUID.test(cid);
+ const ins=(row,m)=>sb().from(A).insert(row).then(({error})=>{if(error&&error.code!=='23505')fail(error,m);});
+ API.vote=function(cid,oid){orig.vote.call(API,cid,oid);if(!ok(cid))return;
+  sb().from(A).delete().eq('campaign_id',cid).eq('user_id',me()).eq('kind','vote').then(()=>ins({campaign_id:cid,user_id:me(),kind:'vote',option_id:oid},'No se guardó tu voto'));};
+ API.closeVoting=function(cid){orig.closeVoting.call(API,cid);if(!ok(cid))return;const c=campById(cid);
+  sb().from(T).update({phase:'scheduled',selected_option:c.selected,updated_at:new Date().toISOString()}).eq('id',cid).then(({error})=>{if(error)fail(error,'No se confirmó la fecha');});};
+ API.join=function(cid){orig.join.call(API,cid);if(!ok(cid))return;ins({campaign_id:cid,user_id:me(),kind:'member'},'No se guardó tu registro');};
+ API.checkin=function(cid){orig.checkin.call(API,cid);if(!ok(cid))return;
+  const day=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);ins({campaign_id:cid,user_id:me(),kind:'checkin',day},'No se guardó tu avance');};
+ API.pledge=function(cid,idx,qty){orig.pledge.call(API,cid,idx,qty);if(!ok(cid))return;ins({campaign_id:cid,user_id:me(),kind:'pledge',item_idx:+idx,qty:+qty},'No se guardó tu aporte');};
+ return{load,create,review,remove,persistResult,err};
 })();
 
 /* ═════════ EcoNova · Mapa ambiental unificado (problemas + lugares) ═════════ */
