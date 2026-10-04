@@ -1523,7 +1523,71 @@ function campModBlock(c){let h='';
  if(isAdmin()&&c.mod&&c.mod!=='approved')b.push(`<button class="btn btn-green btn-sm" data-action="camp-approve" data-c="${c.id}">Aprobar</button>`);
  if(isAdmin()&&c.mod==='pending')b.push(`<button class="btn btn-ghost btn-sm" data-action="camp-reject" data-c="${c.id}">Rechazar</button>`);
  if(campCanDelete(c))b.push(`<button class="btn btn-danger btn-sm" data-action="camp-del" data-c="${c.id}">Eliminar campaña</button>`);
+ if(campOk(c))b.unshift(`<button class="btn btn-ink btn-sm" data-action="camp-share" data-c="${c.id}">${ic('share')} Compartir${ctype(c)==='PETICION'?' petición':' campaña'}</button>`);
  return h+(b.length?`<div class="card pad mb2" style="display:flex;gap:8px;flex-wrap:wrap">${b.join('')}</div>`:'');}
+/* ═════════ Compartir campañas / peticiones: imagen-etiqueta + enlace ═════════ */
+let csC=null,csBlob=null,csUrlObj=null;
+const campShareUrl=c=>location.href.split('#')[0].split('?')[0]+'#/campana/'+c.id;
+function campShareText(c){const t=ctype(c),u=campShareUrl(c);
+ const pre={RECAUDACION:`💚 Ayuda a ${c.ben||'esta causa'}: llevamos ${money(campRaised(c))} de ${money(c.goal)}. Dona desde EcoNova:`,PETICION:`✍️ Ya somos ${c.participants.length} de ${c.goal} firmas: "${c.name}". Firma en EcoNova:`,ACOPIO:`📦 Necesitamos tu ayuda: "${c.name}". Aporta desde EcoNova:`,RETO:`🔥 Súmate al reto "${c.name}" en EcoNova:`,EVENTO:`🎓 "${c.name}" — reserva tu lugar en EcoNova:`}[t]||`🌳 Súmate a "${c.name}" en EcoNova:`;
+ return pre+'\n'+u;}
+function csWrap(ctx,text,maxW,maxLines){const out=[];let line='';const toks=/\s/.test(text)?text.split(/(\s+)/):text.split('');
+ for(const w of toks){const t=line+w;if(ctx.measureText(t).width>maxW&&line){out.push(line.trim());line=w.trim()?w:'';}else line=t;}
+ if(line.trim())out.push(line.trim());
+ if(out.length>maxLines){out.length=maxLines;let l=out[maxLines-1];while(l.length>1&&ctx.measureText(l+'…').width>maxW)l=l.slice(0,-1);out[maxLines-1]=l+'…';}
+ return out;}
+function csRR(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function csLoad(src){return new Promise(res=>{if(!src)return res(null);const i=new Image();i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=()=>res(null);i.src=src;});}
+async function campShareCard(c){
+ const W=1080,H=1350,PAD=64,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+ try{await Promise.all([document.fonts.load('800 44px Sora'),document.fonts.load('600 30px Sora')]);}catch(e){}
+ const FONT="Sora, system-ui, -apple-system, 'Segoe UI', sans-serif",T=CAMP_TYPES[ctype(c)],t=ctype(c);
+ const [photo,logo]=await Promise.all([csLoad(c.img),csLoad('apple-touch-icon.png').then(i=>i||csLoad((document.querySelector('link[rel=icon]')||{}).href))]);
+ x.fillStyle='#0B3D2B';x.fillRect(0,0,W,H);
+ const PH=770;
+ if(photo){const r=Math.max(W/photo.width,PH/photo.height),w=photo.width*r,h=photo.height*r;x.save();x.beginPath();x.rect(0,0,W,PH);x.clip();x.drawImage(photo,(W-w)/2,(PH-h)/2,w,h);x.restore();}
+ else{const g=x.createLinearGradient(0,0,W,PH);g.addColorStop(0,'#14803F');g.addColorStop(1,'#0B3D2B');x.fillStyle=g;x.fillRect(0,0,W,PH);x.font='300px serif';x.textAlign='center';x.textBaseline='middle';x.fillText(T.e,W/2,PH/2-30);x.textAlign='left';}
+ let g=x.createLinearGradient(0,0,0,PH);g.addColorStop(0,'rgba(0,0,0,.55)');g.addColorStop(.28,'rgba(0,0,0,0)');g.addColorStop(.5,'rgba(11,61,43,.35)');g.addColorStop(1,'#0B3D2B');x.fillStyle=g;x.fillRect(0,0,W,PH);
+ /* marca */
+ if(logo){x.save();csRR(x,PAD,48,84,84,20);x.clip();x.drawImage(logo,PAD,48,84,84);x.restore();}
+ x.textBaseline='middle';x.fillStyle='#fff';x.font='800 46px '+FONT;x.fillText('EcoNova',PAD+(logo?104:0),91);
+ /* etiqueta de tipo */
+ x.font='700 28px '+FONT;const tl=T.e+'  '+T.n,tw=x.measureText(tl).width+48;x.fillStyle='rgba(255,255,255,.94)';csRR(x,W-PAD-tw,56,tw,70,35);x.fill();x.fillStyle='#0B3D2B';x.fillText(tl,W-PAD-tw+24,92);
+ /* título */
+ x.textBaseline='alphabetic';x.fillStyle='#fff';x.font='800 64px '+FONT;const tt=csWrap(x,c.name,W-PAD*2,3);
+ tt.forEach((l,i)=>x.fillText(l,PAD,PH-14-(tt.length-1-i)*76));
+ /* datos */
+ const hr=v=>new Date(v).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+ const big=(a,b,pct,sub)=>{x.fillStyle='#86EFAC';x.font='800 84px '+FONT;x.fillText(a,PAD,PH+112);const aw=x.measureText(a).width;x.fillStyle='rgba(255,255,255,.75)';x.font='600 34px '+FONT;x.fillText(b,PAD+aw+16,PH+112);
+  x.fillStyle='rgba(255,255,255,.18)';csRR(x,PAD,PH+142,W-PAD*2,24,12);x.fill();x.fillStyle='#4ADE80';csRR(x,PAD,PH+142,Math.max(24,(W-PAD*2)*Math.min(1,pct)),24,12);x.fill();
+  x.fillStyle='#fff';x.font='600 32px '+FONT;csWrap(x,sub,W-PAD*2,1).forEach(l=>x.fillText(l,PAD,PH+216));};
+ const lines=(arr)=>{x.fillStyle='#fff';x.font='600 31px '+FONT;arr.slice(0,5).forEach((a,i)=>{csWrap(x,a,W-PAD*2,1).forEach(l=>x.fillText(l,PAD,PH+62+i*46));});};
+ const n=c.participants.length;let cta='Participa';
+ if(t==='RECAUDACION'){const r=campRaised(c);big(money(r).replace(' MXN',''),'de '+money(c.goal),c.goal?r/c.goal:0,`${Math.round(c.goal?r/c.goal*100:0)}% logrado · Para: ${c.ben}`);cta='💚  Dona desde $20';}
+ else if(t==='PETICION'){big(String(n),'de '+c.goal+' firmas',n/c.goal,'Dirigida a: '+c.addr);cta='✍️  Firma ahora';}
+ else if(t==='ACOPIO'){lines(['Se necesita:',...c.items.slice(0,3).map(i=>`•  ${i.n}${i.goal?`  (${i.got}/${i.goal})`:''}`),`Entrega: ${c.place}${c.until?' · hasta '+dShort(c.until):''}`]);cta='📦  Aporta';}
+ else if(t==='RETO'){lines([`Reto de ${c.days} días`,`Inicia el ${dLong(c.when)}`,`${n} personas ya se unieron`]);cta='🔥  Únete al reto';}
+ else if(t==='EVENTO'){lines([`${dLong(c.when)} · ${hr(c.when)}`,c.place?'Lugar: '+c.place:'',c.link?'En línea':'',`Cupo: ${n}/${c.max}`].filter(Boolean));cta='🎓  Reserva tu lugar';}
+ else{const sel=c.opts.find(o=>o.id===c.selected);lines([c.place?'Lugar: '+c.place:'',sel?`${dLong(sel.dt)} · ${hr(sel.dt)}`:'Vota la fecha que prefieras',`Cupo: ${n}/${c.max}`].filter(Boolean));cta='🌳  Súmate';}
+ /* botón + enlace */
+ x.fillStyle='#22C55E';csRR(x,PAD,PH+262,W-PAD*2,100,28);x.fill();x.fillStyle='#052E1B';x.font='800 42px '+FONT;x.textAlign='center';x.fillText(cta,W/2,PH+326);x.textAlign='left';
+ x.fillStyle='rgba(255,255,255,.7)';x.font='600 26px '+FONT;x.fillText('Entra a EcoNova y participa:',PAD,PH+412);
+ x.fillStyle='#fff';x.font='700 27px '+FONT;csWrap(x,campShareUrl(c).replace(/^https?:\/\//,''),W-PAD*2,2).forEach((l,i)=>x.fillText(l,PAD,PH+452+i*38));
+ return await new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('No se pudo crear la imagen')),'image/png'));
+}
+async function campShareOpen(id){const c=campById(id);if(!c)return;if(!campOk(c))return toast('Solo se pueden compartir campañas aprobadas.','err');
+ csC=c;csBlob=null;if(csUrlObj){URL.revokeObjectURL(csUrlObj);csUrlObj=null;}
+ modal(`<h3>Compartir campaña</h3><p class="sm mut mb2">Se comparte esta imagen junto con el enlace para entrar a EcoNova.</p><div id="cs-prev" style="min-height:140px;display:grid;place-items:center;border-radius:12px;background:var(--green-t);overflow:hidden"><span class="sm mut">Preparando imagen…</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-green" id="cs-b1" data-action="cs-share" disabled>${ic('share')} Compartir</button><button class="btn btn-ghost" data-action="cs-dl">Descargar imagen</button><button class="btn btn-ghost" data-action="cs-copy">Copiar enlace</button></div>`);
+ try{const b=await campShareCard(c);if(csC!==c)return;csBlob=b;csUrlObj=URL.createObjectURL(b);const pv=document.getElementById('cs-prev');if(pv)pv.innerHTML=`<img src="${csUrlObj}" alt="" style="width:100%;display:block">`;const b1=document.getElementById('cs-b1');if(b1)b1.disabled=false;}
+ catch(e){console.error(e);const pv=document.getElementById('cs-prev');if(pv)pv.innerHTML='<span class="sm mut" style="padding:16px">No se pudo crear la imagen. Aun así puedes compartir el enlace.</span>';const b1=document.getElementById('cs-b1');if(b1)b1.disabled=false;}
+}
+function campShareDo(){const c=csC;if(!c)return;const text=campShareText(c);
+ if(csBlob&&navigator.canShare){const f=new File([csBlob],'econova-campana.png',{type:'image/png'});if(navigator.canShare({files:[f]})){navigator.share({files:[f],title:c.name,text}).catch(e=>{if(e&&e.name!=='AbortError')toast('No se pudo abrir el menú de compartir.','err');});return;}}
+ if(navigator.share){navigator.share({title:c.name,text}).catch(e=>{if(e&&e.name!=='AbortError')toast('No se pudo abrir el menú de compartir.','err');});return;}
+ campShareCopy();campShareDl();}
+function campShareDl(){if(!csBlob)return toast('La imagen aún no está lista.','err');const a=document.createElement('a');a.href=csUrlObj;a.download='econova-campana.png';document.body.appendChild(a);a.click();a.remove();}
+function campShareCopy(){const c=csC;if(!c)return;const u=campShareUrl(c);
+ (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(u):Promise.reject()).then(()=>toast('Enlace copiado.','ok')).catch(()=>{prompt('Copia el enlace:',u);});}
 let donPre=null;
 const CST={ACTIVE:'Activa',VOTING:'Votación abierta',SCHEDULED:'Fecha confirmada',IN_PROGRESS:'En curso',COMPLETED:'Completada',CANCELLED:'Cancelada'};
 const CSTC={ACTIVE:'st-scheduled',VOTING:'st-voting',SCHEDULED:'st-scheduled',IN_PROGRESS:'st-scheduled',COMPLETED:'st-completed',CANCELLED:'st-rechazado'};
@@ -1909,6 +1973,7 @@ function campaignCard(c){
    <div class="mt2" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     ${pg.pct==null?'':`<div class="pbar" style="flex:1;min-width:120px"><div class="fill" style="width:${Math.min(100,pg.pct)}%"></div></div>`}
     <span class="xs mut" style="flex:${pg.pct==null?1:'none'}">${pg.txt}</span>
+    ${campOk(c)?`<button class="btn btn-ghost btn-sm" data-action="camp-share" data-c="${c.id}" title="Compartir" aria-label="Compartir">${ic('share')}</button>`:''}
     <a class="btn btn-ghost btn-sm" href="#/campana/${c.id}">Ver campaña</a>
    </div>
   </div>
@@ -3310,6 +3375,10 @@ document.addEventListener('click',e=>{
   case 'camp-approve':CampX.review(el.dataset.c,'approved');break;
   case 'camp-reject':{const n=prompt('Motivo del rechazo (opcional):');if(n===null)break;CampX.review(el.dataset.c,'rejected',n);break;}
   case 'camp-del':campDelete(el.dataset.c);break;
+  case 'camp-share':campShareOpen(el.dataset.c);break;
+  case 'cs-share':campShareDo();break;
+  case 'cs-dl':campShareDl();break;
+  case 'cs-copy':campShareCopy();break;
   case 'don-camp':donPre=el.dataset.c;location.hash='#/donar';render();break;
   case 'pledge':{const q=prompt('¿Qué cantidad aportarás? (número)');if(q===null)break;run(()=>{API.pledge(el.dataset.c,+el.dataset.i,q);toast('¡Gracias! Se avisó a la organización.','ok');});break;}
   case 'checkin':run(()=>{API.checkin(el.dataset.c);toast('¡Avance del día registrado! 🔥','ok');});break;
