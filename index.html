@@ -1583,11 +1583,12 @@ async function campShareCard(c){
 }
 async function campShareOpen(id){const c=campById(id);if(!c)return;if(!campOk(c))return toast('Solo se pueden compartir campañas aprobadas.','err');
  csC=c;csBlob=null;if(csUrlObj){URL.revokeObjectURL(csUrlObj);csUrlObj=null;}
- modal(`<h3>Compartir campaña</h3><p class="sm mut mb2">Se comparte esta imagen junto con el enlace para entrar a EcoNova.</p><div id="cs-prev" style="min-height:140px;display:grid;place-items:center;border-radius:12px;background:var(--green-t);overflow:hidden"><span class="sm mut">Preparando imagen…</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-green" id="cs-b1" data-action="cs-share" disabled>${ic('share')} Compartir</button><button class="btn btn-ghost" data-action="cs-dl">Descargar imagen</button><button class="btn btn-ghost" data-action="cs-copy">Copiar enlace</button></div>`);
- try{const b=await campShareCard(c);if(csC!==c)return;csBlob=b;csUrlObj=URL.createObjectURL(b);const pv=document.getElementById('cs-prev');if(pv)pv.innerHTML=`<img src="${csUrlObj}" alt="" style="width:100%;display:block">`;const b1=document.getElementById('cs-b1');if(b1)b1.disabled=false;}
- catch(e){console.error(e);const pv=document.getElementById('cs-prev');if(pv)pv.innerHTML='<span class="sm mut" style="padding:16px">No se pudo crear la imagen. Aun así puedes compartir el enlace.</span>';const b1=document.getElementById('cs-b1');if(b1)b1.disabled=false;}
+ modal(`<h3>Compartir campaña</h3><p class="sm mut mb2">"Compartir enlace" muestra la foto de la campaña como vista previa. "Compartir con imagen" manda esta tarjeta.</p><div id="cs-prev" style="min-height:140px;display:grid;place-items:center;border-radius:12px;background:var(--green-t);overflow:hidden"><span class="sm mut">Preparando imagen…</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-green" id="cs-b1" data-action="cs-share" disabled>${ic('share')} Compartir enlace</button><button class="btn btn-ghost" id="cs-b2" data-action="cs-share-img" disabled>Compartir con imagen</button><button class="btn btn-ghost" data-action="cs-dl">Descargar imagen</button><button class="btn btn-ghost" data-action="cs-copy">Copiar enlace</button></div>`);
+ try{const b=await campShareCard(c);if(csC!==c)return;csBlob=b;csUrlObj=URL.createObjectURL(b);const pv=document.getElementById('cs-prev');if(pv)pv.innerHTML=`<img src="${csUrlObj}" alt="" style="width:100%;display:block">`;const b1=document.getElementById('cs-b1');if(b1)b1.disabled=false;const b2=document.getElementById('cs-b2');if(b2)b2.disabled=false;}
+ catch(e){console.error(e);const pv=document.getElementById('cs-prev');if(pv)pv.innerHTML='<span class="sm mut" style="padding:16px">No se pudo crear la imagen. Aun así puedes compartir el enlace.</span>';const b1=document.getElementById('cs-b1');if(b1)b1.disabled=false;const b2=document.getElementById('cs-b2');if(b2)b2.disabled=false;}
 }
-function campShareDo(){const c=csC;if(!c)return;const text=campShareText(c);
+function campShareDo(withImg){const c=csC;if(!c)return;const text=campShareText(c);
+ if(SHARE_BASE&&!withImg){if(navigator.share){navigator.share({title:c.name,text}).catch(e=>{if(e&&e.name!=='AbortError')toast('No se pudo abrir el menú de compartir.','err');});return;}campShareCopy();return;}
  if(csBlob&&navigator.canShare){const f=new File([csBlob],'econova-campana.png',{type:'image/png'});if(navigator.canShare({files:[f]})){navigator.share({files:[f],title:c.name,text}).catch(e=>{if(e&&e.name!=='AbortError')toast('No se pudo abrir el menú de compartir.','err');});return;}}
  if(navigator.share){navigator.share({title:c.name,text}).catch(e=>{if(e&&e.name!=='AbortError')toast('No se pudo abrir el menú de compartir.','err');});return;}
  campShareCopy();campShareDl();}
@@ -3386,7 +3387,7 @@ document.addEventListener('click',e=>{
   case 'camp-reject':{const n=prompt('Motivo del rechazo (opcional):');if(n===null)break;CampX.review(el.dataset.c,'rejected',n);break;}
   case 'camp-del':campDelete(el.dataset.c);break;
   case 'camp-share':campShareOpen(el.dataset.c);break;
-  case 'cs-share':campShareDo();break;
+  case 'cs-share':campShareDo();break;case 'cs-share-img':campShareDo(true);break;
   case 'cs-dl':campShareDl();break;
   case 'cs-copy':campShareCopy();break;
   case 'don-camp':donPre=el.dataset.c;location.hash='#/donar';render();break;
