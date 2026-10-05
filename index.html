@@ -1543,7 +1543,14 @@ function csWrap(ctx,text,maxW,maxLines){const out=[];let line='';const toks=/\s/
  if(out.length>maxLines){out.length=maxLines;let l=out[maxLines-1];while(l.length>1&&ctx.measureText(l+'…').width>maxW)l=l.slice(0,-1);out[maxLines-1]=l+'…';}
  return out;}
 function csRR(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
-function csLoad(src){return new Promise(res=>{if(!src)return res(null);const i=new Image();i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=()=>res(null);i.src=src;});}
+function csImg(src){return new Promise(res=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=()=>res(null);i.src=src;});}
+async function csLoad(src){if(!src)return null;
+ if(/^(data|blob):/.test(src))return csImg(src);
+ /* 1) descargar la foto como archivo (evita el error de CORS/caché de Safari al dibujarla en el canvas) */
+ try{const r=await fetch(src,{mode:'cors',cache:'no-store'});if(r.ok){const b=await r.blob(),u=URL.createObjectURL(b),im=await csImg(u);if(im)return im;}}catch(e){}
+ /* 2) reintento con la dirección distinta para saltar la caché del navegador */
+ const abs=/^https?:/.test(src);
+ return csImg(abs?src+(src.indexOf('?')>-1?'&':'?')+'cb='+Date.now():src);}
 async function campShareCard(c){
  const W=1080,H=1350,PAD=64,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
  try{await Promise.all([document.fonts.load('800 44px Sora'),document.fonts.load('600 30px Sora')]);}catch(e){}
