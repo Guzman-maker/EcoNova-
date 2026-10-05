@@ -1507,7 +1507,9 @@ const RST={PENDIENTE:'Pendiente',EN_REVISION:'En revisión',VERIFICADO:'Verifica
 const RSTC={PENDIENTE:'st-pending',EN_REVISION:'st-en_revision',VERIFICADO:'st-verificado',RECHAZADO:'st-rechazado',RESUELTO:'st-resuelto'};
 const CAMP_TYPES={JORNADA:{n:'Jornada con voluntarios',e:'🌳',d:'La comunidad vota la fecha. Lleva lugar y cupo.'},RECAUDACION:{n:'Recaudación de fondos',e:'💚',d:'Meta de dinero para un animal, causa o proyecto. Sin horario, lugar ni grupo.'},ACOPIO:{n:'Acopio en especie',e:'📦',d:'Croquetas, cobijas, medicinas… Con punto de entrega y fecha límite.'},PETICION:{n:'Petición de firmas',e:'✍️',d:'Reúne firmas para una autoridad. Sin horario ni lugar.'},RETO:{n:'Reto ecológico',e:'🔥',d:'Reto de varios días con avance diario. Se hace desde casa.'},EVENTO:{n:'Taller o charla',e:'🎓',d:'Fecha fija, presencial o en línea, con cupo.'}};
 const ctype=c=>c.type&&CAMP_TYPES[c.type]?c.type:'JORNADA';
-const campRaised=c=>DB.donations.filter(d=>d.target===c.id).reduce((a,d)=>a+d.amount,0);
+const campDons=c=>DB.donations.filter(d=>String(d.target||'').toLowerCase()===String(c.id).toLowerCase()||(d.tlabel&&d.tlabel==='Campaña · '+c.name));
+const campRaised=c=>campDons(c).reduce((a,d)=>a+d.amount,0);
+const donDest=d=>{const c=(DB.campaigns||[]).find(x=>String(x.id).toLowerCase()===String(d.target||'').toLowerCase()||('Campaña · '+x.name)===d.tlabel);return c?`<a href="#/campana/${c.id}">${esc(d.tlabel||c.name)}</a>`:esc(d.tlabel||'Fondo Comunitario');};
 const campOwn=c=>{const u=sess();return !!u&&c.orgId===u.id;};
 const campOk=c=>!c.mod||c.mod==='approved';
 const campVisible=c=>campOk(c)||campOwn(c)||isAdmin();
@@ -2000,7 +2002,7 @@ function campaignCard(c){
 function campTypeBlock(c){const t=ctype(c),me=sess(),exp=c.until&&Date.now()>c.until&&t!=='RETO',act=c.status==='ACTIVE'&&!exp,joined=me&&c.participants.some(p=>p.userId===me.id);
  const hr=x=>new Date(x).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
  const old=c.status==='ACTIVE'&&exp?'<div class="notice mt2">La fecha límite ya pasó. La organización puede cerrar la campaña y publicar los resultados.</div>':'';
- if(t==='RECAUDACION'){const r=campRaised(c),n=DB.donations.filter(d=>d.target===c.id),pct=Math.min(100,Math.round(r/c.goal*100));
+ if(t==='RECAUDACION'){const r=campRaised(c),n=campDons(c),pct=Math.min(100,Math.round(r/c.goal*100));
   return`<div class="card pad mb2"><span class="kicker">Recaudación</span><div class="goal-big mt1">${money(r)} <span>/ ${money(c.goal)}</span></div><div class="pbar mt1" style="height:12px"><div class="fill" style="width:${pct}%"></div></div><p class="xs mut mt1"><b>${pct}%</b> · ${n.length} aportaciones${c.until?` · cierra el ${dLong(c.until)}`:''}</p><p class="sm mt1">Para: <b>${esc(c.ben)}</b></p>${act?`<button class="btn btn-green btn-block mt2" data-action="don-camp" data-c="${c.id}">${ic('heart')} Donar a esta campaña</button>`:old}${n.length?`<div class="part-row mt2">${n.slice(-8).reverse().map(d=>`<span class="chip">${esc(d.name||'Anónimo')} · ${money(d.amount)}</span>`).join('')}</div>`:''}</div>`;}
  if(t==='ACOPIO')return`<div class="card pad mb2"><span class="kicker">Qué se necesita</span>${c.items.map((it,i)=>{const p=it.goal?Math.min(100,it.got/it.goal*100):0;return`<div class="vote-row"><span class="dt">${esc(it.n)}</span><div class="vb"><i style="width:${p}%"></i></div><span class="cnt">${it.got}${it.goal?'/'+it.goal:''}</span>${act?`<button class="btn btn-sm btn-ghost" data-action="pledge" data-c="${c.id}" data-i="${i}">Aportar</button>`:''}</div>`;}).join('')}<p class="xs mut mt1">Entrega en <b>${esc(c.place)}</b>${c.until?` · hasta el ${dLong(c.until)}`:''}</p>${act?'':old}</div>`;
  if(t==='PETICION'){const pct=Math.min(100,Math.round(c.participants.length/c.goal*100));return`<div class="card pad mb2"><span class="kicker">Petición</span><div class="goal-big mt1">${c.participants.length} <span>/ ${c.goal} firmas</span></div><div class="pbar mt1" style="height:12px"><div class="fill" style="width:${pct}%"></div></div><p class="sm mt1">Dirigida a: <b>${esc(c.addr)}</b></p>${act&&!joined?`<button class="btn btn-green btn-block mt2" data-action="join" data-c="${c.id}">${ic('check')} Firmar esta petición</button>`:''}</div>`;}
@@ -2382,7 +2384,7 @@ function viewDonate(){
     <h4 class="xs mut" style="text-transform:uppercase;letter-spacing:.08em;margin:20px 0 8px">Distribución estimada del fondo</h4>
     ${dist.map(d=>`<div class="dist-row"><span class="nm">${d[0]}</span><div class="bar"><i style="width:${d[1]/40*100}%"></i></div><span class="pc">${d[1]}%</span></div>`).join('')}
     <h4 class="xs mut" style="text-transform:uppercase;letter-spacing:.08em;margin:18px 0 8px">Últimas donaciones</h4>
-    ${DB.donations.slice(-4).reverse().map(d=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><span><b>${esc(d.name)}</b> <span class="mut xs">→ ${esc(d.tlabel)}</span></span><b style="color:var(--eco)">${money(d.amount)}</b></div>`).join('')}
+    ${DB.donations.slice(-4).reverse().map(d=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><span><b>${esc(d.name)}</b> <span class="mut xs">→ ${donDest(d)}</span></span><b style="color:var(--eco)">${money(d.amount)}</b></div>`).join('')}
     <a class="btn btn-ghost btn-block mt2" href="#/transparencia">Ver en qué usamos el dinero</a>
    </div>
   </div>
@@ -2414,7 +2416,10 @@ function viewTransparency(){
    <div class="kpi"><div class="n">${money(f.paid)}</div><div class="l">Apoyos entregados</div></div>
    <div class="kpi"><div class="n">${money(f.avail)}</div><div class="l">Fondo disponible</div></div>
   </div>
-  <div class="mt3" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Concepto</th><th>Fecha</th><th style="text-align:right">Monto</th></tr></thead><tbody>
+  ${(()=>{const cs=(DB.campaigns||[]).filter(c=>campOk(c)&&ctype(c)==='RECAUDACION');const last=DB.donations.slice().sort((a,b)=>b.at-a.at).slice(0,15);
+  return`<h3 class="mt3" style="font-size:17px">Progreso por campaña</h3><div class="mt1" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Campaña</th><th>Recaudado</th><th>Avance</th><th style="text-align:right">Aportaciones</th></tr></thead><tbody>${cs.map(c=>{const r=campRaised(c),p=c.goal?Math.min(100,Math.round(r/c.goal*100)):0;return`<tr><td><a href="#/campana/${c.id}">${esc(c.name)}</a></td><td><b>${money(r)}</b> <span class="mut xs">de ${money(c.goal)}</span></td><td style="min-width:110px"><div class="pbar"><div class="fill" style="width:${p}%"></div></div><span class="xs mut">${p}%</span></td><td style="text-align:right">${campDons(c).length}</td></tr>`}).join('')||'<tr><td colspan="4" class="mut">Aún no hay campañas de recaudación.</td></tr>'}</tbody></table></div>
+  <h3 class="mt3" style="font-size:17px">Últimas donaciones</h3><div class="mt1" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Quién</th><th>Para</th><th>Fecha</th><th style="text-align:right">Monto</th></tr></thead><tbody>${last.map(d=>`<tr><td>${esc(d.name||'Anónimo')}</td><td>${donDest(d)}</td><td>${dShort(d.at)}</td><td style="text-align:right"><b>${money(d.amount)}</b></td></tr>`).join('')||'<tr><td colspan="4" class="mut">Aún no hay donaciones.</td></tr>'}</tbody></table></div><h3 class="mt3" style="font-size:17px">Gastos</h3>`;})()}
+   <div class="mt3" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Concepto</th><th>Fecha</th><th style="text-align:right">Monto</th></tr></thead><tbody>
   ${publicExpenses.map(e=>`<tr><td>${esc(e.concept)}</td><td>${dShort(e.at)}</td><td style="text-align:right"><b>${money(e.amount)}</b></td></tr>`).join('')||'<tr><td colspan="3" class="mut">Aún no hay gastos públicos registrados.</td></tr>'}
   </tbody></table></div>
  </div>`;
@@ -2729,7 +2734,7 @@ function admDon(){
   <div style="display:flex;gap:10px;flex-wrap:wrap"><input type="text" id="ex-c" placeholder="Concepto" required style="flex:2;min-width:180px;padding:10px;border:1.5px solid var(--line2);border-radius:8px"><input type="number" id="ex-a" placeholder="Monto" required min="1" style="flex:1;min-width:110px;padding:10px;border:1.5px solid var(--line2);border-radius:8px"><button class="btn btn-ink" type="submit">Registrar</button></div></form>
  <div class="card pad mt3"><h3 style="font-size:15px;margin-bottom:4px">Publicación de gastos en Transparencia</h3><p class="sm mut mb2">Solo los elementos marcados como públicos se muestran a la comunidad.</p>${DB.expenses.slice().reverse().map(e=>`<div class="admin-public-row"><div><b>${esc(e.concept)}</b><div class="xs mut">${dShort(e.at)} · ${money(e.amount)} · ${e.public?'Público':'Privado'}</div></div><button class="btn ${e.public?'btn-ghost':'btn-green'} btn-sm" data-action="expense-public" data-e="${e.id}">${e.public?'Ocultar':'Hacer público'}</button></div>`).join('')||'<p class="sm mut">No hay gastos registrados.</p>'}</div>
  <h3 style="font-size:15px;margin:20px 0 10px">Donaciones recibidas</h3>
- ${DB.donations.slice().reverse().map(d=>`<div class="cat-row"><span class="nm">${esc(d.name)} → ${esc(d.tlabel)}</span><span class="xs mut">${dShort(d.at)}</span><b style="color:var(--eco)">${money(d.amount)}</b></div>`).join('')||'<p class="sm mut">Aún no se han registrado donaciones.</p>'}`;
+ ${DB.donations.slice().reverse().map(d=>`<div class="cat-row"><span class="nm">${esc(d.name)} → ${donDest(d)}</span><span class="xs mut">${dShort(d.at)}</span><b style="color:var(--eco)">${money(d.amount)}</b></div>`).join('')||'<p class="sm mut">Aún no se han registrado donaciones.</p>'}`;
 }
 function admLog(){
  return`<div class="card" style="overflow:hidden">${DB.audit.map(a=>`<div class="pd-item"><b>${esc(userById(a.admin).name)}</b> ${esc(a.action)}<div class="xs mut">${timeAgo(a.at)}</div></div>`).join('')||'<div class="pd-item mut">Sin acciones registradas.</div>'}</div>`;
@@ -4298,7 +4303,10 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
   A.reviewPromo(id,ok);
   await api.sync();render();
 };
- api.donate=async function(target,targetLabel,amount,anonymous,donorName){
+ api.refreshDonations=async function(){try{const {data,error}=await c().from('donations_public').select('*').order('created_at',{ascending:false}).limit(500);if(error||!data)return false;
+   const nd=data.map(d=>({id:d.id,userId:null,name:d.donor_name,target:d.target,tlabel:d.target_label,amount:+d.amount,at:Date.parse(d.created_at)||Date.now()}));
+   const sig=a=>a.length+':'+a.reduce((t,d)=>t+d.amount,0);const ch=sig(nd)!==sig(DB.donations);DB.donations=nd;return ch;}catch(e){return false;}};
+  api.donate=async function(target,targetLabel,amount,anonymous,donorName){
   const {data:{session:s}}=await c().auth.getSession();
   const res=await fetch(SUPABASE_CONFIG.url+'/functions/v1/create-checkout-session',{method:'POST',headers:{'Content-Type':'application/json',...(s?.access_token?{Authorization:'Bearer '+s.access_token}:{})},body:JSON.stringify({target,targetLabel,amount,anonymous:!!anonymous,donorName:donorName||null})});
   const out=await res.json().catch(()=>({}));
@@ -4320,9 +4328,12 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
    try{await api.sync();render();}catch(e){console.error(e);toast('No se pudo conectar con EcoNova. Reintenta en un momento.','err');}
    if(sess()){const nx=ecoTakeNext(true);if(nx){location.hash=nx;render();}}
    const dq=new URLSearchParams(location.search);
-   if(dq.get('donation')==='success'){toast('¡Gracias por tu donación! En unos segundos se refleja en el contador.','ok');history.replaceState(null,'',location.pathname+(location.hash||'#/donar'));setTimeout(()=>{api.sync().then(render);},2500);}
+   if(dq.get('donation')==='success'){toast('¡Gracias por tu donación! En unos segundos se refleja en el contador.','ok');history.replaceState(null,'',location.pathname+(location.hash||'#/donar'));{let n=0;const poll=async()=>{n++;const ch=await api.refreshDonations();if(ch){render();}else if(n<10)setTimeout(poll,4000);};setTimeout(poll,2000);}}
    else if(dq.get('donation')==='cancel'){toast('No se completó el pago. Puedes intentarlo de nuevo cuando quieras.');history.replaceState(null,'',location.pathname+(location.hash||'#/donar'));}
-   if(rec)api.resetModal();else if(oauth&&sess())toast('Bienvenido a EcoNova.','ok');})();
+   if(rec)api.resetModal();else if(oauth&&sess())toast('Bienvenido a EcoNova.','ok');
+    const busy=()=>/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||'');
+    const go=()=>{if(document.hidden||busy()||!/^#\/(campana|campanas|transparencia)/.test(location.hash))return;api.refreshDonations().then(ch=>{if(ch&&!busy())render();});};
+    setInterval(go,30000);window.addEventListener('hashchange',go);})();
  }
  return api;
 })();
