@@ -1329,6 +1329,8 @@ body.auth-route .eav.morph::after{display:none!important}
 #eco-streak-sheet.on{opacity:1}
 #eco-streak-sheet .ss{width:min(100%,520px);max-height:88vh;overflow:auto;background:#fff;border-radius:26px 26px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.9,.3,1)}
 #eco-streak-sheet.on .ss{transform:none}
+#eco-streak-sheet,#eco-streak-sheet .ss,#eco-likes,#eco-likes .elk-list,#eco-sheet .sl{overscroll-behavior:contain}
+#eco-streak-sheet .ss,#eco-likes .elk-list{-webkit-overflow-scrolling:touch}
 .ss-grab{width:42px;height:5px;border-radius:99px;background:#d5ded9;margin:2px auto 12px}
 .ss-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .ss-hd>b{font-size:17px;color:var(--ink)}
@@ -2885,7 +2887,41 @@ function ecoRestoreScroll(y,anchor){ecoCarRestore(ECO_CARPOS);
  let done=false;
  if(anchor){const el=document.getElementById(anchor.id);if(el){window.scrollTo(0,Math.max(0,window.scrollY+el.getBoundingClientRect().top-anchor.top));done=true;}}
  if(!done)window.scrollTo(0,y);
+ if(ECO_LOCK.n)ECO_LOCK.y=window.scrollY||0;
  root.style.scrollBehavior=prev;
+}
+/* EcoNova: bloqueo del feed mientras hay una hoja abierta (comentarios, me gusta, racha) y restauración exacta al cerrarla */
+const ECO_LOCK={keys:new Set(),y:0,anchor:null,hash:'',get n(){return this.keys.size;}};
+let ECO_LAST_MOVE=0;
+['touchmove','wheel'].forEach(ev=>window.addEventListener(ev,()=>{ECO_LAST_MOVE=Date.now();},{passive:true,capture:true}));
+function ecoLockGuard(){
+ if(!ECO_LOCK.n)return;
+ if(Math.abs((window.scrollY||0)-ECO_LOCK.y)>1){const r=document.documentElement,p=r.style.scrollBehavior;r.style.scrollBehavior='auto';window.scrollTo(0,ECO_LOCK.y);r.style.scrollBehavior=p;}
+}
+function ecoLockFocus(){[0,80,200,400,700].forEach(ms=>setTimeout(ecoLockGuard,ms));}
+function ecoLockPage(key){
+ if(ECO_LOCK.keys.has(key))return;
+ const first=!ECO_LOCK.n;ECO_LOCK.keys.add(key);
+ if(!first)return;
+ ECO_LOCK.y=window.scrollY||0;ECO_LOCK.anchor=ecoScrollAnchor();ECO_LOCK.hash=location.hash||'#/';
+ document.body.style.overflow='hidden';
+ window.addEventListener('scroll',ecoLockGuard,{passive:true});
+ document.addEventListener('focusin',ecoLockFocus,true);
+}
+function ecoUnlockPage(key){
+ if(!ECO_LOCK.keys.delete(key)||ECO_LOCK.n)return;
+ window.removeEventListener('scroll',ecoLockGuard);document.removeEventListener('focusin',ecoLockFocus,true);
+ const y=ECO_LOCK.y,anchor=ECO_LOCK.anchor,h=ECO_LOCK.hash,t=Date.now();ECO_LOCK.anchor=null;
+ if(!document.querySelector('#modal.open'))document.body.style.overflow='';
+ const back=()=>{if((location.hash||'#/')!==h||ECO_LOCK.n||ECO_LAST_MOVE>t)return;ecoRestoreScroll(y,anchor);};
+ back();requestAnimationFrame(back);[60,180,420].forEach(ms=>setTimeout(back,ms));
+}
+/* evita que lo que se desliza dentro de una hoja arrastre el feed (límites de scroll incluidos) */
+function ecoTrapScroll(root){
+ if(!root||root._trap)return;root._trap=1;let sy=0,sc=null;
+ const scroller=t=>{while(t&&t!==root){if(t.nodeType===1){const o=getComputedStyle(t).overflowY;if((o==='auto'||o==='scroll')&&t.scrollHeight>t.clientHeight+1)return t;}t=t.parentNode;}return (root.scrollHeight>root.clientHeight+1&&/auto|scroll/.test(getComputedStyle(root).overflowY))?root:null;};
+ root.addEventListener('touchstart',e=>{if(!e.touches[0])return;sy=e.touches[0].clientY;sc=scroller(e.target);},{passive:true});
+ root.addEventListener('touchmove',e=>{if(!e.cancelable||!e.touches[0])return;const dy=e.touches[0].clientY-sy;if(!sc){e.preventDefault();return;}const top=sc.scrollTop<=0,bot=sc.scrollTop+sc.clientHeight>=sc.scrollHeight-1;if((dy>0&&top)||(dy<0&&bot))e.preventDefault();},{passive:false});
 }
 function ecoRestoreLater(y,anchor){
  ECO_USER_SCROLLED=false;
@@ -2961,8 +2997,8 @@ function ecoCmDelete(pid,cid){
 }
 function ecoOpenSheet(id){
  const p=postById(id);if(!p)return;let s=document.getElementById('eco-sheet');
- if(!s){window._ecoThreads=new Map();window._ecoKeep=new Set();s=document.createElement('div');s.id='eco-sheet';document.body.appendChild(s);document.body.style.overflow='hidden';}
- s.dataset.p=id;try{s.innerHTML=ecoSheetHTML(p);}catch(err){console.error('[EcoNova] comentarios',err);s.remove();document.body.style.overflow='';try{toast('No se pudieron cargar los comentarios.','err');}catch(_){}return;}
+ if(!s){window._ecoThreads=new Map();window._ecoKeep=new Set();s=document.createElement('div');s.id='eco-sheet';document.body.appendChild(s);ecoLockPage('sheet');}
+ s.dataset.p=id;try{s.innerHTML=ecoSheetHTML(p);}catch(err){console.error('[EcoNova] comentarios',err);s.remove();ecoUnlockPage('sheet');try{toast('No se pudieron cargar los comentarios.','err');}catch(_){}return;}
  if(window.visualViewport&&!s._vv){s._vv=1;const vv=window.visualViewport;const fit=()=>{if(document.getElementById('eco-sheet')!==s){vv.removeEventListener('resize',fit);vv.removeEventListener('scroll',fit);return;}s.style.height=vv.height+'px';s.style.top=vv.offsetTop+'px';s.style.bottom='auto';};vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit);fit();}
  s.onclick=e=>{if(e.target===s)ecoCloseSheet();};
  if(!s._lp){s._lp=1;let tm=null,px=0,py=0,row=null,fired=0;
@@ -3013,13 +3049,13 @@ function ecoCarObserve(){
 }
 new MutationObserver(()=>{clearTimeout(ECO_CAR_T);ECO_CAR_T=setTimeout(ecoCarObserve,150);}).observe(document.documentElement,{childList:true,subtree:true});
 function ecoClampCheck(){ecoCarObserve();document.querySelectorAll('.post .bd.eco-clamp').forEach(b=>{const m=b.nextElementSibling;if(m&&m.classList.contains('eco-more'))m.hidden=!(b.scrollHeight>b.clientHeight+1);});document.querySelectorAll('.post .bd:not(.eco-clamp)').forEach(b=>{const m=b.nextElementSibling;if(m&&m.classList.contains('eco-more')&&m.textContent==='Ver más')m.hidden=true;});}
-function ecoCloseSheet(){const s=document.getElementById('eco-sheet');if(s)s.remove();document.body.style.overflow='';}
+function ecoCloseSheet(){const s=document.getElementById('eco-sheet');if(s)s.remove();ecoUnlockPage('sheet');}
 window.addEventListener('hashchange',()=>{ecoCloseSheet();ecoCloseViewer();});
 function render(){
  const h=location.hash||'#/';
  const sameRoute=lastRenderHash===h;
- const preservedScroll=window.scrollY||0;
- const anchor=sameRoute?ecoScrollAnchor():null;ECO_CARPOS=sameRoute?ecoCarSave():null;
+ const preservedScroll=ECO_LOCK.n?ECO_LOCK.y:(window.scrollY||0);
+ const anchor=sameRoute?((ECO_LOCK.n&&ECO_LOCK.anchor)?ECO_LOCK.anchor:ecoScrollAnchor()):null;ECO_CARPOS=sameRoute?ecoCarSave():null;
  if(sameRoute)document.body.style.minHeight=document.documentElement.scrollHeight+'px';else document.body.style.minHeight='';
  if(!sameRoute){if(lastRenderHash)ECO_SCROLL[lastRenderHash]=preservedScroll;document.querySelectorAll('video[data-eco-video]').forEach(v=>{try{v.pause();}catch(e){}});}
  const backY=(!sameRoute&&ECO_NAV_BACK&&ECO_SCROLL[h]!=null)?ECO_SCROLL[h]:0;
@@ -3880,7 +3916,7 @@ function ecoStreakSheetHTML(u){
 function ecoStreakOpen(){
  const u=sess();if(!u)return;ecoStreakClose(true);
  const e=document.createElement('div');e.id='eco-streak-sheet';e.innerHTML=ecoStreakSheetHTML(u);
- document.body.appendChild(e);requestAnimationFrame(()=>e.classList.add('on'));
+ document.body.appendChild(e);ecoLockPage('streak');ecoTrapScroll(e);requestAnimationFrame(()=>e.classList.add('on'));
  e.addEventListener('click',ev=>{if(ev.target===e)ecoStreakClose();});
  const ss=e.querySelector('.ss');let y0=null;
  ss.addEventListener('touchstart',ev=>{y0=ss.scrollTop<=0?ev.touches[0].clientY:null;},{passive:true});
@@ -3890,8 +3926,8 @@ function ecoStreakOpen(){
 }
 function ecoStreakClose(now){
  const e=document.getElementById('eco-streak-sheet');if(!e)return;
- if(now){e.remove();return;}
- e.classList.remove('on');setTimeout(()=>e.remove(),300);
+ if(now){e.remove();ecoUnlockPage('streak');return;}
+ e.classList.remove('on');setTimeout(()=>{e.remove();ecoUnlockPage('streak');},300);
 }
 document.addEventListener('click',e=>{
  if(e.target.closest&&e.target.closest('#eco-streak-fab')){e.preventDefault();e.stopPropagation();ecoStreakOpen();return;}
@@ -3953,6 +3989,18 @@ const Cloud=(()=>{
  const q=async p=>{const {data,error}=await p;if(error){console.warn('[EcoNova]',error.message);return[];}return data||[];};
  const me=()=>{const u=sess();return u&&UUID.test(u.id)?u:null;};
  const fail=(e,rs=true,lab='')=>{console.error('[EcoNova]',lab,e);toast((lab?lab+': ':'')+tr(e)+(e&&e.code?' ('+e.code+')':''),'err');if(rs)api.sync().then(()=>render()).catch(()=>{});};
+ const emRow=async(id,code)=>{const r=await c().from('user_emblems').select('emblem').eq('user_id',id).eq('emblem',code);return r.error?null:(r.data||[]).length>0;};
+ /* escribe el emblema en la base y comprueba leyéndolo de vuelta; si el RPC no lo deja guardado, usa escritura directa */
+ const persistEmblem=async(id,code,act)=>{
+  if(!on()||!UUID.test(id)||!['MOD','ALLY','DONOR'].includes(code))return;
+  let e1=null;try{e1=(await c().rpc('set_user_emblem',{target:id,code,active:act})).error;}catch(x){e1=x;}
+  if(!e1&&await emRow(id,code)===act)return;
+  let e2=null;try{const w=act?await c().from('user_emblems').upsert({user_id:id,emblem:code},{onConflict:'user_id,emblem'}):await c().from('user_emblems').delete().eq('user_id',id).eq('emblem',code);e2=w.error;}catch(x){e2=x;}
+  if(!e2&&await emRow(id,code)===act)return;
+  console.error('[EcoNova] emblema',{rpc:e1,directo:e2});
+  throw new Error('no quedó guardado en la base de datos'+((e2||e1)?' ('+tr(e2||e1)+')':'. Revisa el RPC set_user_emblem y las políticas de user_emblems'));
+ };
+ const withEmblems=async us=>{const ids=us.map(u=>u.id).filter(id=>UUID.test(id));if(!ids.length)return;const r=await c().from('user_emblems').select('user_id,emblem').in('user_id',ids);if(r.error){console.warn('[EcoNova] emblemas',r.error.message);return;}us.forEach(u=>{u.emblems=r.data.filter(e=>e.user_id===u.id).map(e=>e.emblem);if(u.role==='MOD'&&!u.emblems.includes('MOD'))u.emblems.push('MOD');u.allyAccepted=u.emblems.includes('ALLY');u.donorAccepted=u.emblems.includes('DONOR');});};
  const mk=(o)=>({id:o.id,name:o.name||'Usuario',email:o.email||'',kind:o.kind||'CIUDADANO',role:o.role||'USER',bio:o.bio||'',loc:o.loc||'',website:o.website||'',avatar:o.avatar||'',cover:o.cover||'',verified:!!o.verified,suspended:!!o.suspended,okMail:true,showFollowers:true,showFollowing:true,showPosts:true,privateProfile:false,allowComments:true,notifyLikes:true,notifyComments:true,notifyFollows:true,blockedUsers:[],suspensionUntil:null,banPermanent:false,banReason:'',emblems:[],activity:[],at:o.at||Date.now()});
  const fromProfile=r=>mk({id:r.id,name:r.name||r.username,email:r.email,kind:KIND[r.kind]||r.kind,role:ROLE[r.role]||r.role,bio:r.bio,loc:r.loc,website:r.website,avatar:r.avatar,cover:r.cover,verified:r.verified,suspended:r.is_active===false,at:Date.parse(r.created_at)});
  const split=t=>{const i=t.indexOf('\n\n');return i>0&&i<160?[t.slice(0,i),t.slice(i+2)]:[t.split('\n')[0].slice(0,90),t];};
@@ -4079,10 +4127,13 @@ const Cloud=(()=>{
    const need=new Set([...rows.map(r=>r.author_id),...cms.map(r=>r.author_id)]);if(s)need.add(s.user.id);
    let prof=await q(c().from('profiles').select('*').order('created_at',{ascending:false}).limit(500));
    if(!prof.length&&need.size)prof=await q(c().from('profiles').select('*').in('id',[...need]));
+   const prevU=new Map((DB.users||[]).map(u=>[u.id,u]));
    DB.users=prof.map(fromProfile);
    if(s&&!DB.users.some(u=>u.id===s.user.id)){const m=s.user.user_metadata||{};DB.users.push(mk({id:s.user.id,name:m.name||(s.user.email||'').split('@')[0],email:s.user.email,kind:KIND[m.kind]||m.kind}));}
-   const em=await q(c().from('user_emblems').select('user_id,emblem'));
-   DB.users.forEach(u=>{u.emblems=em.filter(e=>e.user_id===u.id).map(e=>e.emblem);u.allyAccepted=u.emblems.includes('ALLY');u.donorAccepted=u.emblems.includes('DONOR');});
+   const emR=await c().from('user_emblems').select('user_id,emblem');
+   if(emR.error)console.warn('[EcoNova] No se pudieron leer los emblemas; se conservan los que ya había:',emR.error.message);
+   const em=emR.data||[];
+   DB.users.forEach(u=>{u.emblems=emR.error?[...((prevU.get(u.id)||{}).emblems||[])]:em.filter(e=>e.user_id===u.id).map(e=>e.emblem);if(u.role==='MOD'&&!u.emblems.includes('MOD'))u.emblems.push('MOD');u.allyAccepted=u.emblems.includes('ALLY');u.donorAccepted=u.emblems.includes('DONOR');});
    DB.posts=rows.map(r=>{const [title,body]=split(r.content||'');return{id:r.id,userId:r.author_id,title,body,cat:u2l[r.category_id]??DB.cats[0].id,loc:r.location||'',imgs:M[r.id]||[],video:V[r.id]||'',tags:(body.match(/#[\wáéíóúñÁÉÍÓÚÑ]+/g)||[]).map(t=>t.slice(1)),status:ST[r.status]||'PENDING',sponsored:approvedPromoPosts.has(r.id),likes:L[r.id]||[],comments:C[r.id]||[],shares:0,savedBy:S[r.id]||[],sharedFrom:r.shared_from||null,sharedAt:r.shared_from?Date.parse(r.created_at):null,editedAt:r.edited_at?Date.parse(r.edited_at):null,at:Date.parse(r.created_at)};});
    {const chg=new Set((modq||[]).filter(x=>x.content_type==='post'&&x.decision==='changes'&&x.status==='pending').map(x=>x.content_id));DB.posts.forEach(p=>{if(chg.has(p.id)&&p.status==='PENDING')p.status='CHANGES';});}
    DB.follows=fol.map(r=>({f:r.follower_id,t:r.following_id}));
@@ -4105,7 +4156,7 @@ const Cloud=(()=>{
    const lc=cms.filter(r=>!['rejected','hidden'].includes(r.status)),CL={};
    if(lc.length)(await q(c().from('comment_likes').select('comment_id,user_id').in('comment_id',lc.map(r=>r.id)))).forEach(r=>{(CL[r.comment_id]=CL[r.comment_id]||[]).push(r.user_id);});
    const miss=[...new Set([...fresh.map(r=>r.author_id),...lc.map(r=>r.author_id)])].filter(id=>!DB.users.some(u=>u.id===id));
-   if(miss.length)(await q(c().from('profiles').select('*').in('id',miss))).forEach(r=>DB.users.push(fromProfile(r)));
+   if(miss.length){const nu=(await q(c().from('profiles').select('*').in('id',miss))).map(fromProfile);await withEmblems(nu);nu.forEach(x=>DB.users.push(x));}
    fresh.forEach(r=>{const [title,body]=split(r.content||''),pm=media.filter(m=>m.post_id===r.id),k=Object.keys(loc2uuid).find(x=>loc2uuid[x]===r.category_id);
     DB.posts.push({id:r.id,userId:r.author_id,title,body,cat:k?+k:DB.cats[0].id,loc:r.location||'',imgs:pm.filter(m=>m.media_type!=='video').map(m=>m.media_url),video:(pm.find(m=>m.media_type==='video')||{}).media_url||'',tags:(body.match(/#[\wáéíóúñÁÉÍÓÚÑ]+/g)||[]).map(t=>t.slice(1)),status:'APPROVED',sponsored:DB.promos.some(x=>x.status==='APPROVED'&&x.postId===r.id),likes:lks.filter(l=>l.post_id===r.id).map(l=>l.user_id),comments:lc.filter(m=>m.post_id===r.id).map(m=>({id:m.id,userId:m.author_id,body:m.content,parentId:m.parent_id,likes:CL[m.id]||[],at:Date.parse(m.created_at)})),shares:0,savedBy:svs.filter(x=>x.post_id===r.id).map(()=>s.user.id),sharedFrom:null,sharedAt:null,editedAt:r.edited_at?Date.parse(r.edited_at):null,at:Date.parse(r.created_at)});});
    return rows.length;
@@ -4289,11 +4340,11 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
   (async()=>{const row={name:u.name,bio:u.bio||null,loc:u.loc||null,website:u.website||null};
    for(const k of['avatar','cover']){if(u[k]){const url=await up(u[k],k==='avatar'?'avatars':'covers');u[k]=url;}row[k]=u[k]||null;}
    const {error}=await c().from('profiles').update(row).eq('id',u.id);if(error)throw error;save();render();})().catch(e=>fail(e));};
- const rpcEmblem=(id,code,act)=>{if(!on()||!UUID.test(id)||!['MOD','ALLY','DONOR'].includes(code))return;c().rpc('set_user_emblem',{target:id,code,active:act}).then(({error})=>{if(error)fail(error);});};
+ const rpcEmblem=(id,code,act)=>{persistEmblem(id,code,act).catch(e=>fail(e,true,'No se pudo guardar el emblema'));};
  API.setEmblem=function(id,code){A.setEmblem(id,code);rpcEmblem(id,code,true);if(code==='MOD')setCol(id,{role:'MODERATOR'});};
  API.removeEmblem=function(id,code){const wasMod=code==='MOD'&&userById(id)?.role==='MOD';A.removeEmblem(id,code);rpcEmblem(id,code,false);if(wasMod)setCol(id,{role:'USER'});};
  API.setCommunityStatus=function(id,type,val){A.setCommunityStatus(id,type,val);rpcEmblem(id,type==='ally'?'ALLY':'DONOR',!!val);};
- const setCol=(id,col)=>{if(on()&&UUID.test(id))c().from('profiles').update(col).eq('id',id).then(({error})=>{if(error)fail(error);});};
+ const setCol=(id,col)=>{if(on()&&UUID.test(id))c().from('profiles').update(col).eq('id',id).select('id').then(({data,error})=>{if(error)return fail(error);if(!data||!data.length)fail(new Error('sin permiso o perfil no encontrado'),true,'No se pudo guardar el cambio');});};
  API.suspend=function(id,val){A.suspend(id,val);setCol(id,{is_active:!val});};
  API.setVerified=function(id,val){A.setVerified(id,val);setCol(id,{verified:!!val});};
  API.verifyOrg=function(id){A.verifyOrg(id);setCol(id,{verified:true});};
@@ -5074,6 +5125,17 @@ a.eco-mn:hover{background:#CFE7D8}
 .eco-mn-it.all.sel,.eco-mn-it.all:hover{background:linear-gradient(120deg,rgba(14,92,62,.18),rgba(27,138,91,.12))}
 .eco-mn-all-ic{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(120deg,#0E5C3E,#1B8A5B);color:#fff}
 .eco-mn-all-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* sugerencias de @ · filas amplias: avatar grande, nombre en negrita y subtítulo atenuado */
+.eco-mn-pop{padding:6px 0;max-height:min(340px,50vh);-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.eco-mn-pop.in-sheet{border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;max-height:none;background:var(--surface);padding:4px 0 8px;animation:none}
+.eco-mn-it{gap:14px;padding:10px 18px;border-radius:0;min-height:64px}
+.eco-mn-it .avt{flex:none}
+.eco-mn-it .t b{font-size:15.5px;font-weight:800;letter-spacing:.01em}
+.eco-mn-it .t small{font-size:13.5px;margin-top:2px}
+.eco-mn-it:active{background:var(--green-t)}
+.eco-mn-it.all{width:calc(100% - 20px);margin:2px 10px 6px;border-radius:16px}
+.eco-mn-all-ic{width:48px;height:48px}
+.eco-mn-all-ic svg{width:22px;height:22px}
 
 /* — Editar publicación — */
 .eco-ed-media{display:flex;gap:10px;flex-wrap:wrap}
@@ -5256,6 +5318,15 @@ function caretCtx(el){
 function hidePop(){if(pop){pop.remove();pop=null;}st=null;}
 function placePop(){
  if(!pop||!st)return;
+ const sheet=st.el.closest&&st.el.closest('#eco-sheet');
+ if(sheet){
+  const sh=sheet.querySelector('.sh'),sl=sheet.querySelector('.sl'),em=sheet.querySelector('.sf-emojis')||st.el.closest('form');
+  if(sh&&sl&&em){
+   const a=sh.getBoundingClientRect(),b=sl.getBoundingClientRect(),c2=em.getBoundingClientRect(),hh=c2.top-b.top;
+   if(hh>=96){pop.classList.add('in-sheet');pop.style.left=a.left+'px';pop.style.width=a.width+'px';pop.style.top=b.top+'px';pop.style.bottom='auto';pop.style.height=hh+'px';return;}
+  }
+ }
+ pop.classList.remove('in-sheet');pop.style.height='';
  const r=st.el.getBoundingClientRect(),vw=window.innerWidth,vh=window.innerHeight;
  const w=Math.min(Math.max(r.width,270),380,vw-16),left=Math.max(8,Math.min(r.left,vw-w-8));
  pop.style.width=w+'px';pop.style.left=left+'px';
@@ -5268,13 +5339,13 @@ function renderPop(){
  const items=st.items;
  if(!items.length){hidePop();return;}
  if(!pop){pop=document.createElement('div');pop.className='eco-mn-pop';pop.setAttribute('role','listbox');
-  pop.addEventListener('mousedown',e=>e.preventDefault());
+  pop.addEventListener('mousedown',e=>e.preventDefault());ecoTrapScroll(pop);
   pop.addEventListener('click',e=>{const b=e.target.closest('[data-pick]');if(b){e.preventDefault();e.stopPropagation();pickMention(b.dataset.pick);}});
   document.body.appendChild(pop);}
  pop.innerHTML=items.map((it,i)=>{
   if(it.id==='all')return`<button type="button" class="eco-mn-it all${i===st.idx?' sel':''}" data-pick="all" role="option"><span class="eco-mn-all-ic">${SVG('<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/>')}</span><span class="t"><b><span>@todos</span></b><small>Avisar a toda la comunidad</small></span></button>`;
-  const u=it.u,sub=u.kind==='ORG'?'Organización':u.kind==='EMPRESA'?'Empresa aliada':(u.loc||'');
-  return`<button type="button" class="eco-mn-it${i===st.idx?' sel':''}" data-pick="${esc(u.id)}" role="option">${avatar(u,32,12)}<span class="t"><b><span>${esc(u.name)}</span>${u.verified?VERIFIED:''}</b>${sub?`<small>${esc(sub)}</small>`:''}</span></button>`;
+  const hd=String(u.email||'').split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g,''),sub=u.kind==='ORG'?'Organización':u.kind==='EMPRESA'?'Empresa aliada':(u.loc||(hd?'@'+hd:''));
+  return`<button type="button" class="eco-mn-it${i===st.idx?' sel':''}" data-pick="${esc(u.id)}" role="option">${avatar(u,48,16)}<span class="t"><b><span>${esc(u.name)}</span>${u.verified?VERIFIED:''}</b>${sub?`<small>${esc(sub)}</small>`:''}</span></button>`;
  }).join('');
  placePop();
 }
@@ -5377,7 +5448,7 @@ if(typeof Cloud==='object'&&Cloud&&typeof Cloud.notifView==='function'){
 let _elkEsc=null;
 function closeLikes(){
  const w=document.getElementById('eco-likes');if(w)w.remove();
- if(!document.getElementById('eco-sheet')&&!document.querySelector('#modal.open'))document.body.style.overflow='';
+ ecoUnlockPage('likes');
  if(_elkEsc){document.removeEventListener('keydown',_elkEsc,true);_elkEsc=null;}
 }
 async function fetchMissing(ids){
@@ -5396,7 +5467,7 @@ function openLikes(pid){
  const wrap=document.createElement('div');wrap.id='eco-likes';
  const n=ids.length;
  wrap.innerHTML=`<div class="elk-sh" role="dialog" aria-modal="true" aria-label="Personas a quienes les gustó"><div class="elk-grab"><i></i></div><div class="elk-head"><span class="elk-ico">${HEART}</span><div class="elk-tt"><h4>Me gusta</h4><span class="elk-count"></span></div><button type="button" class="elk-x" data-elk-close aria-label="Cerrar">✕</button></div>${n>7?'<div class="elk-search"><input type="search" placeholder="Buscar por nombre" aria-label="Buscar por nombre" autocomplete="off"></div>':''}<div class="elk-list" tabindex="-1"></div></div>`;
- document.body.appendChild(wrap);document.body.style.overflow='hidden';
+ document.body.appendChild(wrap);ecoLockPage('likes');ecoTrapScroll(wrap);
  const sh=wrap.querySelector('.elk-sh'),list=wrap.querySelector('.elk-list'),cnt=wrap.querySelector('.elk-count');
  const extra={};
  const isF=id=>!!me&&(DB.follows||[]).some(f=>f.f===me.id&&f.t===id);
