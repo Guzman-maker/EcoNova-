@@ -5344,7 +5344,7 @@ function renderPop(){
   document.body.appendChild(pop);}
  pop.innerHTML=items.map((it,i)=>{
   if(it.id==='all')return`<button type="button" class="eco-mn-it all${i===st.idx?' sel':''}" data-pick="all" role="option"><span class="eco-mn-all-ic">${SVG('<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/>')}</span><span class="t"><b><span>@todos</span></b><small>Avisar a toda la comunidad</small></span></button>`;
-  const hd=String(u.email||'').split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g,''),sub=u.kind==='ORG'?'Organización':u.kind==='EMPRESA'?'Empresa aliada':(u.loc||(hd?'@'+hd:''));
+  const u=it.u,hd=String(u.email||'').split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g,''),sub=u.kind==='ORG'?'Organización':u.kind==='EMPRESA'?'Empresa aliada':(u.loc||(hd?'@'+hd:''));
   return`<button type="button" class="eco-mn-it${i===st.idx?' sel':''}" data-pick="${esc(u.id)}" role="option">${avatar(u,48,16)}<span class="t"><b><span>${esc(u.name)}</span>${u.verified?VERIFIED:''}</b>${sub?`<small>${esc(sub)}</small>`:''}</span></button>`;
  }).join('');
  placePop();
