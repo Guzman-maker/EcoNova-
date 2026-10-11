@@ -3168,21 +3168,21 @@ function openShareMenu(id){
  const l=shareLink(p);
  modal(`<h3>Compartir publicación</h3><p class="sm mut mb2">Elige una de estas tres opciones.</p><div style="display:flex;flex-direction:column;gap:9px"><button class="share-choice" data-action="share-profile" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Compartir en mi perfil</b><small class="mut" style="display:block">Aparecerá en la pestaña Compartidas de tu perfil.</small></span></button><button class="share-choice" data-action="share-native" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Compartir en mi teléfono</b><small class="mut" style="display:block">WhatsApp, Messenger, Facebook y las demás apps disponibles.</small></span></button><button class="share-choice" data-action="share-copy" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Copiar enlace</b><small class="mut" style="display:block">Copiar el enlace de la publicación.</small></span></button></div>`);
 }
-const BAN_PAYMENTS_ENABLED=true; let ECO_BAN_TOKEN=null; /* Poner false para apagar el cobro de desbloqueos. */
+const BAN_PAYMENTS_ENABLED=true; let ECO_BAN_TOKEN=null;const ECO_BAN_PAID=/[?&]ban_unlock=success/.test(location.search); /* Poner false para apagar el cobro de desbloqueos. */
 const banActive=u=>!!u&&(u.banPermanent||(u.suspended&&(!u.suspensionUntil||Date.now()<u.suspensionUntil)));
 function ecoBanNotice(u){
  const dur=u.banPermanent?'Permanente':u.suspensionUntil?'Hasta el '+new Date(u.suspensionUntil).toLocaleString('es-MX',{dateStyle:'long',timeStyle:'short'}):'Hasta que el equipo la revise';
  const price=+u.banPrice>0?+u.banPrice:0;
  modal(`<h3>Tu cuenta está suspendida</h3><p class="sm mut">Esto fue lo que registró el equipo de EcoNova.</p>
  <div class="ban-card"><div class="ban-row"><span>Motivo</span><b>${esc(u.banReason||'No especificado')}</b></div><div class="ban-row"><span>Duración</span><b>${dur}</b></div><div class="ban-row"><span>Compensación para volver</span><b>${price?money(price):'No disponible'}</b></div></div>
- ${price?(BAN_PAYMENTS_ENABLED?(ECO_BAN_TOKEN?`<button class="btn btn-green btn-block" data-action="ban-pay">Pagar ${money(price)} y reactivar mi cuenta</button><p class="xs mut mt2">Pago seguro con Stripe. Tu cuenta se reactiva automáticamente cuando se confirme el pago.</p>`:'<p class="sm mut">Para pagar, inicia sesión con tu cuenta.</p>'):'<button class="btn btn-ghost btn-block" disabled>El pago de desbloqueo aún no está habilitado</button><p class="xs mut mt2">Cuando esté disponible, el pago se hará con Stripe y tu cuenta se reactivará automáticamente al confirmarse.</p>'):'<p class="sm mut">Esta sanción no tiene opción de pago; se levanta al cumplirse la duración o por decisión del equipo.</p>'}
+ ${price?(ECO_BAN_PAID?'<p class="sm mut">Recibimos tu pago. En unos segundos se confirma y tu cuenta se reactiva; vuelve a abrir la app.</p>':BAN_PAYMENTS_ENABLED?(ECO_BAN_TOKEN?`<button class="btn btn-green btn-block" data-action="ban-pay">Pagar ${money(price)} y reactivar mi cuenta</button><p class="xs mut mt2">Pago seguro con Stripe. Tu cuenta se reactiva automáticamente cuando se confirme el pago.</p>`:'<p class="sm mut">Para pagar, inicia sesión con tu cuenta.</p>'):'<button class="btn btn-ghost btn-block" disabled>El pago de desbloqueo aún no está habilitado</button><p class="xs mut mt2">Cuando esté disponible, el pago se hará con Stripe y tu cuenta se reactivará automáticamente al confirmarse.</p>'):'<p class="sm mut">Esta sanción no tiene opción de pago; se levanta al cumplirse la duración o por decisión del equipo.</p>'}
  <p class="xs mut mt2">Consulta los <button type="button" class="auth-legal-link" data-action="terms-open">Términos y Condiciones</button> y la <button type="button" class="auth-legal-link" data-action="privacy-open">Política de Privacidad</button>.</p>
  <button class="btn btn-ghost btn-block mt2" data-action="close-modal">Cerrar</button>`);
 }
 async function ecoBanPay(btn){
- if(!ECO_BAN_TOKEN)return toast('Inicia sesión de nuevo para pagar.','err');
  btn.disabled=true;btn.textContent='Abriendo Stripe...';
- try{const res=await fetch(SUPABASE_CONFIG.url+'/functions/v1/create-ban-unlock-session',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ECO_BAN_TOKEN}});
+ try{const {data:{session:ss}}=await supabaseClient.auth.getSession();if(!ss)throw new Error('Tu sesión venció. Inicia sesión de nuevo y toca pagar.');
+  const res=await fetch(SUPABASE_CONFIG.url+'/functions/v1/create-ban-unlock-session',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ss.access_token}});
   const out=await res.json().catch(()=>({}));
   if(!res.ok||!out.url)throw new Error(out.error||'No se pudo iniciar el pago.');
   location.href=out.url;
@@ -4238,7 +4238,7 @@ const Cloud=(()=>{
    const {error}=await c().auth.signInWithPassword({email:String(email||'').trim(),password:String(pass||'')});
    if(error)throw tr(error);
    await api.sync();
-   if(banActive(sess())){const bu=sess();const {data:{session:bs}}=await c().auth.getSession();ECO_BAN_TOKEN=bs?.access_token||null;await c().auth.signOut({scope:'local'});store.del('econova_session');setTimeout(()=>ecoBanNotice(bu),60);throw'Tu cuenta está suspendida. Revisa los detalles.';}
+   if(banActive(sess())){const bu=sess();const {data:{session:bs}}=await c().auth.getSession();ECO_BAN_TOKEN=bs?.access_token||null;store.del('econova_session');setTimeout(()=>ecoBanNotice(bu),60);throw'Tu cuenta está suspendida. Revisa los detalles.';}
   },
   async signup(name,email,pass,kind){
    if(!on()){const nu=API.signup(name,email,pass,kind);store.set('econova_session',nu.id);return'Cuenta creada correctamente. ¡Bienvenido a EcoNova!';}
@@ -4433,7 +4433,7 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
   }
   if(!banActive(u))return false;
   const {data:{session:bs}}=await c().auth.getSession();ECO_BAN_TOKEN=bs?.access_token||null;
-  await c().auth.signOut({scope:'local'});store.del('econova_session');
+  store.del('econova_session');
   render();setTimeout(()=>ecoBanNotice(u),60);return true;};
  API.setVerified=function(id,val){A.setVerified(id,val);setCol(id,{verified:!!val});};
  API.verifyOrg=function(id){A.verifyOrg(id);setCol(id,{verified:true});};
@@ -4487,7 +4487,7 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
    try{await ecoBanEnforce(false);}catch(_){}
    if(sess()){const nx=ecoTakeNext(true);if(nx){location.hash=nx;render();}}
    const dq=new URLSearchParams(location.search);
-    if(dq.get('ban_unlock')==='success'){toast('Pago recibido. En unos segundos tu cuenta se reactiva: inicia sesión de nuevo.','ok');history.replaceState(null,'',location.pathname+'#/entrar');}
+    if(dq.get('ban_unlock')==='success'){toast('Pago recibido. En unos segundos tu cuenta se reactiva; vuelve a abrir la app.','ok');history.replaceState(null,'',location.pathname+'#/entrar');}
    if(dq.get('donation')==='success'){toast('¡Gracias por tu donación! En unos segundos se refleja en el contador.','ok');history.replaceState(null,'',location.pathname+(location.hash||'#/donar'));{let n=0;const poll=async()=>{n++;const ch=await api.refreshDonations();if(ch){render();}else if(n<10)setTimeout(poll,4000);};setTimeout(poll,2000);}}
    else if(dq.get('donation')==='cancel'){toast('No se completó el pago. Puedes intentarlo de nuevo cuando quieras.');history.replaceState(null,'',location.pathname+(location.hash||'#/donar'));}
    if(rec)api.resetModal();else if(oauth&&sess())toast('Bienvenido a EcoNova.','ok');
