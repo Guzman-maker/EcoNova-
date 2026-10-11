@@ -4326,7 +4326,7 @@ const Cloud=(()=>{
    render();
   }
  };
- const A={};['createPost','like','comment','replyComment','toggleSave','toggleFollow','moderate','updateProfile','logout','setEmblem','removeEmblem','setCommunityStatus','suspend','setVerified','verifyOrg','likeComment','deleteComment','removePost','deleteShared','share','flag','resolveFlag'].forEach(k=>A[k]=API[k].bind(API));
+ const A={};['createPost','like','comment','replyComment','toggleSave','toggleFollow','moderate','updateProfile','logout','setEmblem','removeEmblem','setCommunityStatus','suspend','setVerified','verifyOrg','likeComment','deleteComment','removePost','deleteShared','share','flag','resolveFlag','banUser','unbanUser','setBanPrice'].forEach(k=>A[k]=API[k].bind(API));
  API.createPost=async function(d){
   A.createPost(d);
   const p=DB.posts[0];
