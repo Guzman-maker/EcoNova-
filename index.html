@@ -516,7 +516,8 @@ table.tbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid v
 .comment-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px}
 .comment-actions button{border:0;background:transparent;color:var(--mut);font-size:12px;cursor:pointer}
 .comment-actions button.act{color:#b4234d;font-weight:800}
-.stat-btn{border:0;background:transparent;display:flex;flex-direction:column;gap:5px;align-items:center;cursor:pointer}.stat-btn:disabled{cursor:not-allowed;opacity:.55}.stat-btn span{font-size:11px;color:#94a3b8}</style>
+.stat-btn{border:0;background:transparent;display:flex;flex-direction:column;gap:5px;align-items:center;cursor:pointer}.stat-btn:disabled{cursor:not-allowed;opacity:.55}.stat-btn span{font-size:11px;color:#94a3b8}.legal{max-height:60vh;overflow:auto;padding-right:6px;font-size:13.5px;line-height:1.65}.legal h4{margin:16px 0 4px;font-size:14px;color:var(--eco,#16794f)}.legal p{margin:0 0 6px}.legal-date{font-size:12px;opacity:.7}.ban-card{border:1px solid var(--line);border-radius:14px;padding:2px 14px;margin:12px 0}.ban-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}.ban-row:last-child{border:0}.ban-row span{opacity:.7}.ban-row b{text-align:right}.ban-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+</style>
 <style>
 /* EcoNova UI refresh: clean, editorial and non-neon */
 .card{box-shadow:0 1px 2px rgba(15,25,19,.035),0 8px 28px rgba(15,25,19,.035)}
@@ -1908,6 +1909,26 @@ const API={
  toggleCat(id){const c=catById(id);c.active=!c.active;this.audit(`${c.active?'Activó':'Desactivó'} la categoría "${c.name}"`);save();},
  delCat(id){if(DB.posts.some(p=>p.cat===id)||DB.reports.some(r=>r.cat===id)||DB.campaigns.some(c=>c.cat===id))throw'No se puede eliminar: tiene contenido asociado.';DB.cats=DB.cats.filter(c=>c.id!==id);this.audit('Eliminó una categoría');save();},
  suspend(id,val){if(!isAdmin())throw'Acceso restringido.';const u=userById(id);if(u.role==='DEV')throw'No se puede suspender al creador.';u.suspended=val;this.audit(`${val?'Suspendió':'Reactivó'} a ${u.name}`);save();},
+ banUser(id,type,reason,price){
+  if(!isAdmin())throw'Acceso restringido.';
+  const u=userById(id);if(!u||u.id==='?')throw'Usuario no encontrado.';
+  const me=sess();if(me&&me.id===u.id)throw'No puedes sancionar tu propia cuenta.';
+  if(u.role==='DEV')throw'No se puede sancionar al creador.';
+  reason=String(reason||'').trim();if(!reason)throw'Escribe el motivo de la sanción.';
+  price=(price===''||price==null)?null:Math.round(+price*100)/100;
+  if(price!==null){if(!isDeveloper())throw'Solo el creador de EcoNova puede fijar el precio de desbloqueo.';if(!(price>=10&&price<=999999))throw'El precio debe estar entre $10 y $999,999 MXN.';}
+  const H=36e5,D=864e5,dur={'1H':H,'24H':24*H,'7D':7*D,'30D':30*D};
+  if(type==='PERMANENT'){u.banPermanent=true;u.suspensionUntil=null;}
+  else if(dur[type]){u.banPermanent=false;u.suspensionUntil=Date.now()+dur[type];}
+  else throw'Tipo de sanción no válido.';
+  u.banPrice=price;u.banAt=Date.now();u.suspended=true;u.banReason=reason.slice(0,500);
+  this.audit(`${type==='PERMANENT'?'Bloqueó permanentemente':'Suspendió ('+type+')'} a ${u.name}. Motivo: ${u.banReason}`);save();},
+ unbanUser(id){
+  if(!isAdmin())throw'Acceso restringido.';
+  const u=userById(id);if(!u||u.id==='?')throw'Usuario no encontrado.';
+  u.suspended=false;u.banPermanent=false;u.suspensionUntil=null;u.banReason='';u.banPrice=null;u.banAt=null;
+  this.audit(`Reactivó a ${u.name}`);save();},
+ setBanPrice(id,price){if(!isDeveloper())throw'Solo el creador de EcoNova puede fijar el precio de desbloqueo.';const u=userById(id);if(!u||u.id==='?')throw'Usuario no encontrado.';price=(price===''||price==null)?null:Math.round(+price*100)/100;if(price!==null&&!(price>=10&&price<=999999))throw'El precio debe estar entre $10 y $999,999 MXN.';u.banPrice=price;this.audit(`${price===null?'Quitó el precio de desbloqueo a':'Fijó el precio de desbloqueo ('+money(price)+') a'} ${u.name}`);save();},
  verifyOrg(id){if(!isDeveloper())throw'Solo el creador de EcoNova puede dar o quitar la verificación.';const u=userById(id);u.verified=true;this.notify(u.id,'Cuenta verificada','Tu perfil ahora muestra la insignia azul de verificación.');this.audit(`Verificó a ${u.name}`);save();},
  setVerified(id,val){if(!isDeveloper())throw'Solo el creador de EcoNova puede dar o quitar la verificación.';const u=userById(id);if(!u||u.id==='?')throw'Usuario no encontrado.';u.verified=!!val;this.audit(`${val?'Verificó':'Quitó la verificación a'} ${u.name}`);if(val)this.notify(u.id,'Cuenta verificada','Tu perfil ahora muestra la insignia azul de verificación.');save();},
  requestCommunity(type){const u=sess();if(!u||!['ORG','EMPRESA'].includes(u.kind))throw'Solo organizaciones y empresas pueden solicitar reconocimiento.';if(DB.orgRequests.some(r=>r.userId===u.id&&r.type===type&&r.status==='PENDING'))throw'Ya tienes una solicitud pendiente.';DB.orgRequests.push({id:uid(),userId:u.id,type,status:'PENDING',at:Date.now()});this.notify('u1','Nueva solicitud de reconocimiento',`${u.name} solicitó ${type==='ally'?'ser organización aliada':'reconocimiento como donador'}.`);save();},
@@ -2583,7 +2604,7 @@ function viewAdmin(){
  return`<div>
   <div class="page-head" style="padding-top:6px"><span class="kicker">Panel privado</span><h1>Administración</h1></div>
   <div class="adm-tabs mt2">
-   ${[['resumen','Resumen'],['moderacion',`Moderación (${pend})`],['apoyos',`Apoyos (${pendSup})`],['reportes','Reportes'],...(Supabase.enabled()&&typeof MapX==='object'?[['mapa',`Mapa (${MapX.pendingCount()})`]]:[]),['campanas','Campañas'+(campPend()?' ('+campPend()+')':'')],['categorias','Categorías'],['usuarios','Usuarios'],['organizaciones','Organizaciones'],['publicidad','Publicidad'],...(isDeveloper()?[['donaciones','Finanzas y transparencia']]:[]),['registro','Registro']].map(t=>`<button class="${admTab===t[0]?'on':''}" data-action="adm-tab" data-t="${t[0]}">${t[1]}</button>`).join('')}
+   ${[['resumen','Resumen'],['moderacion',`Moderación (${pend})`],['apoyos',`Apoyos (${pendSup})`],['reportes','Reportes'],...(Supabase.enabled()&&typeof MapX==='object'?[['mapa',`Mapa (${MapX.pendingCount()})`]]:[]),['campanas','Campañas'+(campPend()?' ('+campPend()+')':'')],['categorias','Categorías'],['usuarios','Usuarios'],['baneados','Baneados ('+DB.users.filter(u=>u.suspended||u.banPermanent).length+')'],['organizaciones','Organizaciones'],['publicidad','Publicidad'],...(isDeveloper()?[['donaciones','Finanzas y transparencia']]:[]),['registro','Registro']].map(t=>`<button class="${admTab===t[0]?'on':''}" data-action="adm-tab" data-t="${t[0]}">${t[1]}</button>`).join('')}
   </div>
   ${admTab==='resumen'?admResumen():''}
   ${admTab==='moderacion'?admModeracion():''}
@@ -2593,6 +2614,7 @@ function viewAdmin(){
   ${admTab==='campanas'?admCamps():''}
   ${admTab==='categorias'?admCats():''}
   ${admTab==='usuarios'?admUsers():''}
+   ${admTab==='baneados'?admBanned():''}
   ${admTab==='organizaciones'?admOrgs():''}
   ${admTab==='publicidad'?admPromos():''}
   ${admTab==='donaciones'&&isDeveloper()?admDon():''}
@@ -2698,6 +2720,12 @@ function admCats(){
   <button class="btn btn-ghost btn-sm" data-action="cat-toggle" data-c="${c.id}">${c.active?'Desactivar':'Activar'}</button>
   <button class="btn btn-danger btn-sm" data-action="cat-del" data-c="${c.id}">Eliminar</button></div>`).join('')}`;}).join('')}`;
 }
+function admBanned(){
+ const list=DB.users.filter(u=>u.suspended||u.banPermanent).sort((a,b)=>(b.banAt||0)-(a.banAt||0));
+ if(!list.length)return'<div class="card pad">No hay usuarios baneados.</div>';
+ return`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Usuario</th><th>Motivo</th><th>Duración</th><th>Desbloqueo</th><th>Acciones</th></tr></thead><tbody>${list.map(u=>{
+  const dur=u.banPermanent?'Permanente':u.suspensionUntil?(Date.now()<u.suspensionUntil?'Hasta '+new Date(u.suspensionUntil).toLocaleString('es-MX'):'Vencida'):'Indefinida';
+  return`<tr><td><div style="display:flex;gap:8px;align-items:center">${avatar(u,30,11)}<b>${esc(u.name)}</b></div><div class="xs mut">${esc(u.email)}</div></td><td class="sm">${esc(u.banReason||'Sin motivo registrado')}</td><td>${dur}</td><td>${+u.banPrice>0?money(u.banPrice):'<span class="mut">Sin cobro</span>'}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap">${isDeveloper()?`<button class="btn btn-ghost btn-sm" data-action="ban-price-edit" data-u="${u.id}">Precio</button>`:''}<button class="btn btn-ghost btn-sm" data-action="admin-ban" data-u="${u.id}">Sanción</button><button class="btn btn-green btn-sm" data-action="admin-unban" data-u="${u.id}">Reactivar</button></div></td></tr>`}).join('')}</tbody></table></div>`;}
 function admUsers(){
  return`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Usuario</th><th>Tipo</th><th>Email</th><th>Publicaciones</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
  ${DB.users.filter(u=>u.kind!=='ADMIN'&&u.role!=='DEV').map(u=>`<tr><td><div style="display:flex;gap:8px;align-items:center">${avatar(u,30,11)}<b>${esc(u.name)}</b></div></td>
@@ -3140,10 +3168,42 @@ function openShareMenu(id){
  const l=shareLink(p);
  modal(`<h3>Compartir publicación</h3><p class="sm mut mb2">Elige una de estas tres opciones.</p><div style="display:flex;flex-direction:column;gap:9px"><button class="share-choice" data-action="share-profile" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Compartir en mi perfil</b><small class="mut" style="display:block">Aparecerá en la pestaña Compartidas de tu perfil.</small></span></button><button class="share-choice" data-action="share-native" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Compartir en mi teléfono</b><small class="mut" style="display:block">WhatsApp, Messenger, Facebook y las demás apps disponibles.</small></span></button><button class="share-choice" data-action="share-copy" data-p="${p.id}"><span class="share-symbol">${share_img}</span><span><b>Copiar enlace</b><small class="mut" style="display:block">Copiar el enlace de la publicación.</small></span></button></div>`);
 }
+const BAN_PAYMENTS_ENABLED=false; /* No activar hasta verificar Stripe (sesión, webhook firmado y registro de pagos en servidor). */
+const banActive=u=>!!u&&(u.banPermanent||(u.suspended&&(!u.suspensionUntil||Date.now()<u.suspensionUntil)));
+function ecoBanNotice(u){
+ const dur=u.banPermanent?'Permanente':u.suspensionUntil?'Hasta el '+new Date(u.suspensionUntil).toLocaleString('es-MX',{dateStyle:'long',timeStyle:'short'}):'Hasta que el equipo la revise';
+ const price=+u.banPrice>0?+u.banPrice:0;
+ modal(`<h3>Tu cuenta está suspendida</h3><p class="sm mut">Esto fue lo que registró el equipo de EcoNova.</p>
+ <div class="ban-card"><div class="ban-row"><span>Motivo</span><b>${esc(u.banReason||'No especificado')}</b></div><div class="ban-row"><span>Duración</span><b>${dur}</b></div><div class="ban-row"><span>Compensación para volver</span><b>${price?money(price):'No disponible'}</b></div></div>
+ ${price?(BAN_PAYMENTS_ENABLED?'':'<button class="btn btn-ghost btn-block" disabled>El pago de desbloqueo aún no está habilitado</button><p class="xs mut mt2">Cuando esté disponible, el pago se hará con Stripe y tu cuenta se reactivará automáticamente al confirmarse.</p>'):'<p class="sm mut">Esta sanción no tiene opción de pago; se levanta al cumplirse la duración o por decisión del equipo.</p>'}
+ <p class="xs mut mt2">Consulta los <button type="button" class="auth-legal-link" data-action="terms-open">Términos y Condiciones</button> y la <button type="button" class="auth-legal-link" data-action="privacy-open">Política de Privacidad</button>.</p>
+ <button class="btn btn-ghost btn-block mt2" data-action="close-modal">Cerrar</button>`);
+}
 function openLegal(type){
- const title=type==='terms'?'Términos y Condiciones':'Política de Privacidad';
- const body=type==='terms'?`<p>Al utilizar EcoNova te comprometes a participar de forma respetuosa, compartir información de buena fe y no publicar contenido ilegal, fraudulento, discriminatorio o que ponga en riesgo a otras personas o al medio ambiente.</p><p class="mt2">Las publicaciones pueden ser revisadas por el equipo de administración. El contenido que incumpla estas reglas puede ser limitado o eliminado. Puedes dejar de utilizar tu cuenta cuando lo desees.</p><p class="mt2">Estos términos pueden actualizarse para mejorar la seguridad y el funcionamiento de la comunidad.</p>`:`<p>EcoNova utiliza los datos que proporcionas, como nombre, correo y contenido publicado, para operar la comunidad, mostrar tu perfil y mantener la seguridad de la plataforma.</p><p class="mt2">No compartas contraseñas ni información personal sensible en tus publicaciones. Puedes solicitar cambios o eliminación de la información de tu cuenta mediante las herramientas disponibles o contactando con la administración.</p>`;
- modal(`<h3>${title}</h3><div class="sm" style="line-height:1.7;margin-top:12px">${body}</div><button class="btn btn-green btn-block mt3" data-action="close-modal">Entendido</button>`);
+ const T=type==='terms';
+ const terms=[
+ ['Quiénes somos y aceptación','EcoNova es una red social ambiental operada por su creador (el "equipo de EcoNova"). Al crear una cuenta o usar la plataforma aceptas estos Términos. Debes ser mayor de 18 años o contar con autorización de tu madre, padre o tutor.'],
+ ['Tu cuenta','Debes dar datos verdaderos y cuidar tu contraseña. Eres responsable de lo que ocurra en tu cuenta. No puedes suplantar a otras personas ni organizaciones.'],
+ ['Contenido y conducta','No se permite contenido ilegal, fraudulento, discriminatorio, acoso, spam, información ambiental falsa o que ponga en riesgo a personas, animales o el entorno. Sigues siendo dueño de lo que publicas y nos das permiso no exclusivo de mostrarlo dentro de EcoNova.'],
+ ['Moderación','Las publicaciones, campañas y lugares del mapa pueden pasar por revisión. El equipo puede aprobar, rechazar, ocultar o eliminar contenido que incumpla estas reglas.'],
+ ['Sanciones','Según la gravedad, tu cuenta puede recibir una suspensión temporal o un bloqueo permanente. Toda sanción tiene un motivo y una duración, que verás al intentar entrar.'],
+ ['Compensación de desbloqueo','En algunos casos el creador de EcoNova puede ofrecer, a su discreción, levantar una sanción a cambio de una compensación económica. Es opcional, su monto se muestra antes de pagar y no cambia después. La cuenta se reactiva solo cuando el pago se confirma; pagar no borra la infracción de tu historial ni impide sanciones futuras. Salvo cobro por error, la compensación no es reembolsable. Esta opción se habilita de forma gradual y solo aplica cuando aparece en tu aviso de suspensión.'],
+ ['Donaciones y pagos','Los pagos se procesan con Stripe; EcoNova no almacena datos de tarjeta. Las donaciones se destinan a la campaña o fondo que elijas y, salvo error en el cobro, no son reembolsables.'],
+ ['Emergencias','EcoNova no sustituye a servicios de emergencia. En una urgencia llama al 911 o acude a PROFEPA o Protección Civil.'],
+ ['Responsabilidad','La plataforma se ofrece "tal cual" y puede tener interrupciones. Cada persona es responsable del contenido que publica y de las acciones que organiza.'],
+ ['Cambios y contacto','Podemos actualizar estos Términos y te avisaremos de cambios importantes. Para dudas o apelaciones, escribe al perfil oficial EcoNova dentro de la app. Se aplican las leyes de México.']];
+ const priv=[
+ ['Responsable','El equipo de EcoNova es responsable del tratamiento de tus datos personales.'],
+ ['Datos que recopilamos','Cuenta (nombre, correo, tipo de cuenta), perfil (foto, biografía, sitio, ubicación opcional), contenido (publicaciones, comentarios, reportes, firmas, campañas), ubicación solo si la compartes en el mapa, interacciones, identificador del dispositivo para notificaciones push, historial de sanciones (motivo, duración, monto y fecha) y confirmaciones de pago (monto y estado). Nunca recibimos el número de tu tarjeta.'],
+ ['Para qué los usamos','Para operar tu cuenta y la comunidad, moderar contenido, mantener la seguridad, enviarte avisos, procesar donaciones o pagos y calcular estadísticas de impacto sin identificarte.'],
+ ['Con quién los compartimos','Con proveedores necesarios para funcionar: Supabase (autenticación, base de datos y archivos), Stripe (pagos), GitHub Pages (alojamiento del sitio), Google si inicias sesión con Google y el servicio de notificaciones de tu dispositivo. No vendemos tus datos.'],
+ ['Qué ven los demás','Tu perfil se muestra según tus ajustes de privacidad. Puedes donar de forma anónima. Tus sanciones solo las ven tú y el equipo de administración.'],
+ ['Conservación','Conservamos tus datos mientras tengas cuenta. Los registros de pagos y sanciones pueden guardarse más tiempo por seguridad y obligaciones legales.'],
+ ['Tus derechos','Puedes acceder, rectificar, cancelar u oponerte al uso de tus datos (derechos ARCO) desde Ajustes o escribiendo al perfil oficial EcoNova dentro de la app.'],
+ ['Seguridad','Usamos conexión cifrada y reglas de acceso por usuario en la base de datos. Ningún sistema es 100% seguro, por lo que te recomendamos usar una contraseña única.'],
+ ['Menores y cambios','Si eres menor de edad necesitas autorización de tu madre, padre o tutor. Avisaremos de cambios importantes a esta Política.']];
+ const items=(T?terms:priv).map((x,i)=>`<h4>${i+1}. ${x[0]}</h4><p>${x[1]}</p>`).join('');
+ modal(`<h3>${T?'Términos y Condiciones':'Política de Privacidad'}</h3><div class="legal"><div class="legal-date">Última actualización: 10 de octubre de 2026</div>${items}</div><button class="btn btn-green btn-block mt3" data-action="close-modal">Entendido</button>`);
 }
 function getPostVideo(id){const box=document.querySelector(`.eco-video-wrap[data-video-post="${CSS.escape(String(id))}"]`);return box?.querySelector('video[data-eco-video]')||null;}
 function ecoLoadVideo(v){if(!v)return;const src=v.dataset.videoSrc;if(src&&!v.getAttribute('src')){v.setAttribute('src',src);v.load();}}
@@ -3501,7 +3561,9 @@ document.addEventListener('click',e=>{
   case 'unblock':run(()=>{API.toggleBlock(el.dataset.u);toast('Cuenta desbloqueada.','ok');render();});break;
   case 'block':run(()=>{const on=API.toggleBlock(el.dataset.u);toast(on?'Cuenta bloqueada.':'Cuenta desbloqueada.','ok');render();});break;
   case 'admin-ban':{const u=userById(el.dataset.u);modal(`<h3>Moderación de ${esc(u.name)}</h3><p class="sm mut mb2">Puedes verificar, suspender temporalmente o bloquear permanentemente esta cuenta. Toda sanción guarda un motivo.</p><div style="display:flex;flex-direction:column;gap:8px"><button class="btn btn-amber" data-action="admin-ban-do" data-u="${u.id}" data-type="1H">Suspender 1 hora</button><button class="btn btn-amber" data-action="admin-ban-do" data-u="${u.id}" data-type="24H">Suspender 24 horas</button><button class="btn btn-amber" data-action="admin-ban-do" data-u="${u.id}" data-type="7D">Suspender 7 días</button><button class="btn btn-amber" data-action="admin-ban-do" data-u="${u.id}" data-type="30D">Suspender 30 días</button><button class="btn btn-danger" data-action="admin-ban-do" data-u="${u.id}" data-type="PERMANENT">Banear para siempre</button>${u.suspended||u.banPermanent?`<button class="btn btn-green" data-action="admin-unban" data-u="${u.id}">Reactivar cuenta</button>`:''}<button class="btn btn-ghost" data-action="close-modal">Cancelar</button></div>`);break;}
-  case 'admin-ban-do':{const u=userById(el.dataset.u);modal(`<h3>Motivo de la sanción</h3><p class="sm mut mb2">${el.dataset.type==='PERMANENT'?'Bloqueo permanente':'Suspensión temporal'}</p><form data-form="ban" data-u="${u.id}" data-type="${el.dataset.type}"><div class="field"><label>Razón</label><textarea id="ban-reason" required maxlength="500" placeholder="Ej. Spam repetitivo, acoso, contenido inapropiado..."></textarea></div><button class="btn btn-danger btn-block" type="submit">Aplicar sanción</button></form>`);break;}
+  case 'admin-ban-do':{const u=userById(el.dataset.u);modal(`<h3>Motivo de la sanción</h3><p class="sm mut mb2">${el.dataset.type==='PERMANENT'?'Bloqueo permanente':'Suspensión temporal'}</p><form data-form="ban" data-u="${u.id}" data-type="${el.dataset.type}"><div class="field"><label>Razón</label><textarea id="ban-reason" required maxlength="500" placeholder="Ej. Spam repetitivo, acoso, contenido inapropiado..."></textarea></div>${isDeveloper()?`<div class="field"><label>Precio para desbloquear (MXN)</label><div class="ban-chips">${[1000,5000,10000,25000,50000].map(v=>`<button type="button" class="btn btn-ghost btn-sm" data-action="ban-price-set" data-v="${v}">${money(v)}</button>`).join('')}</div><input id="ban-price" type="number" min="10" max="999999" step="1" inputmode="numeric" placeholder="Vacío = sin opción de pago"><small class="mut">Sugerido de $1,000 a $50,000; puedes definir otro monto. Aplica también a bloqueos permanentes.</small></div>`:''}<button class="btn btn-danger btn-block" type="submit">Aplicar sanción</button></form>`);break;}
+  case 'ban-price-set':{const i=$('#ban-price');if(i)i.value=el.dataset.v;break;}
+  case 'ban-price-edit':run(()=>{const u=userById(el.dataset.u);const v=prompt('Nuevo precio de desbloqueo en MXN (vacío = sin cobro):',u.banPrice||'');if(v===null)return;API.setBanPrice(u.id,v.replace(/[$,\s]/g,''));toast('Precio actualizado.','ok');render();});break;
   case 'admin-unban':run(()=>{API.unbanUser(el.dataset.u);toast('Cuenta reactivada.','ok');closeModal();render();});break;
   case 'expense-public':run(()=>{const e=DB.expenses.find(x=>x.id===el.dataset.e);API.publishExpense(e.id,!e.public);toast(e.public?'Gasto publicado en Transparencia.':'Gasto ocultado de Transparencia.','ok');});break;
   case 'social-list':{const u=userById(el.dataset.u);const viewer=sess();const allowed=!u.privateProfile||(viewer&& (viewer.id===u.id||DB.follows.some(f=>f.f===viewer.id&&f.t===u.id)));if(!allowed){toast('Este perfil es privado. Debes seguirlo para ver sus listas.','err');break;}const type=el.dataset.t;const ids=type==='followers'?DB.follows.filter(f=>f.t===u.id).map(f=>f.f):DB.follows.filter(f=>f.f===u.id).map(f=>f.t);modal(`<h3>${type==='followers'?'Seguidores':'Siguiendo'} · ${ids.length}</h3><div style="max-height:420px;overflow:auto">${ids.map(id=>{const x=userById(id);return `<div class="sug-row">${avatar(x,38,12)}<div class="info"><b><a href="#/perfil/${x.id}" data-action="close-modal">${esc(x.name)}</a>${x.verified?verifyBadge():''}</b><span>${KINDS[x.kind]?.l||'Usuario'}</span></div></div>`}).join('')||'<p class="sm mut">No hay cuentas para mostrar.</p>'}</div><button class="btn btn-ghost btn-block mt2" data-action="close-modal">Cerrar</button>`);break;}
@@ -3540,7 +3602,7 @@ document.addEventListener('submit',e=>{
   if(d==='comment-reply'){API.replyComment(f.dataset.p,f.dataset.c,$('#reply-body').value.trim());closeModal();toast('Respuesta publicada.','ok');render();}
   if(d==='edit-profile'){API.updateProfile({name:$('#ep-name').value,bio:$('#ep-bio').value,loc:$('#ep-loc').value,website:$('#ep-web').value,avatar:profileEditImg,cover:profileEditCover});closeModal();toast('Perfil actualizado.','ok');render();}
   if(d==='profile-settings'){API.updateProfile({name:$('#set-name').value,bio:$('#set-bio').value,loc:$('#set-loc').value,website:$('#set-web').value,avatar:sess().avatar||''});API.updatePrivacy({showFollowers:$('#pr-followers').checked,showFollowing:$('#pr-following').checked,showPosts:$('#pr-posts').checked,privateProfile:$('#pr-private').checked,allowComments:$('#pr-comments').checked,notifyLikes:$('#nt-likes').checked,notifyComments:$('#nt-comments').checked,notifyFollows:$('#nt-follows').checked});toast('Ajustes actualizados.','ok');render();}
-  if(d==='ban'){API.banUser(f.dataset.u,f.dataset.type,$('#ban-reason').value);closeModal();toast('Sanción aplicada.','ok');render();}
+  if(d==='ban'){API.banUser(f.dataset.u,f.dataset.type,$('#ban-reason').value,$('#ban-price')?$('#ban-price').value:'');closeModal();toast('Sanción aplicada.','ok');render();}
   if(d==='support'){API.requestSupport({title:$('#sp-t').value,type:$('#sp-type').value,amount:+$('#sp-a').value,just:$('#sp-j').value});closeModal();toast('Solicitud enviada. Los moderadores la analizarán y recibirás una notificación con la decisión.','ok');render();}
   if(d==='modnote'){API.moderate(f.dataset.p,f.dataset.d,$('#mn-t')?$('#mn-t').value:$('#mn-r').value);closeModal();toast('Respuesta enviada al autor.','ok');render();}
   if(d==='supok'){API.reviewSupport(f.dataset.s,true,$('#so-n').value.trim());closeModal();toast('Apoyo aprobado. El monto quedó comprometido del fondo.','ok');render();}
@@ -4001,8 +4063,8 @@ const Cloud=(()=>{
   throw new Error('no quedó guardado en la base de datos'+((e2||e1)?' ('+tr(e2||e1)+')':'. Revisa el RPC set_user_emblem y las políticas de user_emblems'));
  };
  const withEmblems=async us=>{const ids=us.map(u=>u.id).filter(id=>UUID.test(id));if(!ids.length)return;const r=await c().from('user_emblems').select('user_id,emblem').in('user_id',ids);if(r.error){console.warn('[EcoNova] emblemas',r.error.message);return;}us.forEach(u=>{u.emblems=r.data.filter(e=>e.user_id===u.id).map(e=>e.emblem);if(u.role==='MOD'&&!u.emblems.includes('MOD'))u.emblems.push('MOD');u.allyAccepted=u.emblems.includes('ALLY');u.donorAccepted=u.emblems.includes('DONOR');});};
- const mk=(o)=>({id:o.id,name:o.name||'Usuario',email:o.email||'',kind:o.kind||'CIUDADANO',role:o.role||'USER',bio:o.bio||'',loc:o.loc||'',website:o.website||'',avatar:o.avatar||'',cover:o.cover||'',verified:!!o.verified,suspended:!!o.suspended,okMail:true,showFollowers:true,showFollowing:true,showPosts:true,privateProfile:false,allowComments:true,notifyLikes:true,notifyComments:true,notifyFollows:true,blockedUsers:[],suspensionUntil:null,banPermanent:false,banReason:'',emblems:[],activity:[],at:o.at||Date.now()});
- const fromProfile=r=>mk({id:r.id,name:r.name||r.username,email:r.email,kind:KIND[r.kind]||r.kind,role:ROLE[r.role]||r.role,bio:r.bio,loc:r.loc,website:r.website,avatar:r.avatar,cover:r.cover,verified:r.verified,suspended:r.is_active===false,at:Date.parse(r.created_at)});
+ const mk=(o)=>({id:o.id,name:o.name||'Usuario',email:o.email||'',kind:o.kind||'CIUDADANO',role:o.role||'USER',bio:o.bio||'',loc:o.loc||'',website:o.website||'',avatar:o.avatar||'',cover:o.cover||'',verified:!!o.verified,suspended:!!o.suspended,okMail:true,showFollowers:true,showFollowing:true,showPosts:true,privateProfile:false,allowComments:true,notifyLikes:true,notifyComments:true,notifyFollows:true,blockedUsers:[],suspensionUntil:o.banUntil||null,banPermanent:!!o.banPermanent,banReason:o.banReason||'',banPrice:o.banPrice==null?null:+o.banPrice,banAt:o.banAt||null,emblems:[],activity:[],at:o.at||Date.now()});
+ const fromProfile=r=>mk({id:r.id,name:r.name||r.username,email:r.email,kind:KIND[r.kind]||r.kind,role:ROLE[r.role]||r.role,bio:r.bio,loc:r.loc,website:r.website,avatar:r.avatar,cover:r.cover,verified:r.verified,suspended:r.is_active===false,banUntil:r.ban_until?Date.parse(r.ban_until):null,banPermanent:r.ban_permanent,banReason:r.ban_reason,banPrice:r.ban_unlock_price,banAt:r.banned_at?Date.parse(r.banned_at):null,at:Date.parse(r.created_at)});
  const split=t=>{const i=t.indexOf('\n\n');return i>0&&i<160?[t.slice(0,i),t.slice(i+2)]:[t.split('\n')[0].slice(0,90),t];};
  async function up(src,folder){if(!src||!String(src).startsWith('data:'))return src||'';const b=await(await fetch(src)).blob();const ext=(b.type.split('/')[1]||'jpg').replace('jpeg','jpg');return(await Supabase.upload(new File([b],'img.'+ext,{type:b.type}),(await c().auth.getUser()).data.user.id,folder)).url;}
  const ECO_VAPID_PUBLIC='BCNvt9EYFTcxvXW7lWBLBhBsQHzXq787uBBNkqyuBajCUSudYqLAe6LUFy93_VdhzmxNIK5HONPHikSV4CIyv7c';/* pega aquí tu clave pública VAPID (ver guía) */
@@ -4166,7 +4228,7 @@ const Cloud=(()=>{
    const {error}=await c().auth.signInWithPassword({email:String(email||'').trim(),password:String(pass||'')});
    if(error)throw tr(error);
    await api.sync();
-   if(sess()?.suspended){await c().auth.signOut();store.del('econova_session');throw'Tu cuenta está suspendida por el equipo de moderación.';}
+   if(banActive(sess())){const bu=sess();await c().auth.signOut();store.del('econova_session');setTimeout(()=>ecoBanNotice(bu),60);throw'Tu cuenta está suspendida. Revisa los detalles.';}
   },
   async signup(name,email,pass,kind){
    if(!on()){const nu=API.signup(name,email,pass,kind);store.set('econova_session',nu.id);return'Cuenta creada correctamente. ¡Bienvenido a EcoNova!';}
@@ -4344,8 +4406,12 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
  API.setEmblem=function(id,code){A.setEmblem(id,code);rpcEmblem(id,code,true);if(code==='MOD')setCol(id,{role:'MODERATOR'});};
  API.removeEmblem=function(id,code){const wasMod=code==='MOD'&&userById(id)?.role==='MOD';A.removeEmblem(id,code);rpcEmblem(id,code,false);if(wasMod)setCol(id,{role:'USER'});};
  API.setCommunityStatus=function(id,type,val){A.setCommunityStatus(id,type,val);rpcEmblem(id,type==='ally'?'ALLY':'DONOR',!!val);};
- const setCol=(id,col)=>{if(on()&&UUID.test(id))c().from('profiles').update(col).eq('id',id).select('id').then(({data,error})=>{if(error)return fail(error);if(!data||!data.length)fail(new Error('sin permiso o perfil no encontrado'),true,'No se pudo guardar el cambio');});};
+ const setCol=(id,col,fb)=>{if(on()&&UUID.test(id))c().from('profiles').update(col).eq('id',id).select('id').then(({data,error})=>{if(error){if(fb&&/column|schema cache/i.test(error.message||'')){toast('Sanción aplicada, pero falta ejecutar baneos.sql en Supabase para guardar duración, motivo y precio.','err');return setCol(id,fb);}return fail(error);}if(!data||!data.length)fail(new Error('sin permiso o perfil no encontrado'),true,'No se pudo guardar el cambio');});};
  API.suspend=function(id,val){A.suspend(id,val);setCol(id,{is_active:!val});};
+ API.banUser=function(id,type,reason,price){A.banUser(id,type,reason,price);const u=userById(id);
+  setCol(id,{is_active:false,ban_permanent:!!u.banPermanent,ban_until:u.suspensionUntil?new Date(u.suspensionUntil).toISOString():null,ban_reason:u.banReason||null,ban_unlock_price:u.banPrice,banned_at:new Date().toISOString()},{is_active:false});};
+ API.unbanUser=function(id){A.unbanUser(id);setCol(id,{is_active:true,ban_permanent:false,ban_until:null,ban_reason:null,ban_unlock_price:null,banned_at:null},{is_active:true});};
+ API.setBanPrice=function(id,price){A.setBanPrice(id,price);const u=userById(id);setCol(id,{ban_unlock_price:u.banPrice});};
  API.setVerified=function(id,val){A.setVerified(id,val);setCol(id,{verified:!!val});};
  API.verifyOrg=function(id){A.verifyOrg(id);setCol(id,{verified:true});};
  API.requestPromo=async function(postId){
