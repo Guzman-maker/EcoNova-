@@ -4422,6 +4422,19 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
   setCol(id,{is_active:false,ban_permanent:!!u.banPermanent,ban_until:u.suspensionUntil?new Date(u.suspensionUntil).toISOString():null,ban_reason:u.banReason||null,ban_unlock_price:u.banPrice,banned_at:new Date().toISOString()},{is_active:false});};
  API.unbanUser=function(id){A.unbanUser(id);setCol(id,{is_active:true,ban_permanent:false,ban_until:null,ban_reason:null,ban_unlock_price:null,banned_at:null},{is_active:true});};
  API.setBanPrice=function(id,price){A.setBanPrice(id,price);const u=userById(id);setCol(id,{ban_unlock_price:u.banPrice});};
+ const ecoBanEnforce=async(refresh)=>{
+  const u=sess();if(!on()||!u)return false;
+  if(refresh){
+   let r=await c().from('profiles').select('is_active,ban_permanent,ban_until,ban_reason,ban_unlock_price,banned_at').eq('id',u.id).maybeSingle();
+   if(r.error)r=await c().from('profiles').select('is_active').eq('id',u.id).maybeSingle();
+   const d=r.data;if(!d)return false;
+   u.suspended=d.is_active===false;u.banPermanent=!!d.ban_permanent;u.suspensionUntil=d.ban_until?Date.parse(d.ban_until):null;
+   u.banReason=d.ban_reason||'';u.banPrice=d.ban_unlock_price==null?null:+d.ban_unlock_price;u.banAt=d.banned_at?Date.parse(d.banned_at):null;
+  }
+  if(!banActive(u))return false;
+  const {data:{session:bs}}=await c().auth.getSession();ECO_BAN_TOKEN=bs?.access_token||null;
+  await c().auth.signOut({scope:'local'});store.del('econova_session');
+  render();setTimeout(()=>ecoBanNotice(u),60);return true;};
  API.setVerified=function(id,val){A.setVerified(id,val);setCol(id,{verified:!!val});};
  API.verifyOrg=function(id){A.verifyOrg(id);setCol(id,{verified:true});};
  API.requestPromo=async function(postId){
@@ -4471,6 +4484,7 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
    else if(OAUTH_TOKENS){const {error}=await c().auth.setSession(OAUTH_TOKENS);if(error)toast('No se pudo iniciar sesión con Google. Inténtalo de nuevo.','err');else oauth=true;}
    else if(LINK_ERROR)toast('El enlace expiró o el acceso fue cancelado. Inténtalo de nuevo.','err');
    try{await api.sync();render();}catch(e){console.error(e);toast('No se pudo conectar con EcoNova. Reintenta en un momento.','err');}
+   try{await ecoBanEnforce(false);}catch(_){}
    if(sess()){const nx=ecoTakeNext(true);if(nx){location.hash=nx;render();}}
    const dq=new URLSearchParams(location.search);
     if(dq.get('ban_unlock')==='success'){toast('Pago recibido. En unos segundos tu cuenta se reactiva: inicia sesión de nuevo.','ok');history.replaceState(null,'',location.pathname+'#/entrar');}
@@ -4479,7 +4493,8 @@ API.like=function(id){A.like(id);const u=me();if(!on()||!u||!UUID.test(id))retur
    if(rec)api.resetModal();else if(oauth&&sess())toast('Bienvenido a EcoNova.','ok');
     const busy=()=>/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||'');
     const go=()=>{if(document.hidden||busy()||!/^#\/(campana|campanas|transparencia)/.test(location.hash))return;api.refreshDonations().then(ch=>{if(ch&&!busy())render();});};
-    setInterval(go,30000);window.addEventListener('hashchange',go);})();
+    setInterval(go,30000);window.addEventListener('hashchange',go);
+    const banChk=()=>{if(!document.hidden)ecoBanEnforce(true).catch(()=>{});};setInterval(banChk,30000);document.addEventListener('visibilitychange',banChk);})();
  }
  return api;
 })();
