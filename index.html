@@ -1504,6 +1504,20 @@ menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
 msg:'<path d="M4 5h16v11H8l-4 4z"/>',
 sprout:'<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>'
 };
+Object.assign(IC,{
+ trash:'<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>',
+ pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/>',
+ folder:'<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',
+ send:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',
+ info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+ globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/>',
+ spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 3v4M17 5h4"/>',
+ vplay:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/>',
+ back:'<path d="M15 5l-7 7 7 7"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>',
+ cloud:'<path d="M7 18a4 4 0 010-8 5 5 0 019.6-1A4.5 4.5 0 0117 18z"/>',
+ chev:'<path d="M6 9l6 6 6-6"/>'
+});
 const ic=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[n]||''}</svg>`;
 
 /* ---------- catálogos ---------- */
@@ -2476,7 +2490,7 @@ function viewOrgs(){
 let profTab='posts';
 function profileEditPreview(){const e=$('#profile-edit-preview');if(!e)return;const u=sess();e.innerHTML=`<div class="profile-edit-media">${profileEditCover?`<div class="profile-edit-cover" style="background-image:url('${profileEditCover}')"></div>`:`<div class="profile-edit-cover profile-cover-empty">Sin portada</div>`}${profileEditImg?`<span class="avt avt-photo profile-edit-avatar" style="background-image:url('${profileEditImg}')"></span>`:`<span class="avt profile-edit-avatar" style="font-size:28px;background:hsl(${hue(u.id)} 42% 36%)">${initials(u.name)}</span>`}</div>`;}
 let profileEditImg='',profileEditCover='';
-function openProfileEdit(){const u=sess();if(!u)return guard();profileEditImg=u.avatar||'';profileEditCover=u.cover||'';modal(`<h3>Editar perfil</h3><p class="sm mut mb2">Personaliza cómo te verá la comunidad.</p><form data-form="edit-profile"><div id="profile-edit-preview" class="mb2"></div><div class="profile-edit-actions"><label class="btn btn-ghost btn-sm" style="cursor:pointer">${ic('cam')} Cambiar foto<input type="file" accept="image/*" data-photos="profile" style="display:none"></label><button type="button" class="btn btn-ghost btn-sm" data-action="remove-profile-photo">Quitar foto</button><label class="btn btn-ghost btn-sm" style="cursor:pointer">${ic('image')} Cambiar portada<input type="file" accept="image/*" data-photos="cover" style="display:none"></label><button type="button" class="btn btn-ghost btn-sm" data-action="remove-profile-cover">Quitar portada</button></div><div class="xs mut mt1">Acepta imágenes compatibles con tu navegador (PNG, JPG/JPEG, WEBP, GIF, SVG y otros formatos de imagen compatibles) · máximo 8 MB.</div><div class="field mt2"><label>Nombre</label><input id="ep-name" value="${esc(u.name)}" maxlength="80" required></div><div class="field"><label>Biografía</label><textarea id="ep-bio" maxlength="300" placeholder="Cuéntale a la comunidad quién eres">${esc(u.bio||'')}</textarea></div><div class="field"><label>Ubicación</label><input id="ep-loc" value="${esc(u.loc||'')}" maxlength="100" placeholder="Ciudad, estado"></div><div class="field"><label>Sitio web</label><input id="ep-web" value="${esc(u.website||'')}" maxlength="180" placeholder="https://..."></div><button class="btn btn-green btn-block mt2" type="submit">Guardar cambios</button></form>`);profileEditPreview();}
+function openProfileEdit(){const u=sess();if(!u)return guard();profileEditImg=u.avatar||'';profileEditCover=u.cover||'';modal(`<div class="ep-top"><button type="button" class="ep-nav" onclick="closeModal()" aria-label="Volver">${ic('back')}</button><h3>Editar perfil</h3><a class="ep-nav" href="#/configuracion" onclick="closeModal()" aria-label="Ajustes">${ic('gear')}</a></div><form data-form="edit-profile" class="ep-form"><div id="profile-edit-preview"></div><div class="ep-card"><div class="profile-edit-actions"><label class="ep-btn ep-btn-g" style="cursor:pointer">${ic('cam')} Cambiar foto<input type="file" accept="image/*" data-photos="profile" style="display:none"></label><button type="button" class="ep-btn" data-action="remove-profile-photo">${ic('trash')} Quitar foto</button><label class="ep-btn ep-btn-g" style="cursor:pointer">${ic('image')} Cambiar portada<input type="file" accept="image/*" data-photos="cover" style="display:none"></label><button type="button" class="ep-btn" data-action="remove-profile-cover">${ic('trash')} Quitar portada</button></div><div class="ep-hint">${ic('info')}<span>Acepta imágenes compatibles con tu navegador (PNG, JPG/JPEG, WEBP, GIF, SVG y otros). Máx. 8 MB.</span></div><div class="field"><label>Nombre</label><input id="ep-name" value="${esc(u.name)}" maxlength="80" required></div><div class="field"><label>Biografía</label><textarea id="ep-bio" maxlength="300" placeholder="Cuéntale a la comunidad quién eres">${esc(u.bio||'')}</textarea></div><div class="field"><label>Ubicación</label><input id="ep-loc" value="${esc(u.loc||'')}" maxlength="100" placeholder="Ciudad, estado"></div><div class="field"><label>Sitio web</label><div class="ep-web">${ic('globe')}<input id="ep-web" value="${esc(u.website||'')}" maxlength="180" placeholder="https://..."></div></div><button class="ep-save" type="submit">${ic('spark')} Guardar cambios</button></div></form>`);profileEditPreview();}
 function emblemAdminControls(u){
  if(!isDeveloper())return '';
  const e=Array.isArray(u.emblems)?u.emblems:[];
@@ -3510,15 +3524,15 @@ document.addEventListener('click',e=>{
   case 'do-flag':run(()=>{if(!sess())return guard();API.flag(el.dataset.p,el.dataset.r);closeModal();toast('Gracias. El equipo revisará esta denuncia.','ok');});break;
   case 'req-promo':run(()=>{API.requestPromo(el.dataset.p);closeModal();toast('Solicitud enviada. También puedes pedir apoyo económico del Fondo en Donar.','ok');});break;
   case 'new-post':{const u=sess();if(!u)return guard();postImgs=[];postVideo=null;
-   const direct=['DEV','ADMIN','MOD'].includes(u.role)||u.id==='u1'; modal(`<h3>Crear publicación</h3><p class="sm mut mb2">${direct?'Tu publicación se publicará directamente.':'Pasará por moderación antes de publicarse.'}</p>
-   <form data-form="post">
-    <div class="field"><label>Título</label><input type="text" id="np-title" required maxlength="160" placeholder="Un título claro"></div>
-    <div class="field"><label>Descripción</label><textarea id="np-body" required maxlength="4000" placeholder="Cuenta lo que pasa o comparte una iniciativa. Usa #hashtags."></textarea></div>
-    <div class="field"><label>Categoría</label><select id="np-cat" required><option value="">Selecciona…</option>${catOptions()}</select></div>
-    <div class="field"><label>Ubicación (opcional)</label><input type="text" id="np-loc" placeholder="Ej. Col. Centro, mercado municipal"></div>
-    <div class="field"><label>Fotografías</label><input type="file" accept="image/*" multiple data-photos="post"><div class="previews" id="post-previews"></div></div>
-    ${Supabase.enabled()?`<div class="field"><label>Video (opcional, máx. 50 MB)</label><input type="file" accept="video/*" data-video="post"><div class="previews" id="post-video-preview"></div></div>`:''}
-    <button class="btn btn-green btn-block" type="submit">${direct?'Publicar directamente':'Enviar a moderación'}</button></form>`);break;}
+   const direct=['DEV','ADMIN','MOD'].includes(u.role)||u.id==='u1'; modal(`<div class="np-head">${brandHTML(false)}<div class="np-head-r"><button type="button" class="np-circ" onclick="closeModal();location.hash='#/explorar'" aria-label="Buscar">${ic('search')}</button><button type="button" class="np-circ" onclick="closeModal();location.hash='#/notificaciones'" aria-label="Notificaciones">${ic('bell')}</button></div></div><h3>Crear publicación</h3><p class="np-sub">${direct?'Tu publicación se publicará directamente.':'Pasará por moderación antes de publicarse.'}${direct?` <span class="np-pill">${ic('info')} Se publicará al instante</span>`:''}</p>
+   <form data-form="post" class="np-form">
+    <div class="np-row"><span class="np-ico">${ic('pen')}</span><div class="field"><label>Título</label><input type="text" id="np-title" required maxlength="160" placeholder="Un título claro"></div></div>
+    <div class="np-row"><span class="np-ico">${ic('msg')}</span><div class="field"><label>Descripción</label><textarea id="np-body" required maxlength="4000" placeholder="Cuenta lo que pasa o comparte una iniciativa. Usa #hashtags."></textarea></div></div>
+    <div class="np-row"><span class="np-ico">${ic('folder')}</span><div class="field"><label>Categoría</label><div class="np-sel"><select id="np-cat" required><option value="">Selecciona</option>${catOptions()}</select>${ic('chev')}</div></div></div>
+    <div class="np-row"><span class="np-ico">${ic('pin')}</span><div class="field"><label>Ubicación (opcional)</label><input type="text" id="np-loc" placeholder="Ej. Col. Centro, mercado municipal"></div></div>
+    <div class="np-row"><span class="np-ico">${ic('image')}</span><div class="field"><label>Fotografías</label><label class="np-drop"><input type="file" accept="image/*" multiple data-photos="post"><span class="np-fbtn">${ic('plus')}${ic('image')} Seleccionar archivos</span><small class="np-fn" data-def="ningún archivo seleccionado">ningún archivo seleccionado ${ic('info')}</small></label><div class="previews" id="post-previews"></div></div></div>
+    ${Supabase.enabled()?`<div class="np-row"><span class="np-ico">${ic('vplay')}</span><div class="field"><label>Video (opcional, máx. 50 MB)</label><label class="np-drop"><input type="file" accept="video/*" data-video="post"><span class="np-fbtn">${ic('cloud')} Seleccionar archivo</span><small class="np-fn" data-def="Máx. 50 MB • MP4, MOV">Máx. 50 MB • MP4, MOV</small></label><div class="previews" id="post-video-preview"></div></div></div>`:''}
+    <button class="np-submit" type="submit">${ic('send')} ${direct?'Publicar directamente':'Enviar a moderación'}</button></form>`);break;}
   case 'new-support':{const u=sess();if(!u)return guard();const f=fund();
    modal(`<h3>Solicitar apoyo del Fondo Comunitario</h3>
    <p class="sm mut mb2">El fondo también financia a personas y proyectos que ayudan a difundir causas ambientales dentro de EcoNova (contenido, publicidad de campañas, herramientas, logística o rescate). <b>Los moderadores analizan cada solicitud y deciden aceptarla o rechazarla.</b> Disponible en el fondo: <b>${money(f.avail)}</b>.</p>
@@ -4626,9 +4640,9 @@ var MapX=(()=>{
 
  function view(){
   return`<div class="mx">
-  <div class="page-head" style="padding-top:6px"><span class="kicker">Mapa ambiental</span><h1>Lo que pasa en tu zona</h1></div>
-  <div class="mx-bar"><button class="btn btn-green btn-sm" data-mx="locate">📍 Usar mi ubicación</button><button class="btn btn-ghost btn-sm" data-mx="pickme">Elegir en el mapa</button><button class="btn btn-ink btn-sm" data-mx="add">➕ Añadir al mapa</button></div>
-  <div class="mx-find"><input id="mx-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Escribe tu colonia, ciudad o dirección"><button class="btn btn-ghost btn-sm" data-mx="geo">Buscar</button></div>
+  <div class="page-head" style="padding-top:6px"><h1>Lo que pasa en tu zona</h1><span class="mx-kick">Mapa ambiental</span></div>
+  <div class="mx-bar"><button class="mx-b mx-b-g" data-mx="locate">${ic('pin')} Usar mi ubicación</button><button class="mx-b mx-b-o" data-mx="pickme">${ic('pin')} Elegir en el mapa</button><button class="mx-b mx-b-k" data-mx="add">${ic('plus')} Añadir al mapa</button></div>
+  <div class="mx-find"><input id="mx-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Escribe tu colonia, ciudad o dirección"><button class="mx-go" data-mx="geo">Buscar</button></div>
   <div class="filters mt1" id="mx-filters">${chips()}</div>
   <div class="map-shell" style="position:relative"><div id="bigmap"></div><div id="mx-hint" class="mx-hint" hidden></div></div>
   <div class="map-legend mx-legend"><span>🔥 Problemas ambientales</span><span>♻️ Lugares y negocios ambientales</span><span><span class="dot" style="background:#1c7ed6"></span>Tu ubicación</span><span>Punto tenue = en revisión</span></div>
@@ -5811,5 +5825,134 @@ document.addEventListener('play',e=>{const v=e.target;if(v&&v.matches&&v.matches
 })();
 
 </script>
+
+<style id="econova-redesign-css">
+/* ===== EcoNova · rediseño según capturas (nav flotante, mapa, editar perfil, crear publicación) ===== */
+:root{--rd-g:#2f9a62;--rd-gd:#0f5b3f;--rd-gt:#d9f0df;--rd-gt2:#e8f5eb;--rd-ink:#14231b}
+
+/* ---------- Barra inferior flotante ---------- */
+@media(max-width:860px){
+ #bottomnav{background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:0 14px calc(12px + env(safe-area-inset-bottom))!important;pointer-events:none}
+ #bottomnav .in{pointer-events:auto;position:relative;display:flex;justify-content:space-between;align-items:flex-end;background:#fff;border-radius:36px;height:74px;padding:0 10px 9px;box-shadow:0 12px 34px rgba(20,60,40,.16),0 2px 8px rgba(20,60,40,.08);max-width:560px;margin:0 auto}
+ #bottomnav .bn{flex:1 1 0;min-width:0;padding:6px 2px 0;gap:4px;font-size:12px;font-weight:700;color:#6c7370!important;letter-spacing:0}
+ #bottomnav .bn svg{width:27px;height:27px;stroke-width:1.9}
+ #bottomnav .bn.on{color:var(--rd-g)!important}
+ #bottomnav .bn-pub{flex:0 0 74px;width:74px;height:74px;margin:-40px 6px 4px;border:8px solid #fff;background:var(--rd-g)!important;color:#fff;box-shadow:0 10px 24px rgba(30,110,70,.28);display:grid;place-items:center}
+ #bottomnav .bn-pub svg{width:34px;height:34px;stroke-width:2.3}
+ .app{padding-bottom:128px}
+}
+
+/* ---------- Mapa ---------- */
+.mx .page-head{padding:10px 0 0}
+.mx .page-head h1{font-size:clamp(30px,8.4vw,40px);font-weight:800;letter-spacing:-.035em;color:#16271d;margin:6px 0 14px;line-height:1.08}
+.mx-kick{display:inline-flex;align-items:center;gap:9px;border:1.5px solid #b9dcc4;border-radius:999px;padding:9px 18px 9px 14px;font-size:13px;font-weight:800;letter-spacing:.17em;text-transform:uppercase;color:#1e7a50;background:transparent}
+.mx-kick:before{content:"";width:18px;height:2.5px;border-radius:2px;background:#1e7a50}
+.mx-bar{display:flex;flex-wrap:nowrap;gap:10px;overflow-x:auto;margin:18px -4px 12px;padding:2px 4px 8px;scrollbar-width:none}
+.mx-bar::-webkit-scrollbar{display:none}
+.mx-b{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:12px 16px;font-size:14px;font-weight:700;white-space:nowrap;border:1.5px solid transparent;transition:.15s}
+.mx-b svg{width:18px;height:18px;pointer-events:none}
+.mx-b-g{background:var(--rd-g);color:#fff;box-shadow:0 6px 16px rgba(30,110,70,.25)}
+.mx-b-o{background:rgba(255,255,255,.55);color:#16271d;border-color:#b9dcc4}
+.mx-b-k{background:#14231b;color:#fff;box-shadow:0 6px 16px rgba(20,35,27,.22)}
+.mx-find{display:flex;align-items:center;gap:8px;margin:6px 0 14px;background:#fff;border-radius:999px;padding:7px 7px 7px 8px;box-shadow:0 8px 24px rgba(20,60,40,.09)}
+.mx-find input{flex:1;min-width:0;border:0!important;background:transparent!important;padding:11px 12px!important;font-size:15px;border-radius:999px;outline:none;text-overflow:ellipsis}
+.mx-go{flex:none;background:var(--rd-g);color:#fff;font-weight:800;font-size:15px;border-radius:999px;padding:12px 20px}
+.mx #mx-filters{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:12px}
+.mx #mx-filters .fchip{padding:12px 24px;font-size:15.5px;font-weight:700;border:1.5px solid #b9dcc4;background:rgba(255,255,255,.5);color:#415248;border-radius:999px}
+.mx #mx-filters .fchip.on{background:#0f5b3f;border-color:#0a3f2a;color:#fff;box-shadow:0 0 0 2px #fff inset}
+.mx #mx-filters .mx-sel{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:min(300px,100%)!important;padding:13px 46px 13px 22px;font-size:16px;font-weight:700;color:#16271d;border:0;border-radius:999px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='%2314231b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;box-shadow:0 8px 22px rgba(20,60,40,.1)}
+.mx .map-shell{border-radius:30px;overflow:hidden;box-shadow:0 10px 30px rgba(20,60,40,.12);border:0}
+.mx #bigmap{border-radius:30px}
+.mx .leaflet-bar{border:2px solid rgba(0,0,0,.18);border-radius:10px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.mx .leaflet-bar a{width:44px;height:44px;line-height:44px;font-size:26px;font-weight:700;color:#14231b}
+
+/* ---------- Modales: base ---------- */
+#modal .modal-card h3{font-family:var(--disp)}
+#modal.open .modal-card input[type=text],#modal.open .modal-card input:not([type]),#modal.open .modal-card textarea,#modal.open .modal-card select{border-color:transparent}
+
+/* ---------- Crear publicación ---------- */
+#modal:has(.np-head){align-items:start;place-items:start center;padding:calc(10px + env(safe-area-inset-top)) 10px 0;background:rgba(18,34,26,.28);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+@media(max-width:860px){#modal:has(.np-head){z-index:940;padding-bottom:112px}}
+#modal:has(.np-head) .modal-card{width:min(560px,100%);max-height:calc(100dvh - 130px);padding:14px 16px 16px;border-radius:32px;box-shadow:0 20px 50px rgba(10,40,25,.2)}
+.np-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.np-head .wm{font-size:28px}
+.np-head-r{display:flex;gap:10px}
+.np-circ{width:42px;height:42px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 6px 16px rgba(20,60,40,.14);color:#16271d}
+.np-circ svg{width:21px;height:21px}
+.np-head+h3{font-size:clamp(28px,8vw,36px);font-weight:800;letter-spacing:-.035em;color:#16271d;margin:6px 0 4px}
+.np-sub{font-size:14.5px;color:#33433a;margin:0 0 12px;line-height:1.6}
+.np-pill{display:inline-flex;align-items:center;gap:6px;background:var(--rd-gt);color:#1d6b46;border-radius:999px;padding:3px 12px 3px 8px;font-size:13.5px;font-weight:600;white-space:nowrap;vertical-align:middle}
+.np-pill svg{width:16px;height:16px;fill:#2f9a62;stroke:#fff}
+.np-form .np-row{display:grid;grid-template-columns:46px 1fr;gap:10px;align-items:start;margin-bottom:0}
+.np-ico{width:46px;height:46px;border-radius:50%;background:var(--rd-gt);color:#1d6b46;display:grid;place-items:center;margin-top:22px}
+.np-ico svg{width:21px;height:21px}
+.np-form .field{margin-bottom:8px;min-width:0}
+.np-form .field label:not(.np-drop){font-size:12px;font-weight:800;letter-spacing:.1em;color:#26372d;margin-bottom:5px}
+.np-form input[type=text],.np-form textarea,.np-form select{width:100%;background:var(--rd-gt2);border:0;border-radius:22px;padding:12px 18px;font-size:16px;box-shadow:0 6px 16px rgba(30,110,70,.1);color:#16271d}
+.np-form textarea{min-height:72px;resize:vertical;line-height:1.4}
+.np-form ::placeholder{color:#7b8d82}
+.np-sel{position:relative}
+.np-sel select{appearance:none;-webkit-appearance:none;padding-right:52px;font-weight:500;color:#16271d}
+.np-sel svg{position:absolute;right:20px;top:50%;transform:translateY(-50%);width:22px;height:22px;pointer-events:none}
+.np-drop{display:flex!important;flex-direction:column;align-items:center;gap:10px;border:2px dashed #7fc79c;background:var(--rd-gt2);border-radius:20px;padding:12px 10px;gap:6px!important;cursor:pointer;text-transform:none!important;letter-spacing:0!important;margin:0!important;box-shadow:0 8px 20px rgba(30,110,70,.08)}
+.np-drop input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.np-fbtn{display:inline-flex;align-items:center;gap:6px;background:var(--rd-g);color:#fff;border-radius:999px;padding:9px 18px;font-size:16px;font-weight:700;box-shadow:0 6px 14px rgba(30,110,70,.25)}
+.np-fbtn svg{width:18px;height:18px}
+.np-fn{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#26372d;font-weight:500}
+.np-fn svg{width:16px;height:16px;color:#7b8d82}
+.np-submit{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(180deg,#2f9a62,#1f8553);color:#fff;border-radius:999px;padding:15px 20px;font-size:19px;font-weight:800;margin-top:8px;box-shadow:0 10px 22px rgba(30,110,70,.3)}
+.np-submit svg{width:24px;height:24px}
+.np-form .previews{margin-top:8px}
+
+/* ---------- Editar perfil ---------- */
+#modal:has(.ep-top){place-items:stretch;padding:0;background:linear-gradient(180deg,#fff 0,#eef7ef 38%,#d9eddc 100%);overflow-y:auto}
+#modal:has(.ep-top) .modal-card{width:100%;max-width:560px;margin:0 auto;max-height:none;min-height:100%;border-radius:0;box-shadow:none;background:transparent;padding:0 0 28px;overflow:visible}
+body:has(#modal.open .ep-top) #bottomnav{display:none!important}
+#modal:has(.ep-top),#modal:has(.np-head){grid-template-columns:minmax(0,1fr)}
+.ep-top{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;background:#fff}
+.ep-top h3{text-align:center;font-size:27px;font-weight:800;margin:0;letter-spacing:-.02em;color:#111}
+.ep-nav{width:44px;height:44px;display:grid;place-items:center;color:#3a3d3c;border-radius:50%}
+.ep-nav svg{width:30px;height:30px}
+.ep-form{padding:12px 16px 0}
+#profile-edit-preview{margin:0!important;position:relative;z-index:1}
+#modal .profile-edit-media{position:relative;height:auto!important;border:0!important;overflow:visible!important;background:transparent!important;border-radius:0!important}
+#modal .profile-edit-cover{height:230px!important;border-radius:32px 32px 0 0!important;position:relative;overflow:hidden;background-color:#0b3b2b}
+#modal .profile-edit-cover::after{content:"";position:absolute;inset:auto 0 0 0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0),#fff 96%)}
+#modal .profile-cover-empty{display:grid;place-items:start center;padding-top:60px;color:#cfe7d6;font-weight:700;background:linear-gradient(160deg,#0b3b2b,#1b6b48)}
+#modal .profile-edit-avatar{left:20px!important;right:auto!important;top:auto!important;bottom:-62px!important;width:128px!important;height:128px!important;border:7px solid #fff!important;box-shadow:0 10px 26px rgba(20,60,40,.2)!important;z-index:3}
+.ep-card{position:relative;margin-top:-34px;background:#fff;border-radius:34px;padding:104px 20px 24px;box-shadow:0 10px 30px rgba(20,60,40,.06)}
+.profile-edit-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:14px;margin:0}
+.ep-btn{display:flex;align-items:center;justify-content:center;gap:10px;border-radius:24px;padding:16px 6px;font-size:15.5px;line-height:1.2;white-space:nowrap;font-weight:800;background:#ebecee;color:#16271d;text-transform:none;letter-spacing:0;border:0}
+.ep-btn svg{width:22px;height:22px;flex:none}
+.ep-btn-g{background:#d3efd9;color:#14231b}
+.ep-btn-g svg{color:#2f9a62}
+.ep-btn:not(.ep-btn-g) svg{color:#6c7370}
+.ep-hint{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#26372d;margin:16px 0 22px;line-height:1.45}
+.ep-hint svg{width:20px;height:20px;flex:none;color:#6c7370;margin-top:1px}
+.ep-card .field{margin-bottom:14px}
+.ep-card .field label{font-size:15px;font-weight:800;letter-spacing:.06em;color:#26372d;margin-bottom:10px}
+.ep-card input,.ep-card textarea{width:100%;background:#e6f4e9!important;border:2px solid #7fc79c!important;border-radius:24px!important;padding:14px 20px;font-size:17px;color:#16271d;box-shadow:none!important}
+.ep-card textarea{min-height:128px;line-height:1.35;background:#fff!important}
+#ep-loc{background:#fff!important}
+.ep-web{display:flex;align-items:center;gap:12px;background:#fff;border:2px solid #7fc79c;border-radius:26px;padding:0 20px}
+.ep-web svg{width:30px;height:30px;color:#2f9a62;flex:none}
+.ep-card .ep-web input{border:0!important;background:transparent!important;padding:16px 0}
+.ep-save{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(180deg,#2f9a62,#1f8553);color:#fff;border-radius:26px;padding:20px;font-size:21px;font-weight:800;margin-top:10px;box-shadow:0 12px 26px rgba(30,110,70,.28)}
+.ep-save svg{width:26px;height:26px}
+</style>
+<script id="econova-redesign-js">
+(function(){
+ // contador de archivos en los campos "Seleccionar archivos" de Crear publicación
+ document.addEventListener('change',function(e){
+  var t=e.target; if(!t||!t.closest) return;
+  var d=t.closest('.np-drop'); if(!d) return;
+  var fn=d.querySelector('.np-fn'); if(!fn) return;
+  var n=(t.files&&t.files.length)||0;
+  if(n){ fn.textContent = n===1 ? t.files[0].name : n+' archivos seleccionados'; }
+  else if(fn.dataset.def){ fn.textContent = fn.dataset.def; }
+ },true);
+})();
+</script>
+
 </body>
 </html>
