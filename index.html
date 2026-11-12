@@ -3524,7 +3524,7 @@ document.addEventListener('click',e=>{
   case 'do-flag':run(()=>{if(!sess())return guard();API.flag(el.dataset.p,el.dataset.r);closeModal();toast('Gracias. El equipo revisará esta denuncia.','ok');});break;
   case 'req-promo':run(()=>{API.requestPromo(el.dataset.p);closeModal();toast('Solicitud enviada. También puedes pedir apoyo económico del Fondo en Donar.','ok');});break;
   case 'new-post':{const u=sess();if(!u)return guard();postImgs=[];postVideo=null;
-   const direct=['DEV','ADMIN','MOD'].includes(u.role)||u.id==='u1'; modal(`<div class="np-head">${brandHTML(false)}<div class="np-head-r"><button type="button" class="np-circ" onclick="closeModal();location.hash='#/explorar'" aria-label="Buscar">${ic('search')}</button><button type="button" class="np-circ" onclick="closeModal();location.hash='#/notificaciones'" aria-label="Notificaciones">${ic('bell')}</button></div></div><h3>Crear publicación</h3><p class="np-sub">${direct?'Tu publicación se publicará directamente.':'Pasará por moderación antes de publicarse.'}${direct?` <span class="np-pill">${ic('info')} Se publicará al instante</span>`:''}</p>
+   const direct=['DEV','ADMIN','MOD'].includes(u.role)||u.id==='u1'; modal(`<div class="np-head">${brandHTML(false)}<div class="np-head-r"><button type="button" class="np-circ np-x" onclick="closeModal()" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div><h3>Crear publicación</h3><p class="np-sub">${direct?'Tu publicación se publicará directamente.':'Pasará por moderación antes de publicarse.'}${direct?` <span class="np-pill">${ic('info')} Se publicará al instante</span>`:''}</p>
    <form data-form="post" class="np-form">
     <div class="np-row"><span class="np-ico">${ic('pen')}</span><div class="field"><label>Título</label><input type="text" id="np-title" required maxlength="160" placeholder="Un título claro"></div></div>
     <div class="np-row"><span class="np-ico">${ic('msg')}</span><div class="field"><label>Descripción</label><textarea id="np-body" required maxlength="4000" placeholder="Cuenta lo que pasa o comparte una iniciativa. Usa #hashtags."></textarea></div></div>
@@ -5951,6 +5951,46 @@ body:has(#modal.open .ep-top) #bottomnav{display:none!important}
   if(n){ fn.textContent = n===1 ? t.files[0].name : n+' archivos seleccionados'; }
   else if(fn.dataset.def){ fn.textContent = fn.dataset.def; }
  },true);
+})();
+</script>
+
+
+<style id="econova-redesign-2">
+/* Barra inferior más delgada + se oculta al bajar */
+@media(max-width:860px){
+ #bottomnav{transition:transform .28s ease,opacity .28s ease}
+ body.nav-hide #bottomnav{transform:translateY(130%);opacity:0}
+ #bottomnav .in{height:58px;border-radius:30px;padding:0 8px 6px}
+ #bottomnav .bn{font-size:10.5px;gap:2px;padding:5px 2px 0}
+ #bottomnav .bn svg{width:22px;height:22px}
+ #bottomnav .bn-pub{flex:0 0 58px;width:58px;height:58px;margin:-30px 6px 3px;border-width:6px}
+ #bottomnav .bn-pub svg{width:26px;height:26px}
+ .app{padding-bottom:100px}
+}
+/* Crear publicación: pantalla completa, sin racha ni nav */
+body:has(#modal.open .np-head) #bottomnav,
+body:has(#modal.open .np-head) #eco-streak-fab,
+body:has(#modal.open .np-head) #eav-bub,
+body:has(#modal.open .np-head) #eco-notif-float{display:none!important}
+#modal:has(.np-head){z-index:1300;place-items:stretch;padding:0!important;background:linear-gradient(180deg,#fff 0,#eef7ef 45%,#d9eddc 100%);backdrop-filter:none;overflow-y:auto}
+#modal:has(.np-head) .modal-card{width:100%;max-width:560px;height:100%;max-height:none;margin:0 auto;border-radius:0;box-shadow:none;background:transparent;padding:calc(12px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;overflow-y:auto}
+#modal:has(.np-head) .np-form{flex:1;display:flex;flex-direction:column;justify-content:space-between}
+.np-x{width:44px;height:44px}
+.np-x svg{width:22px;height:22px}
+</style>
+<script id="econova-redesign-2-js">
+(function(){
+ var last=window.scrollY||0,tk=false;
+ function upd(){
+  var y=window.scrollY||document.documentElement.scrollTop||0,d=y-last;
+  if(y<40)document.body.classList.remove('nav-hide');
+  else if(d>8)document.body.classList.add('nav-hide');
+  else if(d<-8)document.body.classList.remove('nav-hide');
+  if(Math.abs(d)>8)last=y;
+  tk=false;
+ }
+ window.addEventListener('scroll',function(){if(!tk){tk=true;requestAnimationFrame(upd);}},{passive:true});
+ window.addEventListener('hashchange',function(){document.body.classList.remove('nav-hide');last=0;});
 })();
 </script>
 
