@@ -4987,6 +4987,22 @@ var MapX=(()=>{
 
  window.EcoAV={say:say,mood:mood,open:openChat,close:closeChat,onAsk:null,ask:ask};
 
+ /* ── IA: Eco consulta la Edge Function "eco-chat" (la API key de Gemini vive solo en el servidor, nunca aquí) ──
+    Se usa solo cuando la base local no tiene una respuesta clara; si falla, Eco responde con su base local. */
+ (function(){
+  var chatId=null,sid=null;
+  try{sid=localStorage.getItem('eco_sid');if(!sid){sid=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(String(Date.now())+Math.random().toString(36).slice(2));localStorage.setItem('eco_sid',sid)}}catch(_){sid=String(Date.now())}
+  try{chatId=sessionStorage.getItem('eco_chat_id')}catch(_){}
+  window.EcoAV.onAsk=async function(q,o){
+   var c=(typeof supabaseClient!=='undefined')?supabaseClient:null;
+   if(!c||!c.functions)return '';
+   var r=await c.functions.invoke('eco-chat',{body:{message:q,history:(o&&o.history)||[],chat_id:chatId,session_id:sid}});
+   if(r.error||!r.data)return '';
+   if(r.data.chat_id&&r.data.chat_id!==chatId){chatId=r.data.chat_id;try{sessionStorage.setItem('eco_chat_id',chatId)}catch(_){}}
+   return r.data.reply||'';
+  };
+ })();
+
  upgrade();
  var pend=0,mo=new MutationObserver(function(){if(pend)return;pend=requestAnimationFrame(function(){pend=0;upgrade()})});
  [document.getElementById('topbar'),document.getElementById('app')].forEach(function(h){if(h)mo.observe(h,{childList:true,subtree:true})});
