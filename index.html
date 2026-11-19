@@ -2094,13 +2094,6 @@ function viewFeed(){
    <button class="fake" data-action="new-post">¿Qué te gustaría compartir hoy?</button>
    <div class="acts"><button data-action="new-post" title="Publicar">${ic('cam')}</button><button onclick="location.hash='#/reportar'" title="Reportar">${ic('flag')}</button><button onclick="location.hash='#/crear-campana'" title="Campaña">${ic('cal')}</button></div>
   </div>
-  <div class="feed-modern-chips" aria-label="Categorías rápidas">
-   <button class="fchip on" data-action="feed-tab" data-t="ti">Todos</button>
-   <a class="fchip" href="#/explorar" data-action="quick-search" data-q="reciclaje">Reciclaje</a>
-   <a class="fchip" href="#/explorar" data-action="quick-search" data-q="fauna">Fauna</a>
-   <a class="fchip" href="#/explorar" data-action="quick-search" data-q="clima">Clima</a>
-   <a class="fchip" href="#/explorar" data-action="quick-search" data-q="incendios">Incendios</a>
-  </div>
   ${ecoEngageCard()}
   ${mine.length?`<div class="notice mt2 mb2">Tienes <b>${mine.length}</b> publicación(es) en revisión o con observaciones. <a class="link" href="#/estado-publicaciones">Ver estado</a></div>`:''}
   <div class="feed-modern-tabs">
@@ -3727,8 +3720,10 @@ document.addEventListener('change',e=>{
  if(inp.id==='mapcat'){mapCat=inp.value;render();}
 });
 document.addEventListener('keydown',e=>{if(e.target.id==='global-search'&&e.key==='Enter'){e.preventDefault();GQ=e.target.value.trim();e.target.value='';e.target.blur();location.hash='#/explorar';render();}});
+/* Al salir del buscador superior sin buscar, se borra lo escrito */
+document.addEventListener('focusout',e=>{const t=e.target;if(!t||t.id!=='global-search'||!t.isConnected)return;if(document.hidden||!document.hasFocus())return;if(t.value)t.value='';});
 document.addEventListener('input',e=>{
- if(e.target.id==='global-search'){GQ=e.target.value;return;}
+ if(e.target.id==='global-search'){return;}
  if(e.target.id==='expq'){GQ=e.target.value;clearTimeout(window._qt);window._qt=setTimeout(()=>{const q=GQ.trim();if(q.length>=2){const u=sess();if(u){DB.activity=Array.isArray(DB.activity)?DB.activity:[];const last=DB.activity.find(a=>a.userId===u.id&&a.type==='search');if(!last||last.q!==q){DB.activity.unshift({id:uid(),userId:u.id,type:'search',q,at:Date.now()});DB.activity=DB.activity.slice(0,1200);save();}}}const box=$('#explore-results');if(box)box.innerHTML=exploreResults();else render();},180);}
 });
 function renderPreviews(target){
