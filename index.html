@@ -3513,14 +3513,20 @@ document.addEventListener('click',e=>{
   case 'profile-copy':if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(el.dataset.url).then(()=>toast('Enlace del perfil copiado.','ok')).catch(()=>toast(el.dataset.url));}else{toast(el.dataset.url);}break;
   case 'share-copy':{const p=postById(el.dataset.p);if(p)copyShareLink(shareLink(p).url);break;}
   case 'post-menu':{const p=postById(el.dataset.p);const me=sess();
-   modal(`<h3>Opciones</h3><p class="sm mut mb2">Ayúdanos a mantener la comunidad sana.</p>
-   <div style="display:flex;flex-direction:column;gap:8px">
-   ${['Spam o publicidad','Fuera de categoría','Información falsa','Contenido ofensivo','Otro'].map(r=>`<button class="btn btn-ghost btn-sm" data-action="do-flag" data-p="${el.dataset.p}" data-r="${r}">${ic('alert')} Denunciar: ${r}</button>`).join('')}
-   ${me&&p.userId!==me.id?`<button class="btn btn-ghost btn-sm" data-action="block" data-u="${p.userId}">Bloquear a ${esc(userById(p.userId).name)}</button>`:''}
-   ${me&&p.sharedFrom&&p.userId===me.id?`<button class="btn btn-danger btn-sm" data-action="delete-shared" data-p="${p.id}">${ic('trash')} Eliminar de mi perfil</button>`:''}
-   ${me&&(p.userId===me.id||isDeveloper())&&!p.sharedFrom&&!['REMOVED','REJECTED'].includes(p.status)?`<button class="btn btn-ghost btn-sm" data-eco-edit="${p.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg> Editar publicación</button>`:''}${me&&p.userId===me.id&&p.status!=='REMOVED'?`<button class="btn btn-danger btn-sm" data-action="delete-own-post" data-p="${p.id}">${ic('trash')} Eliminar mi publicación</button>`:''}${me&&isAdmin()&&p.status!=='REMOVED'&&p.userId!==me.id?`<button class="btn btn-danger btn-sm" data-action="moderator-delete-post" data-p="${p.id}">${ic('trash')} Eliminar publicación</button>`:''}
-   ${me&&(p.userId===me.id||['ORG','EMPRESA'].includes(me.kind))&&p.status==='APPROVED'&&!p.sponsored?`<button class="btn btn-amber btn-sm" data-action="req-promo" data-p="${el.dataset.p}">${ic('mega')} Impulsar publicación</button>`:''}
-   <button class="btn btn-ghost btn-sm" data-action="close-modal">Cancelar</button></div>`);break;}
+   if(!p)break;
+   modal(`<div class="eco-post-actions">
+    <div class="epa-head"><span class="epa-kicker">PUBLICACIÓN</span><h3>Opciones</h3><p>Elige qué quieres hacer con esta publicación.</p></div>
+    <div class="epa-list">
+    ${['Spam o publicidad','Fuera de categoría','Información falsa','Contenido ofensivo','Otro'].map(r=>`<button type="button" class="epa-item" data-action="do-flag" data-p="${el.dataset.p}" data-r="${r}">${ic('alert')}<span>Denunciar: ${r}</span></button>`).join('')}
+    ${me&&p.userId!==me.id?`<button type="button" class="epa-item" data-action="block" data-u="${p.userId}">${ic('users')}<span>Bloquear a ${esc(userById(p.userId).name)}</span></button>`:''}
+    ${me&&p.sharedFrom&&p.userId===me.id?`<button type="button" class="epa-item epa-danger" data-action="delete-shared" data-p="${p.id}">${ic('trash')}<span>Eliminar de mi perfil</span></button>`:''}
+    ${me&&(p.userId===me.id||isDeveloper())&&!p.sharedFrom&&!['REMOVED','REJECTED'].includes(p.status)?`<button type="button" class="epa-item" data-eco-edit="${p.id}">${ic('pen')}<span>Editar publicación</span></button>`:''}
+    ${me&&p.userId===me.id&&p.status!=='REMOVED'?`<button type="button" class="epa-item epa-danger" data-action="delete-own-post" data-p="${p.id}">${ic('trash')}<span>Eliminar mi publicación</span></button>`:''}
+    ${me&&isAdmin()&&p.status!=='REMOVED'&&p.userId!==me.id?`<button type="button" class="epa-item epa-danger" data-action="moderator-delete-post" data-p="${p.id}">${ic('trash')}<span>Eliminar publicación</span></button>`:''}
+    ${me&&(p.userId===me.id||['ORG','EMPRESA'].includes(me.kind))&&p.status==='APPROVED'&&!p.sponsored?`<button type="button" class="epa-item epa-promote" data-action="req-promo" data-p="${el.dataset.p}">${ic('mega')}<span>Impulsar publicación</span></button>`:''}
+    </div>
+    <button type="button" class="epa-cancel" data-action="close-modal">Cancelar</button>
+   </div>`);break;}
   case 'do-flag':run(()=>{if(!sess())return guard();API.flag(el.dataset.p,el.dataset.r);closeModal();toast('Gracias. El equipo revisará esta denuncia.','ok');});break;
   case 'req-promo':run(()=>{API.requestPromo(el.dataset.p);closeModal();toast('Solicitud enviada. También puedes pedir apoyo económico del Fondo en Donar.','ok');});break;
   case 'new-post':{const u=sess();if(!u)return guard();postImgs=[];postVideo=null;
@@ -3528,7 +3534,12 @@ document.addEventListener('click',e=>{
    <form data-form="post" class="np-form">
     <div class="np-row"><span class="np-ico">${ic('pen')}</span><div class="field"><label>Título</label><input type="text" id="np-title" required maxlength="160" placeholder="Un título claro"></div></div>
     <div class="np-row"><span class="np-ico">${ic('msg')}</span><div class="field"><label>Descripción</label><textarea id="np-body" required maxlength="4000" placeholder="Cuenta lo que pasa o comparte una iniciativa. Usa #hashtags."></textarea></div></div>
-    <div class="np-row"><span class="np-ico">${ic('folder')}</span><div class="field"><label>Categoría</label><div class="np-sel"><select id="np-cat" required><option value="">Selecciona</option>${catOptions()}</select>${ic('chev')}</div></div></div>
+    <div class="np-row"><span class="np-ico">${ic('folder')}</span><div class="field"><label>Categoría</label><div class="np-category-picker">
+      <div class="np-category-grid" role="group" aria-label="Selecciona una categoría">
+       ${DB.cats.filter(c=>c.active&&GRUPOS.includes(c.grp)).map(c=>`<button type="button" class="np-category-option" data-np-cat="${c.id}"><span class="np-category-mark">${ic('leaf')}</span><span>${esc(c.name)}</span></button>`).join('')}
+      </div>
+      <select id="np-cat" tabindex="-1" aria-hidden="true" aria-label="Categoría"><option value="">Selecciona una categoría</option>${catOptions()}</select>
+     </div></div></div>
     <div class="np-row"><span class="np-ico">${ic('pin')}</span><div class="field"><label>Ubicación (opcional)</label><input type="text" id="np-loc" placeholder="Ej. Col. Centro, mercado municipal"></div></div>
     <div class="np-row"><span class="np-ico">${ic('image')}</span><div class="field"><label>Fotografías</label><label class="np-drop"><input type="file" accept="image/*" multiple data-photos="post"><span class="np-fbtn">${ic('plus')}${ic('image')} Seleccionar archivos</span><small class="np-fn" data-def="ningún archivo seleccionado">ningún archivo seleccionado ${ic('info')}</small></label><div class="previews" id="post-previews"></div></div></div>
     ${Supabase.enabled()?`<div class="np-row"><span class="np-ico">${ic('vplay')}</span><div class="field"><label>Video (opcional, máx. 50 MB)</label><label class="np-drop"><input type="file" accept="video/*" data-video="post"><span class="np-fbtn">${ic('cloud')} Seleccionar archivo</span><small class="np-fn" data-def="Máx. 50 MB • MP4, MOV">Máx. 50 MB • MP4, MOV</small></label><div class="previews" id="post-video-preview"></div></div></div>`:''}
@@ -3625,7 +3636,16 @@ document.addEventListener('submit',e=>{
   if(d==='signup'){if(!$('#s-terms')?.checked){toast('Debes aceptar los Términos y Condiciones.','err');return;}Cloud.signup($('#s-n').value,$('#s-e').value,$('#s-p').value,signupKind).then(m=>{toast(m,'ok');location.hash=sess()?ecoTakeNext():'#/entrar';render();}).catch(m=>toast(String(m),'err'));}
   if(d==='verify'){API.verify($('#v-code').value);toast('Correo verificado. ¡Bienvenido!','ok');location.hash=ecoTakeNext();render();}
   if(d==='post'){
-   const payload={title:$('#np-title').value,body:$('#np-body').value,cat:$('#np-cat').value,loc:$('#np-loc').value,imgs:[...postImgs],video:postVideo};
+   const category=$('#np-cat').value;
+   if(!category){
+    toast('Selecciona una categoría para continuar.','err');
+    const grid=document.querySelector('.np-category-grid');
+    if(grid)grid.scrollIntoView({behavior:'smooth',block:'center'});
+    const first=grid&&grid.querySelector('.np-category-option');
+    if(first)first.focus({preventScroll:true});
+    return;
+   }
+   const payload={title:$('#np-title').value,body:$('#np-body').value,cat:category,loc:$('#np-loc').value,imgs:[...postImgs],video:postVideo};
    API.createPost(payload).then(()=>{closeModal();toast((['DEV','ADMIN','MOD'].includes(sess()?.role)||sess()?.id==='u1')?'Publicación publicada directamente.':'Enviada a moderación. Te avisaremos al aprobarla.','ok');render();}).catch(m=>toast(String(m?.message||m),'err'));
    return;
   }
@@ -4797,6 +4817,7 @@ var MapX=(()=>{
  ['hola|buenas|hey|buenos|que tal|saludos','¡Hola! 🌱 Soy <b>Eco</b>. Puedo orientarte en la app, explicarte cómo reportar, publicar o unirte a campañas, y darte consejos ecológicos.','feliz'],
  ['gracias|genial|perfecto|excelente','¡Con mucho gusto! Para eso estoy 💚','guino'],
  ['adios|chao|nos vemos|hasta luego','¡Hasta pronto! Cuida el planeta, yo cuido la app 🌍','guino'],
+  ['quien hizo|quien creo|quien desarrollo|quien es el creador|quien es el fundador|creador de econova|desarrollador de econova','EcoNova fue creada y desarrollada por <b>Ángel Alberto Guzmán Martínez</b>, fundador del proyecto.','feliz'],
  ['quien eres|como te llamas|tu nombre|eres un|eres real|que eres','Soy <b>Eco</b>, la mascota de EcoNova: tu aliado en un mundo más verde. Todavía soy un asistente sencillo, pero aprendo rápido 😊','feliz'],
  ['ayuda|que puedes|que sabes|como funciona|opciones|menu','Puedo ayudarte con: <b>reportar problemas</b>, el <b>mapa</b>, <b>campañas</b>, <b>publicar</b>, <b>donar</b>, tu <b>cuenta</b> y <b>consejos ecológicos</b> (reciclaje, agua, energía, composta). También puedo llevarte a cualquier sección: pídeme “llévame al mapa”.','emocionado'],
  ['que es econova|para que sirve|de que trata|econova es|acerca de','<b>EcoNova</b> es una red social ambiental que convierte la interacción digital en acciones reales: reportar problemas, informarte, organizar campañas, sumarte como voluntario, donar y medir el impacto.','feliz'],
@@ -5991,6 +6012,84 @@ body:has(#modal.open .np-head) #eco-notif-float{display:none!important}
  }
  window.addEventListener('scroll',function(){if(!tk){tk=true;requestAnimationFrame(upd);}},{passive:true});
  window.addEventListener('hashchange',function(){document.body.classList.remove('nav-hide');last=0;});
+})();
+</script>
+
+
+<style id="econova-ui-fixes">
+.np-category-picker{width:100%;min-width:0}
+.np-category-picker>select{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.np-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:3px}
+.np-category-option{min-height:54px;display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--ink);font-size:13px;font-weight:650;line-height:1.25;transition:border-color .16s,background .16s,box-shadow .16s}
+.np-category-option:hover{border-color:#9bc9ad;background:#f7fbf8}
+.np-category-option.is-selected{border-color:var(--eco);background:#edf7f0;box-shadow:inset 0 0 0 1px var(--eco);color:var(--green-d)}
+.np-category-mark{width:30px;height:30px;flex:none;border-radius:9px;background:#edf5ef;color:var(--green);display:grid;place-items:center}
+.np-category-mark svg{width:16px;height:16px}
+@media(max-width:430px){.np-category-grid{grid-template-columns:1fr 1fr;gap:7px}.np-category-option{padding:9px 8px;font-size:12px;min-height:52px;gap:7px}}
+.privacy-card{width:100%;max-width:760px;margin-left:auto;margin-right:auto;padding:clamp(18px,3vw,28px)!important;border-radius:20px}
+.privacy-card>h3,.privacy-card h3{font-size:17px;letter-spacing:-.02em;margin-bottom:5px}
+.privacy-card .field{margin-top:15px;margin-bottom:14px}
+.privacy-card .field input,.privacy-card .field textarea{border-radius:12px;background:#fbfcfa;border-color:#dfe7df;padding:12px 14px}
+.privacy-card .privacy-row{padding:15px 2px;gap:14px}
+.privacy-card .privacy-row span{min-width:0}
+.privacy-card .privacy-row b{font-size:14px}
+.privacy-card .privacy-row small{line-height:1.4}
+.privacy-card>hr{margin:24px 0!important;border-color:#e9eee8!important}
+.privacy-card .btn-block{min-height:48px;border-radius:12px}
+#modal .ep-form{max-width:100%}
+#modal .ep-card{border-radius:18px}
+#modal .ep-top{position:sticky;top:0;z-index:3;background:#fff;padding:12px 0}
+#modal .ep-nav{width:40px;height:40px;border-radius:12px;background:#f3f6f2;display:grid;place-items:center}
+#modal .ep-save{min-height:48px;border-radius:12px}
+.panel-drop.menu-panel{border-radius:18px;border-color:#e6ece5;box-shadow:0 18px 50px rgba(15,35,22,.18)}
+.menu-profile{padding:18px;background:#f6faf6}
+.menu-item{min-height:48px;border-radius:9px;margin:1px 6px;width:calc(100% - 12px);padding:10px 12px}
+.menu-title{padding-left:18px}
+#eco-sheet .cm-menu-c{border-radius:24px 24px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 35px rgba(0,0,0,.12)}
+#eco-sheet .cm-menu-c button{min-height:52px;font-size:15px;text-align:left;padding:14px 12px}
+
+#modal .eco-post-actions{width:100%;max-width:480px}
+#modal .epa-head{padding:2px 2px 15px}
+#modal .epa-kicker{display:block;color:var(--eco);font-size:10px;font-weight:800;letter-spacing:.13em;margin-bottom:5px}
+#modal .epa-head h3{margin:0 0 5px;font-size:21px;letter-spacing:-.03em}
+#modal .epa-head p{margin:0;color:var(--mut);font-size:13px;line-height:1.45}
+#modal .epa-list{display:flex;flex-direction:column;gap:5px}
+#modal .epa-item{width:100%;min-height:48px;display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid transparent;border-radius:12px;background:#f7f9f6;color:var(--ink);text-align:left;font-size:13.5px;font-weight:600}
+#modal .epa-item:hover{background:#edf5ef;border-color:#dceade}
+#modal .epa-item svg{width:18px;height:18px;flex:none;color:var(--eco)}
+#modal .epa-item span{flex:1}
+#modal .epa-item.epa-danger{color:#b42335;background:#fff7f7}
+#modal .epa-item.epa-danger svg{color:#b42335}
+#modal .epa-item.epa-promote{color:#79520b;background:#fff9e9}
+#modal .epa-item.epa-promote svg{color:#b7791f}
+#modal .epa-cancel{width:100%;min-height:46px;margin-top:12px;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--mut);font-weight:700}
+@media(max-width:560px){#modal .eco-post-actions{max-width:none}#modal .epa-item{min-height:50px}}
+
+.post .bar button{min-height:44px}
+@media(max-width:640px){.privacy-card{border-radius:0;border-left:0;border-right:0;box-shadow:none;padding:18px 16px!important}.panel-drop.menu-panel{border-radius:18px}}
+</style>
+<script id="econova-interaction-fixes">
+(function(){
+ 'use strict';
+ document.addEventListener('click',function(e){
+   var tile=e.target.closest('[data-np-cat]');if(!tile)return;
+   var select=document.getElementById('np-cat');if(!select)return;
+   select.value=tile.dataset.npCat;
+   select.dispatchEvent(new Event('change',{bubbles:true}));
+   document.querySelectorAll('.np-category-option').forEach(function(b){
+     var on=b===tile;b.classList.toggle('is-selected',on);b.setAttribute('aria-pressed',on?'true':'false');
+   });
+ });
+ function clearExploreSearch(){
+   var path=(location.hash||'#/').replace(/^#\//,'').split('/')[0];
+   if(path!=='explorar'){
+     if(typeof GQ!=='undefined')GQ='';
+     var global=document.getElementById('global-search');if(global)global.value='';
+     var explore=document.getElementById('expq');if(explore)explore.value='';
+     if(window._qt){clearTimeout(window._qt);window._qt=null;}
+   }
+ }
+ window.addEventListener('hashchange',function(){setTimeout(clearExploreSearch,0);});
 })();
 </script>
 
